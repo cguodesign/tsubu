@@ -38,10 +38,12 @@ code, kbd, pre, .mono { font-family: var(--mono); }
 code { font-size: 0.92em; color: var(--ink); } /* inline code keeps the ink colour even in quiet text, so it reads on the well */
 h1, h2, h3, h4 { font-family: var(--display); font-weight: 700; line-height: 1.3; text-wrap: balance; margin: 0; letter-spacing: 0; }
 
-/* one language at a time: the toggle sets data-lang on <html> and the stylesheet hides the other */
-:root:not([data-lang="zh"]) .zh { display: none !important; }
-:root[data-lang="zh"] .en { display: none !important; }
+/* one language at a time: the switch sets data-lang on <html> and the stylesheet hides the others */
+:root:not([data-lang="zh"]):not([data-lang="ja"]) :is(.zh, .ja) { display: none !important; }
+:root[data-lang="zh"] :is(.en, .ja) { display: none !important; }
+:root[data-lang="ja"] :is(.en, .zh) { display: none !important; }
 :root[data-lang="zh"] body { font-family: var(--body), "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+:root[data-lang="ja"] body { line-break: strict; }
 
 /* masthead and navigation. Links are set like tsubu segments: a dotted line under each, and the
    current page on a solid band, which is how the library marks the segment being spoken. */
@@ -52,13 +54,16 @@ h1, h2, h3, h4 { font-family: var(--display); font-weight: 700; line-height: 1.3
 .nav a { color: var(--ink); text-decoration: none; padding: 1px 0.3em; border-bottom: 2px dotted var(--gunjo); }
 .nav a:hover { border-bottom-style: solid; }
 .nav a[aria-current="page"] { background: var(--ruri); color: var(--paper); border-radius: 3px; border-bottom-color: transparent; }
-.nav .lang { font: inherit; font-weight: 500; color: var(--ink); background: none; border: 1px solid var(--gunjo); border-radius: 999px; padding: 1px 10px; cursor: pointer; }
+.nav .langs { display: inline-flex; border: 1px solid var(--gunjo); border-radius: 999px; overflow: hidden; }
+.nav .lang { font: inherit; font-size: 13px; font-weight: 500; color: var(--ink); background: none; border: 0; padding: 1px 9px; cursor: pointer; }
+.nav .lang + .lang { border-left: 1px solid var(--gunjo); }
 .nav .lang:hover { background: var(--well); }
+.nav .lang[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 .lede { margin: 0; max-width: 60ch; font-size: 15px; }
 
 /* sentences drawn on the paper itself, without a preset: the site's own colour groups, so that
    every state, applied or not, meets the thresholds (the label grains are never applied) */
-.label .kanji .tsubu, .layer .tsubu, .facts .ja .tsubu, .stage.paper .tsubu { --tsubu-backdrop: #f3f3f2; --tsubu-text-color: var(--ink); --tsubu-ruby-color: var(--ruri); --tsubu-underline-color: var(--gunjo);
+.label .kanji .tsubu, .layer .tsubu, .facts .sent .tsubu, .stage.paper .tsubu { --tsubu-backdrop: #f3f3f2; --tsubu-text-color: var(--ink); --tsubu-ruby-color: var(--ruri); --tsubu-underline-color: var(--gunjo);
   --tsubu-current-bg: var(--ruri); --tsubu-current-color: var(--paper); --tsubu-current-ruby-color: var(--ruri); --tsubu-current-underline-color: var(--shirooi); --tsubu-past-color: var(--gunjo); --tsubu-past-ruby-color: var(--gunjo); }
 
 /* section labels: a kanji drawn by tsubu at 22px, then the title at 13px; the proportion is the
@@ -103,7 +108,7 @@ td code, th code { white-space: nowrap; }
    The web fonts have a content area of about 1.45em; tsubu draws the highlight and the underline
    from the em box of the text (see "The em box" in tsubu.css), so nothing here needs to move the
    readings. A little more line height and reserve than the defaults keep the examples airy. */
-.stage .tsubu, .facts .ja .tsubu { --tsubu-line-height: 1.9; --tsubu-ruby-reserve: 0.45em; }
+.stage .tsubu, .facts .sent .tsubu { --tsubu-line-height: 1.9; --tsubu-ruby-reserve: 0.45em; }
 .ex { margin: 16px 0 24px; }
 .stage { position: relative; padding: 24px 26px 28px; border-radius: 6px; background: #ffffff; font-family: var(--body); font-size: clamp(22px, 3.2vw, 34px); overflow: hidden; }
 .stage[data-tsubu-theme="dark"] { background: #0f172a; }

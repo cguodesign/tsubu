@@ -10,7 +10,7 @@
 /* The home page: a 16:9 film stage, then the loupe, both on the full measure, then where to go. */
 .hero { padding-block: 10px 6px; }
 .hero h1 { font-size: clamp(28px, 4.4vw, 46px); max-width: 24ch; margin: 0 0 10px; }
-.hero h1 .ja { color: var(--ruri); }
+.hero h1 .accent { color: var(--ruri); }
 .hero .lede { max-width: 64ch; font-size: 16px; }
 
 /* the film */
@@ -81,8 +81,8 @@
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 18px 32px; margin: 0; padding: 0; list-style: none; }
 .facts li { min-width: 0; font-size: 14px; }
 .facts b { display: block; font-family: var(--display); font-size: 17px; margin: 0 0 4px; }
-.facts .ja { display: block; font-family: var(--display); font-weight: 700; font-size: 24px; color: var(--ink); margin: 0 0 8px; --tsubu-ruby-size: 0.42em; --tsubu-ruby-color: var(--ruri); --tsubu-underline-color: var(--gunjo); }
-.facts .ja .tsubu { --tsubu-current-bg: var(--ruri); --tsubu-current-color: var(--paper); --tsubu-current-ruby-color: var(--ruri); --tsubu-current-underline-color: var(--shirooi); --tsubu-past-color: var(--gunjo); --tsubu-past-ruby-color: var(--gunjo); }
+.facts .sent { display: block; font-family: var(--display); font-weight: 700; font-size: 24px; color: var(--ink); margin: 0 0 8px; --tsubu-ruby-size: 0.42em; --tsubu-ruby-color: var(--ruri); --tsubu-underline-color: var(--gunjo); }
+.facts .sent .tsubu { --tsubu-current-bg: var(--ruri); --tsubu-current-color: var(--paper); --tsubu-current-ruby-color: var(--ruri); --tsubu-current-underline-color: var(--shirooi); --tsubu-past-color: var(--gunjo); --tsubu-past-ruby-color: var(--gunjo); }
 .go { padding-block: 24px 8px; }
 .go .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
 @media (max-width: 600px) { .ui .tag { font-size: 10px; } }
@@ -92,13 +92,13 @@
   <header class="mast"></header>
 
   <section class="hero">
-    <h1><span class="en">One Japanese sentence, read along <span class="ja">grain by grain</span>.</span><span class="zh" lang="zh-CN">一句日语，<span class="ja">一粒一粒</span>地跟着读。</span></h1>
+    <h1><span class="en">One Japanese sentence, read along <span class="accent">grain by grain</span>.</span><span class="zh" lang="zh-CN">一句日语，<span class="accent">一粒一粒</span>地跟着读。</span><span class="ja" lang="ja">日本語の一文を、<span class="accent">一粒ずつ</span>読み進める。</span></h1>
     <p class="lede en">tsubu is a small, dependency-free browser library that draws exactly one sentence for read-along and language learning: a dotted line under each segment, furigana that switch on and off without moving a character, and a highlight that follows the voice as a pure function of time.</p>
-    <p class="lede zh" lang="zh-CN">tsubu 是一个很小、零依赖的浏览器库，只画一句话，用于跟读和语言学习：每段一条点状下划线，注音开关时任何一个字都不移动，高亮作为时间的纯函数跟着声音走。</p>
+    <p class="lede zh" lang="zh-CN">tsubu 是一个很小、零依赖的浏览器库，只画一句话，用于跟读和语言学习：每段一条点状下划线，注音开关时任何一个字都不移动，高亮作为时间的纯函数跟着声音走。</p><p class="lede ja" lang="ja">tsubu は、音読や語学学習のために「一文だけ」を描く、依存ゼロの小さなブラウザライブラリです。文節ごとの点線の下線、文字を一切動かさずに切り替えられるふりがな、そして時刻の純関数として声に追従するハイライトを備えています。</p>
   </section>
 
   <section class="film" aria-labelledby="film-title">
-    <h2 class="label" id="film-title"><span class="kanji" data-ruby="うごき">動</span><span class="en">In time</span><span class="zh" lang="zh-CN">随时间</span></h2>
+    <h2 class="label" id="film-title"><span class="kanji" data-ruby="うごき">動</span><span class="en">In time</span><span class="zh" lang="zh-CN">随时间</span><span class="ja" lang="ja">時間とともに</span></h2>
     <div class="stage screen" id="stage">
       <canvas id="fx" aria-hidden="true"></canvas>
       <div class="film-line" id="line" data-field="shironeri" data-unchecked></div>
@@ -115,11 +115,11 @@
       <output id="tc" for="scrub">0.00 s</output>
     </div>
     <p class="note en">Every frame is drawn from the time alone, by <code>renderAt(t)</code>: the same page plays here and renders to video frame by frame. The sentence is drawn by tsubu with the <code>appear</code> preset; the field, the ink grain and the large reading follow the state tsubu reports for that time. The times are set to a beat, not measured from a recording.</p>
-    <p class="note zh" lang="zh-CN">每一帧都只由时间决定，由 <code>renderAt(t)</code> 画出：同一个页面既在这里播放，也能逐帧渲染成视频。句子由 tsubu 用 <code>appear</code> 预设绘制；底色、墨色米粒和大字读音都跟着 tsubu 在那个时刻报告的状态走。时间是按节拍定的，不是从录音里量的。</p>
+    <p class="note zh" lang="zh-CN">每一帧都只由时间决定，由 <code>renderAt(t)</code> 画出：同一个页面既在这里播放，也能逐帧渲染成视频。句子由 tsubu 用 <code>appear</code> 预设绘制；底色、墨色米粒和大字读音都跟着 tsubu 在那个时刻报告的状态走。时间是按节拍定的，不是从录音里量的。</p><p class="note ja" lang="ja">どのフレームも時刻だけから <code>renderAt(t)</code> で描かれます。同じページがここで再生され、そのままフレームごとに動画へも書き出せます。文は tsubu が <code>appear</code> プリセットで描き、背景の色面、墨色の米粒、大きな読みは、その時刻に tsubu が返す状態に従います。時刻は拍に合わせて決めたもので、録音から計測したものではありません。</p>
   </section>
 
   <section class="loupe-sec" aria-labelledby="loupe-title">
-    <h2 class="label" id="loupe-title"><span class="kanji" data-ruby="とおる">透</span><span class="en">Under the loupe</span><span class="zh" lang="zh-CN">放大镜下</span></h2>
+    <h2 class="label" id="loupe-title"><span class="kanji" data-ruby="とおる">透</span><span class="en">Under the loupe</span><span class="zh" lang="zh-CN">放大镜下</span><span class="ja" lang="ja">ルーペの下で</span></h2>
     <div class="loupe" id="loupe" tabindex="0" aria-describedby="loupe-help">
       <div class="layer base" id="base" data-unchecked></div>
       <div class="layer top" id="top" aria-hidden="true"><svg class="guides" id="guides"></svg></div>
@@ -127,33 +127,33 @@
     </div>
     <div class="loupe-note" id="loupe-help">
       <p class="en"><b>Move over the sentence</b> to read its furigana, with each segment's box and its time. On a phone, tap a word; with the keyboard, focus the sentence and use the arrow keys.</p>
-      <p class="zh" lang="zh-CN"><b>把指针移到句子上</b>，就能看到注音、每一段的框和它的时间。手机上点一个词；用键盘时，先聚焦句子，再按方向键。</p>
+      <p class="zh" lang="zh-CN"><b>把指针移到句子上</b>，就能看到注音、每一段的框和它的时间。手机上点一个词；用键盘时，先聚焦句子，再按方向键。</p><p class="ja" lang="ja"><b>文の上にポインタを重ねる</b>と、ふりがな、各文節の枠、その時刻が見えます。スマートフォンでは語をタップ、キーボードでは文にフォーカスして矢印キーで移動します。</p>
       <p class="en">The sentence is drawn twice from the same HTML, once with furigana off and once with them on. The two layers line up exactly because switching furigana in tsubu moves nothing.</p>
-      <p class="zh" lang="zh-CN">同一段 HTML 画了两遍，一遍不带注音，一遍带。两层完全对齐，因为在 tsubu 里开关注音什么都不会动。</p>
+      <p class="zh" lang="zh-CN">同一段 HTML 画了两遍，一遍不带注音，一遍带。两层完全对齐，因为在 tsubu 里开关注音什么都不会动。</p><p class="ja" lang="ja">同じ HTML を、ふりがななしとありで二度描いています。tsubu ではふりがなを切り替えても何も動かないので、二つの層はぴったり重なります。</p>
     </div>
   </section>
 
   <section class="what" aria-labelledby="what-title">
-    <h2 class="label" id="what-title"><span class="kanji" data-ruby="つぶ">粒</span><span class="en">What it does</span><span class="zh" lang="zh-CN">它做什么</span></h2>
+    <h2 class="label" id="what-title"><span class="kanji" data-ruby="つぶ">粒</span><span class="en">What it does</span><span class="zh" lang="zh-CN">它做什么</span><span class="ja" lang="ja">できること</span></h2>
     <ul class="facts" id="facts">
-      <li><span class="ja" data-fact="0"></span><b class="en">One grain per segment</b><b class="zh" lang="zh-CN">一段一粒</b><span class="en">The sentence arrives already cut into segments (for Japanese, <i>bunsetsu</i>). Each gets its own dotted underline; a word with a reading is never split.</span><span class="zh" lang="zh-CN">句子传进来时已经切好了段（日语里就是文节）。每段有自己的点状下划线；带读音的词不会被拆开。</span></li>
-      <li><span class="ja" data-fact="1"></span><b class="en">Furigana that move nothing</b><b class="zh" lang="zh-CN">开关注音，字不动</b><span class="en">Readings are <code>&lt;ruby&gt;</code> and switch on and off without moving a character, which a test measures in a real browser.</span><span class="zh" lang="zh-CN">读音是 <code>&lt;ruby&gt;</code>，开关时任何一个字都不移动；有测试在真实浏览器里量过。</span></li>
-      <li><span class="ja" data-fact="2"></span><b class="en">A frame is a function of <code>t</code></b><b class="zh" lang="zh-CN">每一帧都是 <code>t</code> 的函数</b><span class="en"><code>stateAt(t)</code> and <code>apply(root, t)</code> are pure. No timers, no transitions: live playback and frame-by-frame capture draw the same thing.</span><span class="zh" lang="zh-CN"><code>stateAt(t)</code> 和 <code>apply(root, t)</code> 是纯函数。没有计时器、没有过渡：实时播放和逐帧截图画出来完全一样。</span></li>
-      <li><span class="ja" data-fact="3"></span><b class="en">Measured colours</b><b class="zh" lang="zh-CN">实测的颜色</b><span class="en">Themes for a light page, a dark page and text over video, colours per speaker, and <code>checkContrast</code>, which measures every state against WCAG-based thresholds.</span><span class="zh" lang="zh-CN">浅色页、深色页和叠在视频上的三套主题，按说话人上色，以及按 WCAG 阈值测量每个状态的 <code>checkContrast</code>。</span></li>
-      <li><span class="ja" data-fact="4"></span><b class="en">Japanese lines</b><b class="zh" lang="zh-CN">日语的行</b><span class="en">Lines break only between segments and by Japanese line-breaking rules, stay close in length, take their size from the container, and are paged by <code>t</code>. Vertical writing too.</span><span class="zh" lang="zh-CN">只在段与段之间、按禁则断行，各行长度接近，字号随容器变化，超长时按 <code>t</code> 翻页。也支持竖排。</span></li>
-      <li><span class="ja" data-fact="5"></span><b class="en">Motion that shows the reading</b><b class="zh" lang="zh-CN">表现朗读的动效</b><span class="en">Presets <code>appear</code>, <code>mask</code>, <code>blur</code> and <code>underline-draw</code>, each drawn from the state at <code>t</code>, and revealing on the learner's own events.</span><span class="zh" lang="zh-CN">预设 <code>appear</code>、<code>mask</code>、<code>blur</code>、<code>underline-draw</code>，都由 <code>t</code> 时刻的状态画出；也能按学习者的操作揭示。</span></li>
+      <li><span class="sent" lang="ja" data-fact="0"></span><b class="en">One grain per segment</b><b class="zh" lang="zh-CN">一段一粒</b><b class="ja" lang="ja">一文節に一粒</b><span class="en">The sentence arrives already cut into segments (for Japanese, <i>bunsetsu</i>). Each gets its own dotted underline; a word with a reading is never split.</span><span class="zh" lang="zh-CN">句子传进来时已经切好了段（日语里就是文节）。每段有自己的点状下划线；带读音的词不会被拆开。</span><span class="ja" lang="ja">文は文節に分けられた状態で渡されます。文節ごとに点線の下線が付き、読みを持つ語が途中で切れることはありません。</span></li>
+      <li><span class="sent" lang="ja" data-fact="1"></span><b class="en">Furigana that move nothing</b><b class="zh" lang="zh-CN">开关注音，字不动</b><b class="ja" lang="ja">ふりがなを切り替えても動かない</b><span class="en">Readings are <code>&lt;ruby&gt;</code> and switch on and off without moving a character, which a test measures in a real browser.</span><span class="zh" lang="zh-CN">读音是 <code>&lt;ruby&gt;</code>，开关时任何一个字都不移动；有测试在真实浏览器里量过。</span><span class="ja" lang="ja">読みは <code>&lt;ruby&gt;</code> で、表示・非表示を切り替えても文字は一つも動きません。実際のブラウザで計測するテストがそれを保証します。</span></li>
+      <li><span class="sent" lang="ja" data-fact="2"></span><b class="en">A frame is a function of <code>t</code></b><b class="zh" lang="zh-CN">每一帧都是 <code>t</code> 的函数</b><b class="ja" lang="ja">フレームは <code>t</code> の関数</b><span class="en"><code>stateAt(t)</code> and <code>apply(root, t)</code> are pure. No timers, no transitions: live playback and frame-by-frame capture draw the same thing.</span><span class="zh" lang="zh-CN"><code>stateAt(t)</code> 和 <code>apply(root, t)</code> 是纯函数。没有计时器、没有过渡：实时播放和逐帧截图画出来完全一样。</span><span class="ja" lang="ja"><code>stateAt(t)</code> と <code>apply(root, t)</code> は純関数です。タイマーもトランジションもないので、リアルタイム再生とフレーム単位のキャプチャが同じ絵になります。</span></li>
+      <li><span class="sent" lang="ja" data-fact="3"></span><b class="en">Measured colours</b><b class="zh" lang="zh-CN">实测的颜色</b><b class="ja" lang="ja">計測済みの配色</b><span class="en">Themes for a light page, a dark page and text over video, colours per speaker, and <code>checkContrast</code>, which measures every state against WCAG-based thresholds.</span><span class="zh" lang="zh-CN">浅色页、深色页和叠在视频上的三套主题，按说话人上色，以及按 WCAG 阈值测量每个状态的 <code>checkContrast</code>。</span><span class="ja" lang="ja">明るいページ、暗いページ、動画の上の三つのテーマ、話者ごとの配色、そして WCAG に基づくしきい値で全状態を計測する <code>checkContrast</code>。</span></li>
+      <li><span class="sent" lang="ja" data-fact="4"></span><b class="en">Japanese lines</b><b class="zh" lang="zh-CN">日语的行</b><b class="ja" lang="ja">日本語の行</b><span class="en">Lines break only between segments and by Japanese line-breaking rules, stay close in length, take their size from the container, and are paged by <code>t</code>. Vertical writing too.</span><span class="zh" lang="zh-CN">只在段与段之间、按禁则断行，各行长度接近，字号随容器变化，超长时按 <code>t</code> 翻页。也支持竖排。</span><span class="ja" lang="ja">改行は文節の間だけ、禁則処理つき。行の長さは揃い、文字サイズはコンテナに追従し、長い文は <code>t</code> でページ送りされます。縦書きにも対応。</span></li>
+      <li><span class="sent" lang="ja" data-fact="5"></span><b class="en">Motion that shows the reading</b><b class="zh" lang="zh-CN">表现朗读的动效</b><b class="ja" lang="ja">読みを見せるモーション</b><span class="en">Presets <code>appear</code>, <code>mask</code>, <code>blur</code> and <code>underline-draw</code>, each drawn from the state at <code>t</code>, and revealing on the learner's own events.</span><span class="zh" lang="zh-CN">预设 <code>appear</code>、<code>mask</code>、<code>blur</code>、<code>underline-draw</code>，都由 <code>t</code> 时刻的状态画出；也能按学习者的操作揭示。</span><span class="ja" lang="ja">プリセット <code>appear</code>、<code>mask</code>、<code>blur</code>、<code>underline-draw</code> はいずれも時刻 <code>t</code> の状態から描かれ、学習者の操作で明かすこともできます。</span></li>
     </ul>
     <p class="small muted en" style="margin: 14px 0 0; max-width: 72ch">What tsubu does not do: split text into segments, align audio, estimate times, play audio, draw a speech bubble or lay out more than one sentence. Those belong to the caller.</p>
-    <p class="small muted zh" lang="zh-CN" style="margin: 14px 0 0; max-width: 72ch">tsubu 不做的事：切分文本、对齐音频、估算时间、播放音频、画对话气泡、排多句话。这些由调用方负责。</p>
+    <p class="small muted zh" lang="zh-CN" style="margin: 14px 0 0; max-width: 72ch">tsubu 不做的事：切分文本、对齐音频、估算时间、播放音频、画对话气泡、排多句话。这些由调用方负责。</p><p class="small muted ja" style="margin: 14px 0 0; max-width: 72ch" lang="ja">tsubu がしないこと：テキストの分割、音声との整合、時刻の推定、音声の再生、吹き出しの描画、複数の文の配置。これらは呼び出し側の仕事です。</p>
   </section>
 
   <section class="go" aria-label="Where to go">
     <div class="grid">
-      <a class="pointer" href="start.html"><b class="en">Getting started</b><b class="zh" lang="zh-CN">快速开始</b><span class="en">Two files, a 30-second example, and a live one to edit.</span><span class="zh" lang="zh-CN">两个文件、一个 30 秒示例，还有一个可以现场改的。</span></a>
-      <a class="pointer" href="guide.html"><b class="en">Guide</b><b class="zh" lang="zh-CN">指南</b><span class="en">Timing, lines and paging, themes, motion, vertical text, video, subtitles, accessibility.</span><span class="zh" lang="zh-CN">时间、多行与翻页、主题、动效、竖排、录视频、字幕、无障碍。</span></a>
-      <a class="pointer" href="api.html"><b class="en">API</b><b class="zh" lang="zh-CN">API</b><span class="en">Every function, option, state and CSS property.</span><span class="zh" lang="zh-CN">每个函数、选项、状态和 CSS 属性。</span></a>
-      <a class="pointer" href="playground.html"><b class="en">Playground</b><b class="zh" lang="zh-CN">试验场</b><span class="en">Paste a sentence, scrub the time, switch everything, and watch the contrast.</span><span class="zh" lang="zh-CN">贴一句话，拖时间，切换各种选项，看对比度。</span></a>
-      <a class="pointer" href="gallery.html"><b class="en">Gallery</b><b class="zh" lang="zh-CN">画廊</b><span class="en">Every theme, motion preset and writing mode, live.</span><span class="zh" lang="zh-CN">每套主题、每个动效预设、每种书写方向，都是活的。</span></a>
+      <a class="pointer" href="start.html"><b class="en">Getting started</b><b class="zh" lang="zh-CN">快速开始</b><b class="ja" lang="ja">はじめに</b><span class="en">Two files, a 30-second example, and a live one to edit.</span><span class="zh" lang="zh-CN">两个文件、一个 30 秒示例，还有一个可以现场改的。</span><span class="ja" lang="ja">二つのファイル、30 秒の例、そしてその場で書き換えられる例。</span></a>
+      <a class="pointer" href="guide.html"><b class="en">Guide</b><b class="zh" lang="zh-CN">指南</b><b class="ja" lang="ja">ガイド</b><span class="en">Timing, lines and paging, themes, motion, vertical text, video, subtitles, accessibility.</span><span class="zh" lang="zh-CN">时间、多行与翻页、主题、动效、竖排、录视频、字幕、无障碍。</span><span class="ja" lang="ja">タイミング、複数行とページ送り、テーマ、モーション、縦書き、動画、字幕、アクセシビリティ。</span></a>
+      <a class="pointer" href="api.html"><b class="en">API</b><b class="zh" lang="zh-CN">API</b><b class="ja" lang="ja">API</b><span class="en">Every function, option, state and CSS property.</span><span class="zh" lang="zh-CN">每个函数、选项、状态和 CSS 属性。</span><span class="ja" lang="ja">すべての関数、オプション、状態、CSS プロパティ。</span></a>
+      <a class="pointer" href="playground.html"><b class="en">Playground</b><b class="zh" lang="zh-CN">试验场</b><b class="ja" lang="ja">プレイグラウンド</b><span class="en">Paste a sentence, scrub the time, switch everything, and watch the contrast.</span><span class="zh" lang="zh-CN">贴一句话，拖时间，切换各种选项，看对比度。</span><span class="ja" lang="ja">文を貼り付け、時刻を動かし、各オプションを切り替えてコントラストを確かめる。</span></a>
+      <a class="pointer" href="gallery.html"><b class="en">Gallery</b><b class="zh" lang="zh-CN">画廊</b><b class="ja" lang="ja">ギャラリー</b><span class="en">Every theme, motion preset and writing mode, live.</span><span class="zh" lang="zh-CN">每套主题、每个动效预设、每种书写方向，都是活的。</span><span class="ja" lang="ja">すべてのテーマ、モーションプリセット、書字方向を、動く状態で。</span></a>
     </div>
   </section>
 
@@ -469,7 +469,7 @@ window.renderAt = (t) => {
 /* ---------- playback: the clock only chooses t; the frame is renderAt(t) ---------- */
 const play = document.getElementById("play"), scrub = document.getElementById("scrub");
 let playing = !reduce, origin = 0, from = reduce ? 4.2 : 0;
-const words = () => ({ pause: Site.lang() === "zh" ? "暂停" : "Pause", play: Site.lang() === "zh" ? "播放" : "Play" });
+const words = () => ({ pause: Site.word("pause"), play: Site.word("play") });
 function tick(now) { if (!playing) return; if (!origin) origin = now - from * 1000; renderAt(((now - origin) / 1000) % DURATION); requestAnimationFrame(tick); }
 function setPlaying(on) { playing = on; play.textContent = on ? words().pause : words().play; if (on) { origin = 0; from = current; requestAnimationFrame(tick); } }
 play.addEventListener("click", () => setPlaying(!playing));
@@ -551,7 +551,7 @@ const RAIN = { segments: [
   { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], start: 0.9, end: 1.3 }, { parts: [{ text: "お" }, { text: "茶", ruby: "ちゃ" }, { text: "を" }], start: 1.3, end: 1.8 },
   { parts: [{ text: "飲", ruby: "の" }, { text: "みます" }], start: 1.85, end: 2.6 }, { parts: [{ text: "。" }], kind: "punct" },
 ] };
-const facts = [...document.querySelectorAll(".facts .ja")];
+const facts = [...document.querySelectorAll(".facts .sent")];
 const factRoots = facts.map((el, i) => {
   const options = [{}, { ruby: i % 2 === 0 }, {}, { theme: "light" }, {}, { motion: "mask" }][i];
   const s = Tsubu.sentence(RAIN, { announceRuby: false, ...options });

@@ -34,32 +34,32 @@ section.g .label { margin-top: 18px; }
 <body>
 <div class="wrap">
   <header class="mast"></header>
-  <h1 class="page-title"><span class="en">Guide</span><span class="zh" lang="zh-CN">指南</span></h1>
+  <h1 class="page-title"><span class="en">Guide</span><span class="zh" lang="zh-CN">指南</span><span class="ja" lang="ja">ガイド</span></h1>
   <p class="page-lede en">What the library does, section by section, with a live example in each. Everything here is also in the README; the API page has the full surface.</p>
-  <p class="page-lede zh" lang="zh-CN">这个库做的事，一节一节讲，每节都有活的示例。这些内容 README 里都有；完整接口见 API 页。</p>
+  <p class="page-lede zh" lang="zh-CN">这个库做的事，一节一节讲，每节都有活的示例。这些内容 README 里都有；完整接口见 API 页。</p><p class="page-lede ja" lang="ja">このライブラリができることを、節ごとに動く例つきで説明します。内容はすべて README にもあり、API の全体は API ページにあります。</p>
   <ul class="toc">
-    <li><a href="#timing"><span class="en">Input and timing</span><span class="zh" lang="zh-CN">输入与时间</span></a></li>
-    <li><a href="#lines"><span class="en">Several lines and paging</span><span class="zh" lang="zh-CN">多行与翻页</span></a></li>
-    <li><a href="#themes"><span class="en">Themes and contrast</span><span class="zh" lang="zh-CN">主题与对比度</span></a></li>
-    <li><a href="#motion"><span class="en">Motion and revealing</span><span class="zh" lang="zh-CN">动效与揭示</span></a></li>
-    <li><a href="#vertical"><span class="en">Vertical writing</span><span class="zh" lang="zh-CN">竖排</span></a></li>
-    <li><a href="#video"><span class="en">Recording video</span><span class="zh" lang="zh-CN">录制视频</span></a></li>
-    <li><a href="#subtitles"><span class="en">Exporting subtitles</span><span class="zh" lang="zh-CN">导出字幕</span></a></li>
-    <li><a href="#a11y"><span class="en">Accessibility</span><span class="zh" lang="zh-CN">无障碍</span></a></li>
+    <li><a href="#timing"><span class="en">Input and timing</span><span class="zh" lang="zh-CN">输入与时间</span><span class="ja" lang="ja">入力とタイミング</span></a></li>
+    <li><a href="#lines"><span class="en">Several lines and paging</span><span class="zh" lang="zh-CN">多行与翻页</span><span class="ja" lang="ja">複数行とページ送り</span></a></li>
+    <li><a href="#themes"><span class="en">Themes and contrast</span><span class="zh" lang="zh-CN">主题与对比度</span><span class="ja" lang="ja">テーマとコントラスト</span></a></li>
+    <li><a href="#motion"><span class="en">Motion and revealing</span><span class="zh" lang="zh-CN">动效与揭示</span><span class="ja" lang="ja">モーションと明かし</span></a></li>
+    <li><a href="#vertical"><span class="en">Vertical writing</span><span class="zh" lang="zh-CN">竖排</span><span class="ja" lang="ja">縦書き</span></a></li>
+    <li><a href="#video"><span class="en">Recording video</span><span class="zh" lang="zh-CN">录制视频</span><span class="ja" lang="ja">動画の書き出し</span></a></li>
+    <li><a href="#subtitles"><span class="en">Exporting subtitles</span><span class="zh" lang="zh-CN">导出字幕</span><span class="ja" lang="ja">字幕の書き出し</span></a></li>
+    <li><a href="#a11y"><span class="en">Accessibility</span><span class="zh" lang="zh-CN">无障碍</span><span class="ja" lang="ja">アクセシビリティ</span></a></li>
   </ul>
 
   <section class="g" id="timing">
-    <h2 class="label"><span class="kanji" data-ruby="とき">時</span><span class="en">Input and timing</span><span class="zh" lang="zh-CN">输入与时间</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="とき">時</span><span class="en">Input and timing</span><span class="zh" lang="zh-CN">输入与时间</span><span class="ja" lang="ja">入力とタイミング</span></h2>
     <div class="cols">
       <div class="prose">
         <p class="lead en">The sentence comes in already cut into timed segments, and tsubu lights the one being spoken.</p>
-        <p class="lead zh" lang="zh-CN">句子传进来时已经切好段、标好时间，tsubu 把正在读的那一段点亮。</p>
+        <p class="lead zh" lang="zh-CN">句子传进来时已经切好段、标好时间，tsubu 把正在读的那一段点亮。</p><p class="lead ja" lang="ja">文は文節に分けられ、時刻が付いた状態で渡され、tsubu は今読まれている文節を光らせます。</p>
         <p class="en">A <b>segment</b> is one unit of reading, made of parts; a part with <code>ruby</code> is drawn as <code>&lt;ruby&gt;</code>, so a word with a reading is never split. <code>kind: "punct"</code> marks punctuation: no underline, never the segment being spoken, and no time. Times are seconds on your clock, and <code>t</code> uses the same clock.</p>
-        <p class="zh" lang="zh-CN"><b>段</b>是一个朗读单位，由片段组成；带 <code>ruby</code> 的片段画成 <code>&lt;ruby&gt;</code>，所以带读音的词不会被拆开。<code>kind: "punct"</code> 表示标点：没有下划线，永远不是正在读的段，也不带时间。时间以秒为单位，用你的时钟；<code>t</code> 用同一个时钟。</p>
+        <p class="zh" lang="zh-CN"><b>段</b>是一个朗读单位，由片段组成；带 <code>ruby</code> 的片段画成 <code>&lt;ruby&gt;</code>，所以带读音的词不会被拆开。<code>kind: "punct"</code> 表示标点：没有下划线，永远不是正在读的段，也不带时间。时间以秒为单位，用你的时钟；<code>t</code> 用同一个时钟。</p><p class="ja" lang="ja"><b>文節</b>（segment）は読みの単位で、パーツの並びです。<code>ruby</code> を持つパーツは <code>&lt;ruby&gt;</code> として描かれるので、読みを持つ語が途中で切れることはありません。<code>kind: "punct"</code> は句読点で、下線がなく、読まれている文節にはならず、時刻も持ちません。時刻は秒単位で呼び出し側の時計を使い、<code>t</code> も同じ時計です。</p>
         <p class="en">The times decide the <b>timing</b>: <code>"segments"</code> when every non-punctuation segment has <code>start</code> and <code>end</code> (one segment lights at a time); <code>"sentence"</code> when only the sentence has them (the whole sentence lights, and the span is <em>not</em> divided among segments); <code>"none"</code> when there are no times (a static preview; <code>stateAt</code> and <code>apply</code> throw).</p>
-        <p class="zh" lang="zh-CN">时间决定 <b>timing</b>：每个非标点段都有 <code>start</code> 和 <code>end</code> 时是 <code>"segments"</code>（一次亮一段）；只有整句有时间时是 <code>"sentence"</code>（整句一起亮，时间段<em>不会</em>分给各段）；哪里都没有时间时是 <code>"none"</code>（静态预览；<code>stateAt</code> 和 <code>apply</code> 会抛错）。</p>
+        <p class="zh" lang="zh-CN">时间决定 <b>timing</b>：每个非标点段都有 <code>start</code> 和 <code>end</code> 时是 <code>"segments"</code>（一次亮一段）；只有整句有时间时是 <code>"sentence"</code>（整句一起亮，时间段<em>不会</em>分给各段）；哪里都没有时间时是 <code>"none"</code>（静态预览；<code>stateAt</code> 和 <code>apply</code> 会抛错）。</p><p class="ja" lang="ja">時刻が <b>timing</b> を決めます。句読点以外のすべての文節に <code>start</code> と <code>end</code> があれば <code>"segments"</code>（一度に一文節が光る）。文全体にだけ時刻があれば <code>"sentence"</code>（文全体が光り、時間は文節に<em>配分されません</em>）。どこにも時刻がなければ <code>"none"</code>（静的なプレビュー。<code>stateAt</code> と <code>apply</code> は例外を投げます）。</p>
         <p class="en">Every span is half-open, <code>[start, end)</code>. In a gap between two segments the one before is past, the one after is future, and none is current. tsubu never guesses: only some segments timed, overlapping times, or punctuation with a time are refused with an error whose message starts with <code>tsubu:</code>.</p>
-        <p class="zh" lang="zh-CN">每个时间段都是左闭右开的 <code>[start, end)</code>。两段之间的空隙里，前一段是 past，后一段是 future，没有 current。tsubu 从不猜测：只有部分段带时间、时间重叠、标点带时间，都会抛出以 <code>tsubu:</code> 开头的错误。</p>
+        <p class="zh" lang="zh-CN">每个时间段都是左闭右开的 <code>[start, end)</code>。两段之间的空隙里，前一段是 past，后一段是 future，没有 current。tsubu 从不猜测：只有部分段带时间、时间重叠、标点带时间，都会抛出以 <code>tsubu:</code> 开头的错误。</p><p class="ja" lang="ja">区間はすべて半開区間 <code>[start, end)</code> です。文節と文節の隙間では、前の文節が past、後の文節が future で、current はありません。tsubu は推測しません。一部の文節にだけ時刻がある、時刻が重なる、句読点に時刻があるといった入力は、<code>tsubu:</code> で始まるメッセージのエラーで拒否されます。</p>
 <pre><code>const s = Tsubu.sentence({ segments: [...] });
 s.timing            // "segments", "sentence" or "none"
 s.stateAt(1.0)      // { timing, state, progress, current, segments: [{ state, progress }] }
@@ -74,25 +74,25 @@ s.span(2)           // segment 2's own { start, end }, or null: where to seek on
   </section>
 
   <section class="g" id="lines">
-    <h2 class="label"><span class="kanji" data-ruby="ぎょう">行</span><span class="en">Several lines and paging</span><span class="zh" lang="zh-CN">多行与翻页</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="ぎょう">行</span><span class="en">Several lines and paging</span><span class="zh" lang="zh-CN">多行与翻页</span><span class="ja" lang="ja">複数行とページ送り</span></h2>
     <div class="cols">
       <div class="prose">
         <p class="lead en">A long sentence breaks by Japanese rules, keeps its lines even, sizes itself to its box and turns pages as the reading goes on.</p>
-        <p class="lead zh" lang="zh-CN">长句按日语规则断行，各行长度均衡，字号随容器变化，读到哪儿就翻到哪一页。</p>
+        <p class="lead zh" lang="zh-CN">长句按日语规则断行，各行长度均衡，字号随容器变化，读到哪儿就翻到哪一页。</p><p class="lead ja" lang="ja">長い文は日本語の禁則で改行され、行の長さは揃い、文字サイズはコンテナに追従し、読みの進みに合わせてページが送られます。</p>
         <p class="en">A line breaks only between segments, and never where Japanese line-breaking rules (<i>kinsoku</i>) forbid it: no closing bracket, punctuation, <code>ー</code> or small kana at the start of a line, no opening bracket at its end. Segments that may not be parted share a <code>nowrap</code> unit. Lines are balanced with <code>text-wrap: balance</code>, so the last line never holds a lone segment.</p>
-        <p class="zh" lang="zh-CN">行只在段与段之间断开，而且不在日语禁则不允许的地方断：闭合括号、标点、<code>ー</code>、小假名不出现在行首，开括号不出现在行尾。不能分开的段放在同一个 <code>nowrap</code> 单元里。各行用 <code>text-wrap: balance</code> 均衡，最后一行不会只剩一段。</p>
+        <p class="zh" lang="zh-CN">行只在段与段之间断开，而且不在日语禁则不允许的地方断：闭合括号、标点、<code>ー</code>、小假名不出现在行首，开括号不出现在行尾。不能分开的段放在同一个 <code>nowrap</code> 单元里。各行用 <code>text-wrap: balance</code> 均衡，最后一行不会只剩一段。</p><p class="ja" lang="ja">改行は文節の間でだけ起こり、禁則処理に反する位置では起こりません。閉じ括弧、句読点、<code>ー</code>、小書き仮名は行頭に来ず、開き括弧は行末に来ません。分けられない文節は同じ <code>nowrap</code> のユニットにまとめられます。行は <code>text-wrap: balance</code> で均され、最終行に文節が一つだけ残ることはありません。</p>
         <p class="en">Inside an element with class <code>tsubu-fluid</code>, the font size is the container's width divided by a number of characters per line, in three steps (under 480px, to 960px, and over), each configurable, between <code>--tsubu-size-min</code> and <code>--tsubu-size-max</code>. With <code>--tsubu-max-lines</code> set, a longer sentence is paged by <code>t</code>: <code>apply</code> shows the page that holds the segment being spoken, and returns <code>page</code> and <code>pages</code>.</p>
-        <p class="zh" lang="zh-CN">放在带 <code>tsubu-fluid</code> 类的元素里时，字号等于容器宽度除以每行字数，分三档（480px 以下、到 960px、以上），每档都可配置，并限制在 <code>--tsubu-size-min</code> 和 <code>--tsubu-size-max</code> 之间。设了 <code>--tsubu-max-lines</code> 时，更长的句子按 <code>t</code> 翻页：<code>apply</code> 显示正在读的段所在的页，并返回 <code>page</code> 和 <code>pages</code>。</p>
+        <p class="zh" lang="zh-CN">放在带 <code>tsubu-fluid</code> 类的元素里时，字号等于容器宽度除以每行字数，分三档（480px 以下、到 960px、以上），每档都可配置，并限制在 <code>--tsubu-size-min</code> 和 <code>--tsubu-size-max</code> 之间。设了 <code>--tsubu-max-lines</code> 时，更长的句子按 <code>t</code> 翻页：<code>apply</code> 显示正在读的段所在的页，并返回 <code>page</code> 和 <code>pages</code>。</p><p class="ja" lang="ja">クラス <code>tsubu-fluid</code> の要素の中では、文字サイズはコンテナ幅を一行あたりの文字数で割った値になります。三つの段階（480px 未満、960px まで、それ以上）はそれぞれ設定でき、<code>--tsubu-size-min</code> と <code>--tsubu-size-max</code> の範囲に収まります。<code>--tsubu-max-lines</code> を設定すると、それより長い文は <code>t</code> でページ送りされます。<code>apply</code> は読まれている文節のあるページを表示し、<code>page</code> と <code>pages</code> を返します。</p>
 <pre><code>&lt;div class="tsubu-fluid" style="width: 100%; --tsubu-max-lines: 2"&gt;
   &lt;!-- the .tsubu element made by Tsubu.sentence() --&gt;
 &lt;/div&gt;</code></pre>
         <p class="small muted en">Because paging reads the layout, call <code>apply</code> after <code>document.fonts.ready</code>, and again when the container changes size.</p>
-        <p class="small muted zh" lang="zh-CN">翻页要读版面，所以请在 <code>document.fonts.ready</code> 之后调用 <code>apply</code>，容器尺寸变化后再调用一次。</p>
+        <p class="small muted zh" lang="zh-CN">翻页要读版面，所以请在 <code>document.fonts.ready</code> 之后调用 <code>apply</code>，容器尺寸变化后再调用一次。</p><p class="small muted ja" lang="ja">ページ送りはレイアウトを読むので、<code>apply</code> は <code>document.fonts.ready</code> の後に呼び、コンテナのサイズが変わったらもう一度呼んでください。</p>
       </div>
       <div>
         <div class="ctl">
-          <label><span class="en">width</span><span class="zh" lang="zh-CN">宽度</span> <input type="range" id="ln-w" min="200" max="900" value="520" step="10" style="width: 160px"> <output id="ln-wout">520px</output></label>
-          <label><span class="en">max lines</span><span class="zh" lang="zh-CN">最大行数</span> <select id="ln-lines"><option value="">none</option><option>1</option><option selected>2</option><option>3</option></select></label>
+          <label><span class="en">width</span><span class="zh" lang="zh-CN">宽度</span><span class="ja" lang="ja">幅</span> <input type="range" id="ln-w" min="200" max="900" value="520" step="10" style="width: 160px"> <output id="ln-wout">520px</output></label>
+          <label><span class="en">max lines</span><span class="zh" lang="zh-CN">最大行数</span><span class="ja" lang="ja">最大行数</span> <select id="ln-lines"><option value="">none</option><option>1</option><option selected>2</option><option>3</option></select></label>
         </div>
         <div class="frame tsubu-fluid" id="ln-frame"><div class="stage" data-tsubu-theme="light" id="ln"></div></div>
         <div class="transport"><button type="button" id="ln-play">Play</button><input type="range" id="ln-t" aria-label="t"><output id="ln-out">0.00 s</output></div>
@@ -102,44 +102,44 @@ s.span(2)           // segment 2's own { start, end }, or null: where to seek on
   </section>
 
   <section class="g" id="themes">
-    <h2 class="label"><span class="kanji" data-ruby="いろ">色</span><span class="en">Themes and contrast</span><span class="zh" lang="zh-CN">主题与对比度</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="いろ">色</span><span class="en">Themes and contrast</span><span class="zh" lang="zh-CN">主题与对比度</span><span class="ja" lang="ja">テーマとコントラスト</span></h2>
     <div class="cols">
       <div class="prose">
         <p class="lead en">Three measured colour presets, and a function that checks any colours you set against WCAG thresholds.</p>
-        <p class="lead zh" lang="zh-CN">三套实测过的配色预设，外加一个按 WCAG 阈值检查你自己配色的函数。</p>
+        <p class="lead zh" lang="zh-CN">三套实测过的配色预设，外加一个按 WCAG 阈值检查你自己配色的函数。</p><p class="lead ja" lang="ja">計測済みの配色プリセットが三つ、そして自分で設定した色を WCAG のしきい値で検査する関数が一つ。</p>
         <p class="en">Colours are tokens in groups, one per state (future, current, past), each with text, furigana and underline colours, and the current group's highlight. Set them on <code>.tsubu</code> or any ancestor. Three presets, chosen with <code>options.theme</code> or <code>data-tsubu-theme</code> on any ancestor: <code>light</code>, <code>dark</code> and <code>media</code> (text over an image or a video, on a translucent plate). Each preset has colours for speakers <code>a</code> and <code>b</code>.</p>
-        <p class="zh" lang="zh-CN">颜色是一组组的 token，每个状态（future、current、past）一组，各有文字、注音、下划线颜色，current 组还有高亮。设在 <code>.tsubu</code> 或任何祖先上。三套预设，用 <code>options.theme</code> 或任何祖先上的 <code>data-tsubu-theme</code> 选择：<code>light</code>、<code>dark</code>、<code>media</code>（叠在图片或视频上，带半透明底板）。每套预设都给说话人 <code>a</code> 和 <code>b</code> 定义了颜色。</p>
+        <p class="zh" lang="zh-CN">颜色是一组组的 token，每个状态（future、current、past）一组，各有文字、注音、下划线颜色，current 组还有高亮。设在 <code>.tsubu</code> 或任何祖先上。三套预设，用 <code>options.theme</code> 或任何祖先上的 <code>data-tsubu-theme</code> 选择：<code>light</code>、<code>dark</code>、<code>media</code>（叠在图片或视频上，带半透明底板）。每套预设都给说话人 <code>a</code> 和 <code>b</code> 定义了颜色。</p><p class="ja" lang="ja">色はグループ化されたトークンで、状態（future、current、past）ごとに文字、ふりがな、下線の色があり、current のグループにはハイライトもあります。<code>.tsubu</code> か任意の祖先に設定します。プリセットは三つで、<code>options.theme</code> か祖先の <code>data-tsubu-theme</code> で選びます。<code>light</code>、<code>dark</code>、<code>media</code>（画像や動画の上。半透明のプレート付き）。各プリセットには話者 <code>a</code> と <code>b</code> の色もあります。</p>
         <p class="en"><code>Tsubu.checkContrast(root)</code> measures what the browser computes, in every state, against WCAG-based thresholds: 4.5:1 for text and furigana, 3:1 for the underline and the highlight. The furigana above a highlighted segment are checked against the page, since the highlight covers only the line of text. It works on a hidden copy and leaves the page as it was.</p>
-        <p class="zh" lang="zh-CN"><code>Tsubu.checkContrast(root)</code> 测量浏览器算出的颜色，覆盖每个状态，按基于 WCAG 的阈值检查：文字和注音 4.5:1，下划线和高亮 3:1。高亮段上方的注音是对着页面检查的，因为高亮只盖住那一行文字。它在隐藏副本上测量，页面保持原样。</p>
+        <p class="zh" lang="zh-CN"><code>Tsubu.checkContrast(root)</code> 测量浏览器算出的颜色，覆盖每个状态，按基于 WCAG 的阈值检查：文字和注音 4.5:1，下划线和高亮 3:1。高亮段上方的注音是对着页面检查的，因为高亮只盖住那一行文字。它在隐藏副本上测量，页面保持原样。</p><p class="ja" lang="ja"><code>Tsubu.checkContrast(root)</code> はブラウザが算出した色を全状態で計測し、WCAG に基づくしきい値で検査します。文字とふりがなは 4.5:1、下線とハイライトは 3:1 です。ハイライトは本文の行だけを覆うので、その上のふりがなはページに対して検査されます。計測は非表示のコピーで行われ、ページはそのまま残ります。</p>
 <pre><code>const result = Tsubu.checkContrast(root);
 // { ok, checks: [{ state, layer, foreground, background, backdrop, ratio, minimum, ok }], failures }
 Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  // your page, AAA text</code></pre>
         <p class="en">Tick the last box to paint the furigana in a pale grey and watch the check fail. States, themes and speakers change colours only, never weight, padding or size, so none of them can move a character.</p>
-        <p class="zh" lang="zh-CN">勾上最后一个框，把注音涂成浅灰，看检查失败。状态、主题和说话人只改颜色，从不改字重、内边距或尺寸，所以都不会让字移动。</p>
+        <p class="zh" lang="zh-CN">勾上最后一个框，把注音涂成浅灰，看检查失败。状态、主题和说话人只改颜色，从不改字重、内边距或尺寸，所以都不会让字移动。</p><p class="ja" lang="ja">最後のチェックボックスを入れるとふりがなが薄いグレーになり、検査が失敗するのが見えます。状態、テーマ、話者が変えるのは色だけで、太さや余白やサイズは変えないので、文字は動きません。</p>
       </div>
       <div>
         <div class="ctl">
           <label>theme <select id="th-theme"><option>light</option><option>dark</option><option>media</option></select></label>
           <label>speaker <select id="th-speaker"><option value="">none</option><option>a</option><option>b</option></select></label>
-          <label><input type="checkbox" id="th-break"> <span class="en">pale furigana</span><span class="zh" lang="zh-CN">浅灰注音</span></label>
+          <label><input type="checkbox" id="th-break"> <span class="en">pale furigana</span><span class="zh" lang="zh-CN">浅灰注音</span><span class="ja" lang="ja">薄いふりがな</span></label>
         </div>
         <div class="stage" data-tsubu-theme="light" id="th" style="margin-top: 8px"></div>
         <div class="transport"><button type="button" id="th-play">Play</button><input type="range" id="th-t" aria-label="t"><output id="th-out">0.00 s</output></div>
-        <div class="table-wrap"><table><thead><tr><th>layer</th><th><span class="en">lowest ratio</span><span class="zh" lang="zh-CN">最低对比度</span></th><th>min</th><th>state</th></tr></thead><tbody id="th-table"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>layer</th><th><span class="en">lowest ratio</span><span class="zh" lang="zh-CN">最低对比度</span><span class="ja" lang="ja">最低比率</span></th><th>min</th><th>state</th></tr></thead><tbody id="th-table"></tbody></table></div>
       </div>
     </div>
   </section>
 
   <section class="g" id="motion">
-    <h2 class="label"><span class="kanji" data-ruby="うごき">動</span><span class="en">Motion and revealing</span><span class="zh" lang="zh-CN">动效与揭示</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="うごき">動</span><span class="en">Motion and revealing</span><span class="zh" lang="zh-CN">动效与揭示</span><span class="ja" lang="ja">モーションと明かし</span></h2>
     <div class="cols">
       <div class="prose">
         <p class="lead en">Motion presets hide or draw what has not been heard yet, and the caller can reveal segments on any event.</p>
-        <p class="lead zh" lang="zh-CN">动效预设藏起或画出还没听到的部分，调用方可以在任何事件上揭示某一段。</p>
+        <p class="lead zh" lang="zh-CN">动效预设藏起或画出还没听到的部分，调用方可以在任何事件上揭示某一段。</p><p class="lead ja" lang="ja">モーションプリセットは、まだ聞いていない部分を隠したり描いたりします。呼び出し側はどんなイベントでも文節を明かせます。</p>
         <p class="en">Motion presets change how a sentence shows what has and has not been heard. Each is drawn by <code>tsubu.css</code> from the state <code>apply</code> writes, so every frame is still a function of <code>t</code>. <code>appear</code> draws nothing unheard; <code>mask</code> draws blanks with the underline, so the length of what is to come shows; <code>blur</code> blurs it; <code>underline-draw</code> draws the spoken segment's underline in over its time. The catalogue is <code>Tsubu.MOTIONS</code>.</p>
-        <p class="zh" lang="zh-CN">动效预设改变句子显示"已听到"和"未听到"的方式。每一个都由 <code>tsubu.css</code> 根据 <code>apply</code> 写的状态画出，所以每一帧仍然只取决于 <code>t</code>。<code>appear</code> 不画未听到的；<code>mask</code> 画成带下划线的空格，能看出后面还有多长；<code>blur</code> 把它模糊；<code>underline-draw</code> 在正在读的段的时间里逐渐画出下划线。目录是 <code>Tsubu.MOTIONS</code>。</p>
+        <p class="zh" lang="zh-CN">动效预设改变句子显示"已听到"和"未听到"的方式。每一个都由 <code>tsubu.css</code> 根据 <code>apply</code> 写的状态画出，所以每一帧仍然只取决于 <code>t</code>。<code>appear</code> 不画未听到的；<code>mask</code> 画成带下划线的空格，能看出后面还有多长；<code>blur</code> 把它模糊；<code>underline-draw</code> 在正在读的段的时间里逐渐画出下划线。目录是 <code>Tsubu.MOTIONS</code>。</p><p class="ja" lang="ja">モーションプリセットは、聞いた部分とまだ聞いていない部分の見せ方を変えます。どれも <code>apply</code> が書く状態から <code>tsubu.css</code> が描くので、フレームは変わらず <code>t</code> だけで決まります。<code>appear</code> は未聴の部分を描きません。<code>mask</code> は下線だけの空白にして、この先の長さを見せます。<code>blur</code> はぼかします。<code>underline-draw</code> は読まれている文節の下線をその時間をかけて引きます。カタログは <code>Tsubu.MOTIONS</code> です。</p>
         <p class="en"><b>Revealing on your events.</b> <code>Tsubu.setRevealed(root, [2, 3])</code> shows segments as if heard, whatever <code>t</code> is: a word the learner said right, a tap, a button. tsubu handles no events itself; <code>Tsubu.segmentOf(event.target)</code> tells a click handler which segment was hit. A sentence without times with <code>mask</code> is a fill-in exercise: every segment starts as a blank.</p>
-        <p class="zh" lang="zh-CN"><b>按你的事件揭示。</b><code>Tsubu.setRevealed(root, [2, 3])</code> 让这些段像已听到一样显示，不管 <code>t</code> 是多少：学习者说对的词、一次点击、一个按钮。tsubu 自己不处理事件；<code>Tsubu.segmentOf(event.target)</code> 告诉点击处理函数点中了哪一段。没有时间的句子配上 <code>mask</code> 就是填空练习：每段一开始都是空格。</p>
+        <p class="zh" lang="zh-CN"><b>按你的事件揭示。</b><code>Tsubu.setRevealed(root, [2, 3])</code> 让这些段像已听到一样显示，不管 <code>t</code> 是多少：学习者说对的词、一次点击、一个按钮。tsubu 自己不处理事件；<code>Tsubu.segmentOf(event.target)</code> 告诉点击处理函数点中了哪一段。没有时间的句子配上 <code>mask</code> 就是填空练习：每段一开始都是空格。</p><p class="ja" lang="ja"><b>イベントで明かす。</b><code>Tsubu.setRevealed(root, [2, 3])</code> は、<code>t</code> がいくつでも、それらの文節を聞いた後のように見せます。学習者が正しく言えた語、タップ、ボタンなどに。tsubu 自身はイベントを扱いません。<code>Tsubu.segmentOf(event.target)</code> がクリックハンドラにどの文節かを教えます。時刻のない文に <code>mask</code> を付ければ穴埋め練習です。すべての文節が空白から始まります。</p>
 <pre><code>const s = Tsubu.sentence(input, { motion: "mask" });   // no times: every segment starts as a blank
 let shown = [];
 root.addEventListener("click", (event) =&gt; {
@@ -147,17 +147,17 @@ root.addEventListener("click", (event) =&gt; {
   if (i !== null) shown = Tsubu.setRevealed(root, [...shown, i]);
 });</code></pre>
         <p class="small muted en">Use motion only to show a change in what is being read, never to decorate. Do not combine <code>appear</code> with <code>mask</code> or <code>blur</code>, nor <code>mask</code> with <code>underline-draw</code>. Text hidden by <code>mask</code> is still in the page for screen readers; for a test, keep the answer out of the page or use <code>appear</code>.</p>
-        <p class="small muted zh" lang="zh-CN">动效只用来表现"读到哪儿了"的变化，不用来装饰。不要把 <code>appear</code> 和 <code>mask</code> 或 <code>blur</code> 组合，也不要把 <code>mask</code> 和 <code>underline-draw</code> 组合。被 <code>mask</code> 藏起来的文字仍在页面里，读屏软件会读；用来考试时，不要把答案放进页面，或者用 <code>appear</code>。</p>
+        <p class="small muted zh" lang="zh-CN">动效只用来表现"读到哪儿了"的变化，不用来装饰。不要把 <code>appear</code> 和 <code>mask</code> 或 <code>blur</code> 组合，也不要把 <code>mask</code> 和 <code>underline-draw</code> 组合。被 <code>mask</code> 藏起来的文字仍在页面里，读屏软件会读；用来考试时，不要把答案放进页面，或者用 <code>appear</code>。</p><p class="small muted ja" lang="ja">モーションは「どこを読んでいるか」の変化を見せるためだけに使い、飾りには使いません。<code>appear</code> を <code>mask</code> や <code>blur</code> と組み合わせず、<code>mask</code> を <code>underline-draw</code> と組み合わせないでください。<code>mask</code> で隠した文字はページに残り、スクリーンリーダーは読み上げます。テストに使うときは答えをページに入れないか、<code>appear</code> を使ってください。</p>
       </div>
       <div>
-        <p class="small" style="margin: 0 0 6px"><b class="en">Tap each word you can hear</b><b class="zh" lang="zh-CN">听出一个词就点一个</b> · <code>motion: "mask"</code>, <span class="en">no times</span><span class="zh" lang="zh-CN">没有时间</span></p>
+        <p class="small" style="margin: 0 0 6px"><b class="en">Tap each word you can hear</b><b class="zh" lang="zh-CN">听出一个词就点一个</b><b class="ja" lang="ja">聞き取れた語をタップ</b> · <code>motion: "mask"</code>, <span class="en">no times</span><span class="zh" lang="zh-CN">没有时间</span><span class="ja" lang="ja">時刻なし</span></p>
         <div class="stage" data-tsubu-theme="light" id="reveal"></div>
         <div class="transport">
-          <button type="button" class="btn quiet" id="rv-all"><span class="en">Reveal all</span><span class="zh" lang="zh-CN">全部揭示</span></button>
-          <button type="button" class="btn quiet" id="rv-none"><span class="en">Reset</span><span class="zh" lang="zh-CN">重置</span></button>
+          <button type="button" class="btn quiet" id="rv-all"><span class="en">Reveal all</span><span class="zh" lang="zh-CN">全部揭示</span><span class="ja" lang="ja">すべて明かす</span></button>
+          <button type="button" class="btn quiet" id="rv-none"><span class="en">Reset</span><span class="zh" lang="zh-CN">重置</span><span class="ja" lang="ja">リセット</span></button>
           <output id="rv-out" class="mono small">revealed: []</output>
         </div>
-        <p class="small" style="margin: 18px 0 6px"><code>motion: "underline-draw"</code> <span class="en">on a clock</span><span class="zh" lang="zh-CN">走时钟</span> · <label><select id="mo-preset"></select></label></p>
+        <p class="small" style="margin: 18px 0 6px"><code>motion: "underline-draw"</code> <span class="en">on a clock</span><span class="zh" lang="zh-CN">走时钟</span><span class="ja" lang="ja">時計で再生</span> · <label><select id="mo-preset"></select></label></p>
         <div class="stage" data-tsubu-theme="light" id="mo"></div>
         <div class="transport"><button type="button" id="mo-play">Play</button><input type="range" id="mo-t" aria-label="t"><output id="mo-out">0.00 s</output></div>
       </div>
@@ -165,17 +165,17 @@ root.addEventListener("click", (event) =&gt; {
   </section>
 
   <section class="g" id="vertical">
-    <h2 class="label"><span class="kanji" data-ruby="たて">縦</span><span class="en">Vertical writing</span><span class="zh" lang="zh-CN">竖排</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="たて">縦</span><span class="en">Vertical writing</span><span class="zh" lang="zh-CN">竖排</span><span class="ja" lang="ja">縦書き</span></h2>
     <div class="cols">
       <div class="prose">
         <p class="lead en">The same sentence set vertically: columns right to left, readings at the right, side lines instead of underlines.</p>
-        <p class="lead zh" lang="zh-CN">同一句话竖排：列从右向左，注音在右侧，下划线变成边线。</p>
+        <p class="lead zh" lang="zh-CN">同一句话竖排：列从右向左，注音在右侧，下划线变成边线。</p><p class="lead ja" lang="ja">同じ文を縦書きで。列は右から左へ、読みは右側に、下線は傍線になります。</p>
         <p class="en"><code>Tsubu.sentence(input, { writing: "vertical" })</code>, or <code>data-tsubu-writing="vertical"</code> on any ancestor. Columns run right to left, the furigana sit at the right of the characters, and each segment's underline becomes a dotted side line at its left. The highlight, its spread and the <code>media</code> plate are the same boxes turned with the text. Give the container a height: the column length is the sentence's height.</p>
-        <p class="zh" lang="zh-CN"><code>Tsubu.sentence(input, { writing: "vertical" })</code>，或在任何祖先上写 <code>data-tsubu-writing="vertical"</code>。列从右向左排，注音在字的右侧，每段的下划线变成它左侧的点状边线。高亮、它的外扩和 <code>media</code> 底板是随文字一起转过来的同一组盒子。请给容器设高度：列长就是句子的高度。</p>
+        <p class="zh" lang="zh-CN"><code>Tsubu.sentence(input, { writing: "vertical" })</code>，或在任何祖先上写 <code>data-tsubu-writing="vertical"</code>。列从右向左排，注音在字的右侧，每段的下划线变成它左侧的点状边线。高亮、它的外扩和 <code>media</code> 底板是随文字一起转过来的同一组盒子。请给容器设高度：列长就是句子的高度。</p><p class="ja" lang="ja"><code>Tsubu.sentence(input, { writing: "vertical" })</code>、または任意の祖先に <code>data-tsubu-writing="vertical"</code>。列は右から左へ進み、ふりがなは文字の右側に付き、各文節の下線は左側の点線の傍線になります。ハイライト、その広がり、<code>media</code> のプレートは、文字と一緒に回転した同じ箱です。コンテナには高さを与えてください。列の長さが文の高さです。</p>
         <p class="en">A run of half-width digits or letters of at most <code>options.combineUpright</code> characters (0 to 4, default 2) stands upright across the column (10月, AI); longer runs lie on their side (2025年). Every horizontal guarantee holds with columns in place of lines, and paging counts columns from the right.</p>
-        <p class="zh" lang="zh-CN">不超过 <code>options.combineUpright</code> 个（0 到 4，默认 2）的半角数字或字母在列中直立显示（10月、AI）；更长的侧躺（2025年）。横排的每条保证在竖排里以列代替行同样成立，翻页从右边数列。</p>
+        <p class="zh" lang="zh-CN">不超过 <code>options.combineUpright</code> 个（0 到 4，默认 2）的半角数字或字母在列中直立显示（10月、AI）；更长的侧躺（2025年）。横排的每条保证在竖排里以列代替行同样成立，翻页从右边数列。</p><p class="ja" lang="ja"><code>options.combineUpright</code> 文字以内（0 から 4、既定 2）の半角の数字や英字は縦中横で立ちます（10月、AI）。それより長い並びは横倒しです（2025年）。横書きの保証はすべて、行を列に読み替えて縦書きでも成り立ち、ページ送りは右から列を数えます。</p>
         <p class="small muted en">Vertical writing has been measured in Chromium only; Firefox's and Safari's vertical alternates and <code>text-combine-upright</code> are unchecked.</p>
-        <p class="small muted zh" lang="zh-CN">竖排只在 Chromium 里实测过；Firefox 和 Safari 的竖排替代字形和 <code>text-combine-upright</code> 都没有检查。</p>
+        <p class="small muted zh" lang="zh-CN">竖排只在 Chromium 里实测过；Firefox 和 Safari 的竖排替代字形和 <code>text-combine-upright</code> 都没有检查。</p><p class="small muted ja" lang="ja">縦書きは Chromium でのみ計測しています。Firefox と Safari の縦組み用グリフと <code>text-combine-upright</code> は未確認です。</p>
       </div>
       <div>
         <div class="ctl"><label>combineUpright <select id="vt-combine"><option>0</option><option selected>2</option><option>4</option></select></label></div>
@@ -186,32 +186,32 @@ root.addEventListener("click", (event) =&gt; {
   </section>
 
   <section class="g" id="video">
-    <h2 class="label"><span class="kanji" data-ruby="ろく">録</span><span class="en">Recording video</span><span class="zh" lang="zh-CN">录制视频</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="ろく">録</span><span class="en">Recording video</span><span class="zh" lang="zh-CN">录制视频</span><span class="ja" lang="ja">動画の書き出し</span></h2>
     <div class="prose">
         <p class="lead en">Because every frame is a function of t, recording a video is a loop over frame times, with examples for a browser and for Node.</p>
-        <p class="lead zh" lang="zh-CN">每一帧都是 t 的函数，所以录视频就是按每帧时间循环一遍，浏览器和 Node 各有示例。</p>
+        <p class="lead zh" lang="zh-CN">每一帧都是 t 的函数，所以录视频就是按每帧时间循环一遍，浏览器和 Node 各有示例。</p><p class="lead ja" lang="ja">フレームは t の関数なので、動画の書き出しはフレーム時刻のループです。ブラウザ向けと Node 向けの例があります。</p>
       <p class="en">Because each frame depends on <code>t</code> alone, a video is a loop over frame times. Two examples in the repository, both run by the tests, use <code>examples/sentence.json</code>:</p>
-      <p class="zh" lang="zh-CN">每一帧只取决于 <code>t</code>，所以一段视频就是按每帧时间循环一遍。仓库里有两个示例，测试都会运行，用的是 <code>examples/sentence.json</code>：</p>
+      <p class="zh" lang="zh-CN">每一帧只取决于 <code>t</code>，所以一段视频就是按每帧时间循环一遍。仓库里有两个示例，测试都会运行，用的是 <code>examples/sentence.json</code>：</p><p class="ja" lang="ja">フレームは <code>t</code> だけで決まるので、動画はフレーム時刻のループです。リポジトリには二つの例があり、どちらもテストが実行します。入力は <code>examples/sentence.json</code> です。</p>
 <pre><code class="plain"># PNG frames from headless Chromium, apply(root, t) at each frame's time; prints the ffmpeg command
 python examples/capture-frames.py examples/sentence.json frames --fps 30 --theme media --motion appear
 
 # HTML frames from Node, with htmlAt(t), for renderers that take markup
 node examples/frames-from-node.mjs examples/sentence.json frames 30</code></pre>
       <p class="en">The test renders every frame forward and then backward and requires the PNGs to be identical, byte for byte. The capture draws each frame on a fresh copy of the sentence (<code>innerHTML = s.html</code>, then <code>apply</code>), which makes frames identical in any order and lets them be rendered in parallel. The strip below is that idea on this page: each frame is <code>htmlAt(t)</code> rendered on its own.</p>
-      <p class="zh" lang="zh-CN">测试先按顺序、再倒序渲染所有帧，要求 PNG 逐字节相同。截帧时每帧都用一份新的句子副本来画（<code>innerHTML = s.html</code>，再 <code>apply</code>），这样任何顺序画出的帧都相同，也可以并行渲染。下面这条胶片就是这个想法在本页的样子：每一帧都是单独渲染的 <code>htmlAt(t)</code>。</p>
+      <p class="zh" lang="zh-CN">测试先按顺序、再倒序渲染所有帧，要求 PNG 逐字节相同。截帧时每帧都用一份新的句子副本来画（<code>innerHTML = s.html</code>，再 <code>apply</code>），这样任何顺序画出的帧都相同，也可以并行渲染。下面这条胶片就是这个想法在本页的样子：每一帧都是单独渲染的 <code>htmlAt(t)</code>。</p><p class="ja" lang="ja">テストは全フレームを順方向と逆方向で描き、PNG がバイト単位で一致することを求めます。キャプチャは各フレームを文の新しいコピーに描く（<code>innerHTML = s.html</code> してから <code>apply</code>）ので、どの順番でもフレームは同じになり、並列にも描けます。下のフィルムはその考え方をこのページで示したもので、各コマは単独に描いた <code>htmlAt(t)</code> です。</p>
     </div>
     <div class="strip" id="strip"></div>
   </section>
 
   <section class="g" id="subtitles">
-    <h2 class="label"><span class="kanji" data-ruby="まく">幕</span><span class="en">Exporting subtitles</span><span class="zh" lang="zh-CN">导出字幕</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="まく">幕</span><span class="en">Exporting subtitles</span><span class="zh" lang="zh-CN">导出字幕</span><span class="ja" lang="ja">字幕の書き出し</span></h2>
     <div class="cols">
       <div class="prose">
         <p class="lead en">The same input becomes WebVTT with readings and cue timestamps, or an ASS karaoke line.</p>
-        <p class="lead zh" lang="zh-CN">同样的输入可以导出成带读音和时间戳的 WebVTT，或一行 ASS 卡拉 OK。</p>
+        <p class="lead zh" lang="zh-CN">同样的输入可以导出成带读音和时间戳的 WebVTT，或一行 ASS 卡拉 OK。</p><p class="lead ja" lang="ja">同じ入力から、読みとタイムスタンプ付きの WebVTT、または ASS のカラオケ行を書き出せます。</p>
         <p class="en">The optional <code>tsubu-export.js</code> turns the same input into subtitles. <code>TsubuExport.toWebVTT(input, { ruby, offset, id })</code> returns one cue spanning the sentence, each segment a <code>&lt;c.tsubu-seg&gt;</code> span with <code>&lt;ruby&gt;</code> readings, and a cue timestamp at each spoken segment's start, so <code>::cue(:past)</code> follows the reading. <code>TsubuExport.toASS(input, { ruby, offset })</code> returns one karaoke <code>Dialogue:</code> line with <code>\k</code> durations, rounded to centiseconds so they add up to the line; <code>toASSScript</code> wraps it in a minimal script. A sentence without times cannot be exported.</p>
-        <p class="zh" lang="zh-CN">可选的 <code>tsubu-export.js</code> 把同样的输入转成字幕。<code>TsubuExport.toWebVTT(input, { ruby, offset, id })</code> 返回覆盖整句的一条 cue，每段是一个带 <code>&lt;ruby&gt;</code> 读音的 <code>&lt;c.tsubu-seg&gt;</code> span，每个非标点段开始处有一个 cue 时间戳，所以 <code>::cue(:past)</code> 会跟着朗读走。<code>TsubuExport.toASS(input, { ruby, offset })</code> 返回一行带 <code>\k</code> 时长的卡拉 OK <code>Dialogue:</code>，先取整到百分之一秒，所以各时长之和等于这一行；<code>toASSScript</code> 把它包成最小脚本。没有时间的句子无法导出。</p>
-        <div class="ctl"><label><input type="checkbox" id="sb-ruby" checked> <span class="en">readings in the WebVTT</span><span class="zh" lang="zh-CN">WebVTT 带读音</span></label> <label><input type="checkbox" id="sb-inline"> <span class="en">readings inline in the ASS</span><span class="zh" lang="zh-CN">ASS 行内读音</span></label></div>
+        <p class="zh" lang="zh-CN">可选的 <code>tsubu-export.js</code> 把同样的输入转成字幕。<code>TsubuExport.toWebVTT(input, { ruby, offset, id })</code> 返回覆盖整句的一条 cue，每段是一个带 <code>&lt;ruby&gt;</code> 读音的 <code>&lt;c.tsubu-seg&gt;</code> span，每个非标点段开始处有一个 cue 时间戳，所以 <code>::cue(:past)</code> 会跟着朗读走。<code>TsubuExport.toASS(input, { ruby, offset })</code> 返回一行带 <code>\k</code> 时长的卡拉 OK <code>Dialogue:</code>，先取整到百分之一秒，所以各时长之和等于这一行；<code>toASSScript</code> 把它包成最小脚本。没有时间的句子无法导出。</p><p class="ja" lang="ja">省略可能な <code>tsubu-export.js</code> は同じ入力を字幕にします。<code>TsubuExport.toWebVTT(input, { ruby, offset, id })</code> は文全体にわたる一つのキューを返します。各文節は <code>&lt;ruby&gt;</code> の読みを含む <code>&lt;c.tsubu-seg&gt;</code> スパンで、句読点以外の各文節の開始位置にキュータイムスタンプがあるので、<code>::cue(:past)</code> が読みに追従します。<code>TsubuExport.toASS(input, { ruby, offset })</code> は <code>\k</code> の長さを持つカラオケ <code>Dialogue:</code> 行を返します。境界を先に百分の一秒へ丸めるので、長さの合計は行の長さと一致します。<code>toASSScript</code> はそれを最小限のスクリプトで包みます。時刻のない文は書き出せません。</p>
+        <div class="ctl"><label><input type="checkbox" id="sb-ruby" checked> <span class="en">readings in the WebVTT</span><span class="zh" lang="zh-CN">WebVTT 带读音</span><span class="ja" lang="ja">WebVTT に読みを含める</span></label> <label><input type="checkbox" id="sb-inline"> <span class="en">readings inline in the ASS</span><span class="zh" lang="zh-CN">ASS 行内读音</span><span class="ja" lang="ja">ASS に読みをインラインで</span></label></div>
       </div>
       <div>
         <pre><code class="plain" id="sb-vtt"></code></pre>
@@ -221,20 +221,20 @@ node examples/frames-from-node.mjs examples/sentence.json frames 30</code></pre>
   </section>
 
   <section class="g" id="a11y">
-    <h2 class="label"><span class="kanji" data-ruby="たすけ">助</span><span class="en">Accessibility</span><span class="zh" lang="zh-CN">无障碍</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="たすけ">助</span><span class="en">Accessibility</span><span class="zh" lang="zh-CN">无障碍</span><span class="ja" lang="ja">アクセシビリティ</span></h2>
     <div class="cols">
       <div class="prose">
         <p class="lead en">The highlight survives forced colours, readings can be hidden from screen readers, and the spoken segment is marked for assistive technology.</p>
-        <p class="lead zh" lang="zh-CN">强制颜色下高亮仍在，注音可以对读屏软件隐藏，正在读的段会标记给辅助技术。</p>
+        <p class="lead zh" lang="zh-CN">强制颜色下高亮仍在，注音可以对读屏软件隐藏，正在读的段会标记给辅助技术。</p><p class="lead ja" lang="ja">強制カラーでもハイライトは残り、ふりがなはスクリーンリーダーから隠せ、読まれている文節は支援技術に伝わります。</p>
         <p class="en"><b>Forced colours.</b> In forced-colours mode browsers replace backgrounds, which would leave the segment being spoken looking like every other. tsubu keeps a highlight on that segment alone, in the user's own colours for selected text (<code>Highlight</code> and <code>HighlightText</code>); its furigana take <code>CanvasText</code>.</p>
-        <p class="zh" lang="zh-CN"><b>强制颜色。</b>强制颜色模式下浏览器会替换背景，正在读的段就和别的段一样了。tsubu 只给这一段保留高亮，用用户自己的选中文字颜色（<code>Highlight</code> 和 <code>HighlightText</code>）；它的注音用 <code>CanvasText</code>。</p>
+        <p class="zh" lang="zh-CN"><b>强制颜色。</b>强制颜色模式下浏览器会替换背景，正在读的段就和别的段一样了。tsubu 只给这一段保留高亮，用用户自己的选中文字颜色（<code>Highlight</code> 和 <code>HighlightText</code>）；它的注音用 <code>CanvasText</code>。</p><p class="ja" lang="ja"><b>強制カラー。</b>強制カラーモードではブラウザが背景を置き換えるので、読まれている文節が他と同じに見えてしまいます。tsubu はその文節にだけ、ユーザー自身の選択色（<code>Highlight</code> と <code>HighlightText</code>）でハイライトを残します。そのふりがなは <code>CanvasText</code> です。</p>
         <p class="en"><b>Screen readers.</b> A reading is read after its base by default (Chromium exposes 「雨 あめ が 降る」). With <code>options.announceRuby: false</code> every <code>&lt;rt&gt;</code> gets <code>aria-hidden="true"</code>, so the sentence is read once; the readings are still drawn and still switch. The segment being spoken carries <code>aria-current="true"</code>, and segments on other pages are hidden from assistive technology along with the page.</p>
-        <p class="zh" lang="zh-CN"><b>读屏软件。</b>默认会在汉字后面读出注音（Chromium 暴露的是「雨 あめ が 降る」）。设 <code>options.announceRuby: false</code> 时每个 <code>&lt;rt&gt;</code> 都带 <code>aria-hidden="true"</code>，整句只读一遍；注音照样显示、照样能开关。正在读的段带 <code>aria-current="true"</code>，其他页的段和那一页一起对辅助技术隐藏。</p>
+        <p class="zh" lang="zh-CN"><b>读屏软件。</b>默认会在汉字后面读出注音（Chromium 暴露的是「雨 あめ が 降る」）。设 <code>options.announceRuby: false</code> 时每个 <code>&lt;rt&gt;</code> 都带 <code>aria-hidden="true"</code>，整句只读一遍；注音照样显示、照样能开关。正在读的段带 <code>aria-current="true"</code>，其他页的段和那一页一起对辅助技术隐藏。</p><p class="ja" lang="ja"><b>スクリーンリーダー。</b>既定では読みが漢字の後に読み上げられます（Chromium は「雨 あめ が 降る」と公開します）。<code>options.announceRuby: false</code> にすると各 <code>&lt;rt&gt;</code> に <code>aria-hidden="true"</code> が付き、文は一度だけ読まれます。ふりがなは表示され、切り替えもできます。読まれている文節には <code>aria-current="true"</code> が付き、他のページの文節はそのページごと支援技術から隠されます。</p>
         <div class="ctl"><label><input type="checkbox" id="ax-announce" checked> announceRuby</label></div>
       </div>
       <div>
         <div class="stage" data-tsubu-theme="light" id="ax"></div>
-        <p class="small muted" style="margin: 8px 0 4px"><span class="en">The HTML at t = 1.0, as <code>htmlAt</code> returns it:</span><span class="zh" lang="zh-CN">t = 1.0 时的 HTML，由 <code>htmlAt</code> 返回：</span></p>
+        <p class="small muted" style="margin: 8px 0 4px"><span class="en">The HTML at t = 1.0, as <code>htmlAt</code> returns it:</span><span class="zh" lang="zh-CN">t = 1.0 时的 HTML，由 <code>htmlAt</code> 返回：</span><span class="ja" lang="ja">t = 1.0 の HTML。<code>htmlAt</code> が返すもの：</span></p>
         <pre><code class="plain" id="ax-html"></code></pre>
       </div>
     </div>

@@ -20,26 +20,26 @@
 <div class="wrap">
   <header class="mast"></header>
 
-  <h1 class="page-title"><span class="en">Getting started</span><span class="zh" lang="zh-CN">快速开始</span></h1>
+  <h1 class="page-title"><span class="en">Getting started</span><span class="zh" lang="zh-CN">快速开始</span><span class="ja" lang="ja">はじめに</span></h1>
   <p class="page-lede en">Two files, no build step and no dependencies. The script is a classic script, so it also loads from a page opened straight from disk.</p>
-  <p class="page-lede zh" lang="zh-CN">两个文件，没有构建步骤，没有依赖。脚本是普通脚本，所以从磁盘直接打开的页面也能加载。</p>
+  <p class="page-lede zh" lang="zh-CN">两个文件，没有构建步骤，没有依赖。脚本是普通脚本，所以从磁盘直接打开的页面也能加载。</p><p class="page-lede ja" lang="ja">ファイルは二つ、ビルドも依存関係もありません。クラシックスクリプトなので、ディスクから直接開いたページでも読み込めます。</p>
 
   <div class="prose">
-    <h2 class="label"><span class="kanji" data-ruby="そなえ">備</span><span class="en">Install</span><span class="zh" lang="zh-CN">安装</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="そなえ">備</span><span class="en">Install</span><span class="zh" lang="zh-CN">安装</span><span class="ja" lang="ja">インストール</span></h2>
     <p class="en">Copy <code>tsubu.js</code> and <code>tsubu.css</code> next to your page. <code>tsubu-export.js</code> is optional, for subtitles. There is no npm package yet; it is on the roadmap.</p>
-    <p class="zh" lang="zh-CN">把 <code>tsubu.js</code> 和 <code>tsubu.css</code> 复制到你的页面旁边。<code>tsubu-export.js</code> 是可选的，用来导出字幕。还没有 npm 包，这在路线图上。</p>
+    <p class="zh" lang="zh-CN">把 <code>tsubu.js</code> 和 <code>tsubu.css</code> 复制到你的页面旁边。<code>tsubu-export.js</code> 是可选的，用来导出字幕。还没有 npm 包，这在路线图上。</p><p class="ja" lang="ja"><code>tsubu.js</code> と <code>tsubu.css</code> をページの隣に置きます。<code>tsubu-export.js</code> は字幕書き出し用で、省略できます。npm パッケージはまだなく、ロードマップに載っています。</p>
     <div class="files"><a href="tsubu.js">tsubu.js<small id="size-js"></small></a><a href="tsubu.css">tsubu.css<small id="size-css"></small></a><a href="tsubu-export.js">tsubu-export.js<small>optional</small></a></div>
 <pre><code>&lt;link rel="stylesheet" href="tsubu.css"&gt;
 &lt;script src="tsubu.js"&gt;&lt;/script&gt;        <span class="c">// defines window.Tsubu</span>
 &lt;script src="tsubu-export.js"&gt;&lt;/script&gt; <span class="c">// optional: window.TsubuExport</span></code></pre>
     <p class="en">In Node, <code>require()</code> returns the same object; <code>stateAt</code>, <code>htmlAt</code>, <code>contrast</code> and the exporters work there without a browser.</p>
-    <p class="zh" lang="zh-CN">在 Node 里 <code>require()</code> 返回同一个对象；<code>stateAt</code>、<code>htmlAt</code>、<code>contrast</code> 和导出函数不需要浏览器就能用。</p>
+    <p class="zh" lang="zh-CN">在 Node 里 <code>require()</code> 返回同一个对象；<code>stateAt</code>、<code>htmlAt</code>、<code>contrast</code> 和导出函数不需要浏览器就能用。</p><p class="ja" lang="ja">Node では <code>require()</code> が同じオブジェクトを返します。<code>stateAt</code>、<code>htmlAt</code>、<code>contrast</code>、書き出し関数はブラウザなしで動きます。</p>
 <pre><code>const Tsubu = require("./tsubu.js");
 const TsubuExport = require("./tsubu-export.js");</code></pre>
 
-    <h2 class="label"><span class="kanji" data-ruby="はじめ">初</span><span class="en">The 30-second example</span><span class="zh" lang="zh-CN">30 秒示例</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="はじめ">初</span><span class="en">The 30-second example</span><span class="zh" lang="zh-CN">30 秒示例</span><span class="ja" lang="ja">30 秒でわかる例</span></h2>
     <p class="en">The sentence arrives already cut into segments, each a list of parts; a part with <code>ruby</code> becomes <code>&lt;ruby&gt;</code>. Times are in seconds on your own clock. <code>sentence()</code> gives HTML; <code>apply(root, t)</code> draws the state at <code>t</code>.</p>
-    <p class="zh" lang="zh-CN">句子传进来时已经切好了段，每段是一组片段；带 <code>ruby</code> 的片段变成 <code>&lt;ruby&gt;</code>。时间以秒为单位，用你自己的时钟。<code>sentence()</code> 给出 HTML；<code>apply(root, t)</code> 画出 <code>t</code> 时刻的状态。</p>
+    <p class="zh" lang="zh-CN">句子传进来时已经切好了段，每段是一组片段；带 <code>ruby</code> 的片段变成 <code>&lt;ruby&gt;</code>。时间以秒为单位，用你自己的时钟。<code>sentence()</code> 给出 HTML；<code>apply(root, t)</code> 画出 <code>t</code> 时刻的状态。</p><p class="ja" lang="ja">文は文節に分けて渡し、各文節はパーツの並びです。<code>ruby</code> を持つパーツは <code>&lt;ruby&gt;</code> になります。時刻は秒単位で、呼び出し側の時計をそのまま使います。<code>sentence()</code> が HTML を返し、<code>apply(root, t)</code> が時刻 <code>t</code> の状態を描きます。</p>
 <pre><code>&lt;link rel="stylesheet" href="tsubu.css"&gt;
 &lt;div id="line" style="font-size: 40px"&gt;&lt;/div&gt;
 &lt;script src="tsubu.js"&gt;&lt;/script&gt;
@@ -71,15 +71,15 @@ const TsubuExport = require("./tsubu-export.js");</code></pre>
         <button type="button" id="ex1-play">Play</button>
         <input type="range" id="ex1-t" aria-label="t">
         <output id="ex1-out">0.00 s</output>
-        <label><input type="checkbox" id="ex1-ruby" checked> <span class="en">furigana</span><span class="zh" lang="zh-CN">注音</span></label>
+        <label><input type="checkbox" id="ex1-ruby" checked> <span class="en">furigana</span><span class="zh" lang="zh-CN">注音</span><span class="ja" lang="ja">ふりがな</span></label>
       </div>
       <p class="small muted en" style="margin: 8px 0 0">The same input, drawn here with the <code>light</code> theme. Tick the furigana off and on: no character moves.</p>
-      <p class="small muted zh" lang="zh-CN" style="margin: 8px 0 0">同样的输入，这里用 <code>light</code> 主题画出来。把注音关掉再打开：没有一个字会动。</p>
+      <p class="small muted zh" lang="zh-CN" style="margin: 8px 0 0">同样的输入，这里用 <code>light</code> 主题画出来。把注音关掉再打开：没有一个字会动。</p><p class="small muted ja" style="margin: 8px 0 0" lang="ja">同じ入力を、ここでは <code>light</code> テーマで描いています。ふりがなを切ってまた付けてみてください。文字は一つも動きません。</p>
     </div>
 
-    <h2 class="label"><span class="kanji" data-ruby="ためし">試</span><span class="en">Edit it live</span><span class="zh" lang="zh-CN">现场改一改</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="ためし">試</span><span class="en">Edit it live</span><span class="zh" lang="zh-CN">现场改一改</span><span class="ja" lang="ja">その場で書き換える</span></h2>
     <p class="en">Change the text, the readings or the times below; the sentence is redrawn as you type. tsubu refuses input it would have to guess at (a segment without a time while others have one, overlapping times, punctuation with a time) and the error is shown under the box.</p>
-    <p class="zh" lang="zh-CN">改一改下面的文字、读音或时间，句子会随输入重画。需要猜测的输入 tsubu 会拒绝（别的段有时间而这一段没有、时间重叠、标点带时间），错误显示在框下面。</p>
+    <p class="zh" lang="zh-CN">改一改下面的文字、读音或时间，句子会随输入重画。需要猜测的输入 tsubu 会拒绝（别的段有时间而这一段没有、时间重叠、标点带时间），错误显示在框下面。</p><p class="ja" lang="ja">下のテキスト、読み、時刻を書き換えると、入力に合わせて文が描き直されます。推測が必要な入力（時刻のある文節とない文節が混在、時刻の重なり、句読点への時刻）は tsubu が拒否し、エラーが枠の下に出ます。</p>
     <div class="cols">
       <div>
         <textarea class="json" id="ex2-src" spellcheck="false" aria-label="Sentence as JSON"></textarea>
@@ -96,9 +96,9 @@ const TsubuExport = require("./tsubu-export.js");</code></pre>
       </div>
     </div>
 
-    <h2 class="label"><span class="kanji" data-ruby="つかい">使</span><span class="en">For agents</span><span class="zh" lang="zh-CN">给 agent 的说明</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="つかい">使</span><span class="en">For agents</span><span class="zh" lang="zh-CN">给 agent 的说明</span><span class="ja" lang="ja">エージェント向けの説明</span></h2>
     <p class="en">An agent that writes pages or templates with tsubu needs the contract, not the whole README. The block below is that contract, in the README's words; paste it into the agent's instructions. The API page and <code>Tsubu.MOTIONS</code> (the motion catalogue as data: each preset's purpose, what it needs, its parameters) are the references it can read on its own.</p>
-    <p class="zh" lang="zh-CN">用 tsubu 写页面或模板的 agent 需要的是契约，不是整份 README。下面这段就是契约，措辞与 README 一致；把它贴进 agent 的指令里。API 页和 <code>Tsubu.MOTIONS</code>（动效目录的数据形式：每个预设的用途、需要什么、参数）是它可以自己读的参考。</p>
+    <p class="zh" lang="zh-CN">用 tsubu 写页面或模板的 agent 需要的是契约，不是整份 README。下面这段就是契约，措辞与 README 一致；把它贴进 agent 的指令里。API 页和 <code>Tsubu.MOTIONS</code>（动效目录的数据形式：每个预设的用途、需要什么、参数）是它可以自己读的参考。</p><p class="ja" lang="ja">tsubu でページやテンプレートを書くエージェントに必要なのは、README 全体ではなく契約です。下のブロックがその契約で、文言は README のままです。エージェントの指示に貼り付けてください。API ページと <code>Tsubu.MOTIONS</code>（モーションカタログのデータ版：各プリセットの目的、必要なもの、パラメータ）は、エージェントが自分で読める参照先です。</p>
 <pre><code class="plain" id="agent-brief">tsubu draws ONE sentence, already cut into segments, for read-along use.
 - Input: { segments: [{ parts: [{ text, ruby? }], kind?: "punct", start?, end?, id?, tags? }], start?, end?, lang? }.
   Times are seconds on the caller's clock. tsubu never segments text, never estimates times and never plays audio.
@@ -120,13 +120,13 @@ const TsubuExport = require("./tsubu-export.js");</code></pre>
 - Vertical: options.writing "vertical"; give the container a height.
 - Subtitles: TsubuExport.toWebVTT(input) / toASS(input) from the same input (times required).
 - Tags: segment id and tags are written as data-id / data-tags for the caller to style; colours and lines only.</code></pre>
-    <div class="transport" style="padding-top: 0"><button type="button" class="btn quiet" id="copy-brief"><span class="en">Copy</span><span class="zh" lang="zh-CN">复制</span></button><output id="copied" class="small muted"></output></div>
+    <div class="transport" style="padding-top: 0"><button type="button" class="btn quiet" id="copy-brief"><span class="en">Copy</span><span class="zh" lang="zh-CN">复制</span><span class="ja" lang="ja">コピー</span></button><output id="copied" class="small muted"></output></div>
 
-    <h2 class="label"><span class="kanji" data-ruby="つぎ">次</span><span class="en">Next</span><span class="zh" lang="zh-CN">接下来</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="つぎ">次</span><span class="en">Next</span><span class="zh" lang="zh-CN">接下来</span><span class="ja" lang="ja">次へ</span></h2>
     <div class="grid">
-      <a class="pointer" href="guide.html"><b class="en">Guide</b><b class="zh" lang="zh-CN">指南</b><span class="en">Timing, several lines, themes, motion, vertical text, video, subtitles and accessibility, each with a live example.</span><span class="zh" lang="zh-CN">时间、多行、主题、动效、竖排、录视频、字幕和无障碍，每节都有活的示例。</span></a>
-      <a class="pointer" href="api.html"><b class="en">API</b><b class="zh" lang="zh-CN">API</b><span class="en">The whole surface: input, options, output, functions, CSS properties.</span><span class="zh" lang="zh-CN">全部接口：输入、选项、输出、函数、CSS 属性。</span></a>
-      <a class="pointer" href="playground.html"><b class="en">Playground</b><b class="zh" lang="zh-CN">试验场</b><span class="en">Your own sentence with every switch and the contrast check.</span><span class="zh" lang="zh-CN">用你自己的句子，所有开关和对比度检查都在。</span></a>
+      <a class="pointer" href="guide.html"><b class="en">Guide</b><b class="zh" lang="zh-CN">指南</b><b class="ja" lang="ja">ガイド</b><span class="en">Timing, several lines, themes, motion, vertical text, video, subtitles and accessibility, each with a live example.</span><span class="zh" lang="zh-CN">时间、多行、主题、动效、竖排、录视频、字幕和无障碍，每节都有活的示例。</span><span class="ja" lang="ja">タイミング、複数行、テーマ、モーション、縦書き、動画、字幕、アクセシビリティ。各節に動く例があります。</span></a>
+      <a class="pointer" href="api.html"><b class="en">API</b><b class="zh" lang="zh-CN">API</b><b class="ja" lang="ja">API</b><span class="en">The whole surface: input, options, output, functions, CSS properties.</span><span class="zh" lang="zh-CN">全部接口：输入、选项、输出、函数、CSS 属性。</span><span class="ja" lang="ja">API のすべて：入力、オプション、出力、関数、CSS プロパティ。</span></a>
+      <a class="pointer" href="playground.html"><b class="en">Playground</b><b class="zh" lang="zh-CN">试验场</b><b class="ja" lang="ja">プレイグラウンド</b><span class="en">Your own sentence with every switch and the contrast check.</span><span class="zh" lang="zh-CN">用你自己的句子，所有开关和对比度检查都在。</span><span class="ja" lang="ja">自分の文で、すべてのスイッチとコントラスト検査を試せます。</span></a>
     </div>
   </div>
 
@@ -174,7 +174,7 @@ function redraw() {
 }
 $("ex2-src").addEventListener("input", redraw);
 $("copy-brief").addEventListener("click", () => {
-  const text = $("agent-brief").textContent, done = () => { $("copied").textContent = Site.lang() === "zh" ? "已复制" : "Copied"; };
+  const text = $("agent-brief").textContent, done = () => { $("copied").textContent = Site.word("copied"); };
   navigator.clipboard.writeText(text).then(done).catch(() => { const r = document.createRange(); r.selectNodeContents($("agent-brief")); getSelection().removeAllRanges(); getSelection().addRange(r); });
 });
 document.fonts.ready.then(() => { redraw(); window.__ready = true; });

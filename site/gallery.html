@@ -23,31 +23,31 @@
 <body>
 <div class="wrap">
   <header class="mast"></header>
-  <h1 class="page-title"><span class="en">Gallery</span><span class="zh" lang="zh-CN">画廊</span></h1>
+  <h1 class="page-title"><span class="en">Gallery</span><span class="zh" lang="zh-CN">画廊</span><span class="ja" lang="ja">ギャラリー</span></h1>
   <p class="page-lede en">Every theme, speaker, motion preset and writing mode, each a live sentence on the same clock. Under each one, what <code>checkContrast</code> measured: the lowest ratio per layer in any state.</p>
-  <p class="page-lede zh" lang="zh-CN">每套主题、每个说话人、每个动效预设、每种书写方向，各是一句活的句子，走同一个时钟。每张卡下面是 <code>checkContrast</code> 的测量结果：每一层在所有状态里的最低对比度。</p>
+  <p class="page-lede zh" lang="zh-CN">每套主题、每个说话人、每个动效预设、每种书写方向，各是一句活的句子，走同一个时钟。每张卡下面是 <code>checkContrast</code> 的测量结果：每一层在所有状态里的最低对比度。</p><p class="page-lede ja" lang="ja">すべてのテーマ、話者、モーションプリセット、書字方向を、同じ時計で動く一文ずつで。各カードの下は <code>checkContrast</code> の計測結果で、全状態のうち層ごとに最も低い比率です。</p>
 
   <div class="bar"><div class="transport">
     <button type="button" id="play">Play</button>
     <input type="range" id="t" aria-label="t">
     <output id="out">0.00 s</output>
-    <label><input type="checkbox" id="ruby" checked> <span class="en">furigana</span><span class="zh" lang="zh-CN">注音</span></label>
+    <label><input type="checkbox" id="ruby" checked> <span class="en">furigana</span><span class="zh" lang="zh-CN">注音</span><span class="ja" lang="ja">ふりがな</span></label>
   </div></div>
 
   <section class="sec" id="themes">
-    <h2 class="label"><span class="kanji" data-ruby="いろ">色</span><span class="en">Themes and speakers</span><span class="zh" lang="zh-CN">主题与说话人</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="いろ">色</span><span class="en">Themes and speakers</span><span class="zh" lang="zh-CN">主题与说话人</span><span class="ja" lang="ja">テーマと話者</span></h2>
     <div class="grid" id="theme-grid"></div>
     <p class="small muted en" style="margin: 14px 0 0; max-width: 72ch">The unthemed defaults inherit the page's text colour; their light-grey highlight and grey underline are not a preset and do not reach 3:1 on white, which the last card shows.</p>
-    <p class="small muted zh" lang="zh-CN" style="margin: 14px 0 0; max-width: 72ch">不设主题时的默认值继承页面文字颜色；浅灰的高亮和灰色下划线不是预设，在白底上达不到 3:1，最后一张卡就是这种情况。</p>
+    <p class="small muted zh" lang="zh-CN" style="margin: 14px 0 0; max-width: 72ch">不设主题时的默认值继承页面文字颜色；浅灰的高亮和灰色下划线不是预设，在白底上达不到 3:1，最后一张卡就是这种情况。</p><p class="small muted ja" style="margin: 14px 0 0; max-width: 72ch" lang="ja">テーマなしの既定値はページの文字色を継承します。薄いグレーのハイライトとグレーの下線はプリセットではなく、白地で 3:1 に届きません。最後のカードがその状態です。</p>
   </section>
 
   <section class="sec" id="motion">
-    <h2 class="label"><span class="kanji" data-ruby="うごき">動</span><span class="en">Motion presets</span><span class="zh" lang="zh-CN">动效预设</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="うごき">動</span><span class="en">Motion presets</span><span class="zh" lang="zh-CN">动效预设</span><span class="ja" lang="ja">モーションプリセット</span></h2>
     <div class="grid" id="motion-grid"></div>
   </section>
 
   <section class="sec" id="writing">
-    <h2 class="label"><span class="kanji" data-ruby="たて">縦</span><span class="en">Writing modes</span><span class="zh" lang="zh-CN">书写方向</span></h2>
+    <h2 class="label"><span class="kanji" data-ruby="たて">縦</span><span class="en">Writing modes</span><span class="zh" lang="zh-CN">书写方向</span><span class="ja" lang="ja">書字方向</span></h2>
     <div class="grid" id="writing-grid"></div>
   </section>
 
@@ -80,15 +80,16 @@ function card(grid, title, note, input, options, cls = "", attrs = {}) {
   grid.append(el);
   cards.push({ s, root, stage, meta: el.querySelector(".meta"), note, options });
 }
-const T = (en, zh) => `<span class="en">${en}</span><span class="zh" lang="zh-CN">${zh}</span>`;
+const T = Site.T;
 for (const theme of Tsubu.THEMES) for (const speaker of Tsubu.SPEAKERS)
   card($("theme-grid"), `<code>${theme}</code> · <code>speaker: "${speaker}"</code>`, "", LIB, { theme, speaker }, theme === "media" ? (speaker === "a" ? "media-light" : "media-dark") : "", { "data-tsubu-theme": theme });
-card($("theme-grid"), T("no theme", "不设主题"), "", LIB, {}, "", { "data-unchecked": "" }); // shown failing on purpose
+card($("theme-grid"), T("no theme", "不设主题", "テーマなし"), "", LIB, {}, "", { "data-unchecked": "" }); // shown failing on purpose
+const PURPOSE_JA = { appear: "文節は読まれたときに現れます。未聴の部分は下線も含めて何も描かれません。", mask: "未聴の文節は空白です。文字も読みも描かれませんが下線は描かれ、この先の長さが見えます。聞き取りや穴埋めの練習に。", blur: "未聴の文節はぼかされます。形は見えますが、語は読めません。", "underline-draw": "読まれている文節の下線がその時間をかけて引かれます。未聴の文節にはまだ下線がありません。" };
 const PURPOSE_ZH = { appear: "段在被读到时出现；还没听到的什么都不画，连下划线也不画。", mask: "还没听到的段是空格：不画文字和读音，但画下划线，所以能看出后面还有多长。用于听力和填空练习。", blur: "还没听到的段是模糊的：看得出轮廓，看不出字。", "underline-draw": "正在读的那一段的下划线在这段时间里逐渐画出来；还没听到的段还没有下划线。" };
-for (const m of Tsubu.MOTIONS) card($("motion-grid"), `<code>${m.name}</code>`, T(m.purpose, PURPOSE_ZH[m.name] || m.purpose), LIB, { theme: "light", motion: m.name }, "", { "data-tsubu-theme": "light" });
-card($("writing-grid"), T('<code>writing: "horizontal"</code>', '<code>writing: "horizontal"</code>'), "", OCT, { theme: "light" }, "tall", { "data-tsubu-theme": "light" });
-card($("writing-grid"), T('<code>writing: "vertical"</code>', '<code>writing: "vertical"</code>'), "", OCT, { theme: "light", writing: "vertical" }, "vertical", { "data-tsubu-theme": "light" });
-card($("writing-grid"), T('<code>writing: "vertical"</code>, <code>combineUpright: 0</code>', '<code>writing: "vertical"</code>，<code>combineUpright: 0</code>'), "", OCT, { theme: "light", writing: "vertical", combineUpright: 0 }, "vertical", { "data-tsubu-theme": "light" });
+for (const m of Tsubu.MOTIONS) card($("motion-grid"), `<code>${m.name}</code>`, T(m.purpose, PURPOSE_ZH[m.name] || m.purpose, PURPOSE_JA[m.name] || m.purpose), LIB, { theme: "light", motion: m.name }, "", { "data-tsubu-theme": "light" });
+card($("writing-grid"), T('<code>writing: "horizontal"</code>', '<code>writing: "horizontal"</code>', '<code>writing: "horizontal"</code>'), "", OCT, { theme: "light" }, "tall", { "data-tsubu-theme": "light" });
+card($("writing-grid"), T('<code>writing: "vertical"</code>', '<code>writing: "vertical"</code>', '<code>writing: "vertical"</code>'), "", OCT, { theme: "light", writing: "vertical" }, "vertical", { "data-tsubu-theme": "light" });
+card($("writing-grid"), T('<code>writing: "vertical"</code>, <code>combineUpright: 0</code>', '<code>writing: "vertical"</code>，<code>combineUpright: 0</code>', '<code>writing: "vertical"</code>、<code>combineUpright: 0</code>'), "", OCT, { theme: "light", writing: "vertical", combineUpright: 0 }, "vertical", { "data-tsubu-theme": "light" });
 
 // the media cards sit on a light and a dark stand-in for a picture; the plate is checked over both
 Site.clock({ duration: 3.8, render: (t) => cards.forEach((c) => c.s.apply(c.root, t)), play: $("play"), scrub: $("t"), out: $("out"), start: 1.2 });

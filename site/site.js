@@ -7,37 +7,45 @@
 "use strict";
 window.Site = (function () {
   const PAGES = [
-    ["index.html", "Home", "首页"], ["start.html", "Getting started", "快速开始"], ["guide.html", "Guide", "指南"],
-    ["api.html", "API", "API"], ["playground.html", "Playground", "试验场"], ["gallery.html", "Gallery", "画廊"],
+    ["index.html", "Home", "首页", "ホーム"], ["start.html", "Getting started", "快速开始", "はじめに"], ["guide.html", "Guide", "指南", "ガイド"],
+    ["api.html", "API", "API", "API"], ["playground.html", "Playground", "试验场", "プレイグラウンド"], ["gallery.html", "Gallery", "画廊", "ギャラリー"],
   ];
+  const LANGS = [["en", "EN", "en"], ["zh", "中文", "zh-CN"], ["ja", "日本語", "ja"]];
+  const T = (en, zh, ja) => `<span class="en">${en}</span><span class="zh" lang="zh-CN">${zh}</span><span class="ja" lang="ja">${ja}</span>`;
   // The repository's address, once it is public: the masthead and the footer link to it.
   const REPO = "https://github.com/cguodesign/tsubu";
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } } };
 
-  function lang() { return document.documentElement.dataset.lang === "zh" ? "zh" : "en"; }
+  const known = (l) => LANGS.some(([code]) => code === l);
+  function lang() { const l = document.documentElement.dataset.lang; return known(l) ? l : "en"; }
   function setLang(l) {
+    if (!known(l)) l = "en";
     document.documentElement.dataset.lang = l;
-    document.documentElement.lang = l === "zh" ? "zh-CN" : "en";
+    document.documentElement.lang = LANGS.find(([code]) => code === l)[2];
     store.set("tsubu-lang", l);
-    document.querySelectorAll(".lang").forEach((b) => { b.textContent = l === "zh" ? "English" : "中文"; b.setAttribute("aria-label", l === "zh" ? "Switch to English" : "切换到中文"); });
+    document.querySelectorAll(".lang").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === l)));
     document.dispatchEvent(new CustomEvent("tsubu-lang", { detail: l }));
   }
-  // the stored choice applies before the first paint, so the page does not flash the other language
+  // the stored choice applies before the first paint, so the page does not flash another language
   const saved = store.get("tsubu-lang");
-  if (saved === "zh" || saved === "en") { document.documentElement.dataset.lang = saved; document.documentElement.lang = saved === "zh" ? "zh-CN" : "en"; }
+  if (known(saved)) { document.documentElement.dataset.lang = saved; document.documentElement.lang = LANGS.find(([code]) => code === saved)[2]; }
+  // the words every page's controls share
+  const WORDS = { play: ["Play", "播放", "再生"], pause: ["Pause", "暂停", "一時停止"], copied: ["Copied", "已复制", "コピーしました"] };
+  const word = (k) => WORDS[k][LANGS.findIndex(([code]) => code === lang())];
 
   function mast(active) {
     const el = document.querySelector(".mast"); if (!el) return;
-    const links = PAGES.map(([href, en, zh]) => `<li><a href="${href}"${href === active ? ' aria-current="page"' : ""}><span class="en">${en}</span><span class="zh" lang="zh-CN">${zh}</span></a></li>`).join("");
+    const links = PAGES.map(([href, en, zh, ja]) => `<li><a href="${href}"${href === active ? ' aria-current="page"' : ""}>${T(en, zh, ja)}</a></li>`).join("");
     const repo = REPO ? `<li><a class="ext" href="${REPO}" rel="noopener">GitHub</a></li>` : "";
+    const langs = LANGS.map(([code, name, tag]) => `<button type="button" class="lang" data-lang="${code}" lang="${tag}" aria-pressed="false">${name}</button>`).join("");
     el.innerHTML = `<a class="mark" href="index.html">tsubu<span class="kanji">粒</span></a>
-      <nav aria-label="Site"><ul class="nav">${links}${repo}<li><button type="button" class="lang"></button></li></ul></nav>`;
-    el.querySelector(".lang").addEventListener("click", () => setLang(lang() === "zh" ? "en" : "zh"));
+      <nav aria-label="Site"><ul class="nav">${links}${repo}<li><span class="langs" role="group" aria-label="Language">${langs}</span></li></ul></nav>`;
+    el.querySelectorAll(".lang").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.lang)));
     setLang(lang());
     const foot = document.querySelector("footer.foot");
-    if (foot) foot.innerHTML = `<span>tsubu · <span class="en">MIT licence</span><span class="zh" lang="zh-CN">MIT 许可证</span> · v${Tsubu.version}</span>
-      <span>${REPO ? `<a href="${REPO}" rel="noopener">GitHub</a> · ` : ""}<span class="en">Colours</span><span class="zh" lang="zh-CN">用色</span>: 白練 濃藍 瑠璃 紺青 朱 山吹 白藍 銀鼠 群青</span>`;
+    if (foot) foot.innerHTML = `<span>tsubu · ${T("MIT licence", "MIT 许可证", "MIT ライセンス")} · v${Tsubu.version}</span>
+      <span>${REPO ? `<a href="${REPO}" rel="noopener">GitHub</a> · ` : ""}${T("Colours", "用色", "配色")}: 白練 濃藍 瑠璃 紺青 朱 山吹 白藍 銀鼠 群青</span>`;
   }
 
   // A clock that drives renderers with t. `render(t)` is the only thing it calls; a scrubber and
@@ -47,10 +55,10 @@ window.Site = (function () {
     const show = (v) => { t = Math.min(duration, Math.max(0, v)); render(t); if (scrub) scrub.value = String(t); if (out) out.textContent = `${t.toFixed(2)} s`; };
     const tick = (now) => { if (!playing) return; if (!origin) origin = now - from * 1000; let v = (now - origin) / 1000;
       if (v >= duration) { if (loop) v %= duration; else { v = duration; show(v); setPlaying(false); return; } } show(v); requestAnimationFrame(tick); };
-    const setPlaying = (on) => { playing = on; if (play) play.textContent = on ? (lang() === "zh" ? "暂停" : "Pause") : (lang() === "zh" ? "播放" : "Play"); if (on) { origin = 0; from = t >= duration ? 0 : t; requestAnimationFrame(tick); } };
+    const setPlaying = (on) => { playing = on; if (play) play.textContent = word(on ? "pause" : "play"); if (on) { origin = 0; from = t >= duration ? 0 : t; requestAnimationFrame(tick); } };
     if (play) play.addEventListener("click", () => setPlaying(!playing));
     if (scrub) { scrub.min = scrub.min || "0"; scrub.max = String(duration); scrub.step = scrub.step || "0.01"; scrub.addEventListener("input", () => { if (playing) setPlaying(false); show(Number(scrub.value)); }); }
-    document.addEventListener("tsubu-lang", () => { if (play) play.textContent = playing ? (lang() === "zh" ? "暂停" : "Pause") : (lang() === "zh" ? "播放" : "Play"); });
+    document.addEventListener("tsubu-lang", () => { if (play) play.textContent = word(playing ? "pause" : "play"); });
     show(start);
     setPlaying(autoplay && !reduce);
     if (!autoplay || reduce) setPlaying(false);
@@ -91,5 +99,5 @@ window.Site = (function () {
   }
 
   document.addEventListener("DOMContentLoaded", () => { labels(); code(); });
-  return { PAGES, REPO, reduce, lang, setLang, mast, clock, draw, labels, code, worst, fmt };
+  return { PAGES, LANGS, REPO, T, word, reduce, lang, setLang, mast, clock, draw, labels, code, worst, fmt };
 })();

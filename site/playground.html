@@ -31,33 +31,33 @@ details pre { margin-top: 8px; max-height: 300px; overflow: auto; }
 <body>
 <div class="wrap">
   <header class="mast"></header>
-  <h1 class="page-title"><span class="en">Playground</span><span class="zh" lang="zh-CN">试验场</span></h1>
+  <h1 class="page-title"><span class="en">Playground</span><span class="zh" lang="zh-CN">试验场</span><span class="ja" lang="ja">プレイグラウンド</span></h1>
   <p class="page-lede en">Paste a sentence as JSON, scrub the time, and switch everything the library offers. <code>stateAt</code>, <code>checkContrast</code>, <code>htmlAt</code> and the subtitle exporters run on it live. Nothing leaves the page.</p>
-  <p class="page-lede zh" lang="zh-CN">把句子作为 JSON 贴进来，拖动时间，切换这个库提供的所有开关。<code>stateAt</code>、<code>checkContrast</code>、<code>htmlAt</code> 和字幕导出都在这上面实时运行。什么都不会离开这个页面。</p>
+  <p class="page-lede zh" lang="zh-CN">把句子作为 JSON 贴进来，拖动时间，切换这个库提供的所有开关。<code>stateAt</code>、<code>checkContrast</code>、<code>htmlAt</code> 和字幕导出都在这上面实时运行。什么都不会离开这个页面。</p><p class="page-lede ja" lang="ja">文を JSON で貼り付け、時刻を動かし、このライブラリのすべてのスイッチを切り替えます。<code>stateAt</code>、<code>checkContrast</code>、<code>htmlAt</code>、字幕の書き出しがその場で実行されます。データがこのページの外へ出ることはありません。</p>
 
-  <h2 class="label"><span class="kanji" data-ruby="ば">場</span><span class="en">Your sentence</span><span class="zh" lang="zh-CN">你的句子</span></h2>
+  <h2 class="label"><span class="kanji" data-ruby="ば">場</span><span class="en">Your sentence</span><span class="zh" lang="zh-CN">你的句子</span><span class="ja" lang="ja">あなたの文</span></h2>
   <div class="pg">
     <div class="panel">
       <textarea class="json" id="src" spellcheck="false" aria-label="Sentence as JSON" style="min-height: 300px"></textarea>
       <p class="err" id="err" style="margin: 0"></p>
-      <fieldset><legend><span class="en">Options</span><span class="zh" lang="zh-CN">选项</span></legend>
+      <fieldset><legend><span class="en">Options</span><span class="zh" lang="zh-CN">选项</span><span class="ja" lang="ja">オプション</span></legend>
         <div class="ctl">
-          <label><span class="en">theme</span><span class="zh" lang="zh-CN">主题</span> <select id="theme"><option value="">none</option><option selected>light</option><option>dark</option><option>media</option></select></label>
-          <label><span class="en">speaker</span><span class="zh" lang="zh-CN">说话人</span> <select id="speaker"><option value="">none</option><option>a</option><option>b</option></select></label>
-          <label><span class="en">writing</span><span class="zh" lang="zh-CN">书写</span> <select id="writing"><option>horizontal</option><option>vertical</option></select></label>
+          <label><span class="en">theme</span><span class="zh" lang="zh-CN">主题</span><span class="ja" lang="ja">テーマ</span> <select id="theme"><option value="">none</option><option selected>light</option><option>dark</option><option>media</option></select></label>
+          <label><span class="en">speaker</span><span class="zh" lang="zh-CN">说话人</span><span class="ja" lang="ja">話者</span> <select id="speaker"><option value="">none</option><option>a</option><option>b</option></select></label>
+          <label><span class="en">writing</span><span class="zh" lang="zh-CN">书写</span><span class="ja" lang="ja">書字方向</span> <select id="writing"><option>horizontal</option><option>vertical</option></select></label>
           <label>combineUpright <input type="number" id="combine" min="0" max="4" value="2" style="width: 4em"></label>
         </div>
-        <div class="ctl" id="motions"><span class="en">motion</span><span class="zh" lang="zh-CN">动效</span></div>
+        <div class="ctl" id="motions"><span class="en">motion</span><span class="zh" lang="zh-CN">动效</span><span class="ja" lang="ja">モーション</span></div>
         <div class="ctl">
-          <label><input type="checkbox" id="ruby" checked> <span class="en">furigana</span><span class="zh" lang="zh-CN">注音</span></label>
+          <label><input type="checkbox" id="ruby" checked> <span class="en">furigana</span><span class="zh" lang="zh-CN">注音</span><span class="ja" lang="ja">ふりがな</span></label>
           <label><input type="checkbox" id="announce" checked> announceRuby</label>
         </div>
       </fieldset>
-      <fieldset><legend><span class="en">Container</span><span class="zh" lang="zh-CN">容器</span></legend>
+      <fieldset><legend><span class="en">Container</span><span class="zh" lang="zh-CN">容器</span><span class="ja" lang="ja">コンテナ</span></legend>
         <div class="ctl">
           <label><input type="checkbox" id="fluid"> <code>tsubu-fluid</code></label>
-          <label><span class="en">width</span><span class="zh" lang="zh-CN">宽度</span> <input type="range" id="width" min="200" max="1000" value="620" step="10" style="width: 140px"> <output id="width-out">620px</output></label>
-          <label><span class="en">max lines</span><span class="zh" lang="zh-CN">最大行数</span> <select id="lines"><option value="">none</option><option>1</option><option>2</option><option>3</option></select></label>
+          <label><span class="en">width</span><span class="zh" lang="zh-CN">宽度</span><span class="ja" lang="ja">幅</span> <input type="range" id="width" min="200" max="1000" value="620" step="10" style="width: 140px"> <output id="width-out">620px</output></label>
+          <label><span class="en">max lines</span><span class="zh" lang="zh-CN">最大行数</span><span class="ja" lang="ja">最大行数</span> <select id="lines"><option value="">none</option><option>1</option><option>2</option><option>3</option></select></label>
         </div>
       </fieldset>
     </div>
@@ -69,7 +69,7 @@ details pre { margin-top: 8px; max-height: 300px; overflow: auto; }
         <output id="out">0.00 s</output>
       </div>
       <p class="readout" id="state"></p>
-      <details open><summary><span class="en">Contrast</span><span class="zh" lang="zh-CN">对比度</span> · <code>Tsubu.checkContrast(root)</code> <span id="verdict" class="mono"></span></summary>
+      <details open><summary><span class="en">Contrast</span><span class="zh" lang="zh-CN">对比度</span><span class="ja" lang="ja">コントラスト</span> · <code>Tsubu.checkContrast(root)</code> <span id="verdict" class="mono"></span></summary>
         <div class="table-wrap"><table class="results"><thead><tr><th>state</th><th>layer</th><th>ratio</th><th>min</th><th>fg</th><th>bg</th></tr></thead><tbody id="contrast"></tbody></table></div>
       </details>
       <details><summary><code>htmlAt(t)</code></summary><pre><code class="plain" id="htmlat"></code></pre></details>

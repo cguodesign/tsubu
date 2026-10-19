@@ -109,7 +109,7 @@ SENTENCES = """() => [...document.querySelectorAll('.tsubu')].filter((r) => !r.c
 
 
 @pytest.mark.parametrize("name", PAGES)
-@pytest.mark.parametrize("lang", ["en", "zh"])
+@pytest.mark.parametrize("lang", ["en", "zh", "ja"])
 def test_every_colour_pair_on_the_page_meets_the_thresholds(site, name, lang):
     page = site(name)
     page.evaluate(f"() => Site.setLang('{lang}')")
@@ -120,15 +120,33 @@ def test_every_colour_pair_on_the_page_meets_the_thresholds(site, name, lang):
 
 
 @pytest.mark.parametrize("name", PAGES)
-def test_both_languages_are_complete_and_the_toggle_switches_them(site, name):
+def test_all_three_languages_are_complete_and_the_switch_shows_one(site, name):
+    """Every string exists in English, 简体中文 and 日本語 (the same count of each, none left as the
+    missing marker), the switch shows exactly one language, the document's lang follows it, and
+    the Japanese view fits a phone."""
     page = site(name)
-    counts = page.evaluate("() => ({ en: document.querySelectorAll('.en').length, zh: document.querySelectorAll('.zh').length })")
-    assert counts["en"] == counts["zh"] and counts["en"] > 5, counts
+    counts = page.evaluate("() => ({ en: document.querySelectorAll('.en').length, zh: document.querySelectorAll('.zh').length, ja: document.querySelectorAll('.ja').length })")
+    assert counts["en"] == counts["zh"] == counts["ja"] and counts["en"] > 5, counts
+    assert page.evaluate("() => document.body.innerText.includes('⟦missing⟧')") is False
+    assert page.evaluate("() => [...document.querySelectorAll('.ja')].every((e) => e.lang === 'ja')")
     shown = "(cls) => [...document.querySelectorAll('.' + cls)].filter((e) => getComputedStyle(e).display !== 'none').length"
-    assert page.evaluate(shown, "zh") == 0 and page.evaluate(shown, "en") == counts["en"]
-    page.click(".lang")
-    assert page.evaluate("() => document.documentElement.lang") == "zh-CN"
-    assert page.evaluate(shown, "en") == 0 and page.evaluate(shown, "zh") == counts["zh"]
+    assert page.evaluate(shown, "zh") == 0 and page.evaluate(shown, "ja") == 0 and page.evaluate(shown, "en") == counts["en"]
+    for code, tag in (("zh", "zh-CN"), ("ja", "ja"), ("en", "en")):
+        page.click(f".lang[data-lang='{code}']")
+        assert page.evaluate("() => document.documentElement.lang") == tag
+        assert page.evaluate(shown, code) == counts[code]
+        assert sum(page.evaluate(shown, other) for other in ("en", "zh", "ja") if other != code) == 0
+        assert page.evaluate("() => document.querySelector('.lang[aria-pressed=true]').dataset.lang") == code
+    assert page.errors == []
+
+
+@pytest.mark.parametrize("name", PAGES)
+def test_the_japanese_view_fits_a_phone(site, name):
+    page = site(name, 390)
+    page.click(".lang[data-lang='ja']")
+    page.wait_for_timeout(100)
+    assert page.evaluate("() => document.documentElement.scrollWidth") <= 390
+    assert page.evaluate("() => getComputedStyle(document.body).lineBreak") == "strict"
     assert page.errors == []
 
 
