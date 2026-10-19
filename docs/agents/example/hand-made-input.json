@@ -1,0 +1,11 @@
+{
+  "segments": [
+    { "parts": [{ "text": "昨日", "ruby": "きのう" }], "start": 0.0, "end": 0.42 },
+    { "parts": [{ "text": "、" }], "kind": "punct" },
+    { "parts": [{ "text": "京都", "ruby": "きょうと" }, { "text": "の" }], "start": 0.62, "end": 1.1 },
+    { "parts": [{ "text": "友達", "ruby": "ともだち" }, { "text": "から" }], "start": 1.1, "end": 1.68 },
+    { "parts": [{ "text": "手紙", "ruby": "てがみ" }, { "text": "を" }], "start": 1.68, "end": 2.12 },
+    { "parts": [{ "text": "受", "ruby": "う" }, { "text": "け" }, { "text": "取", "ruby": "と" }, { "text": "りました" }], "start": 2.12, "end": 3.05 },
+    { "parts": [{ "text": "。" }], "kind": "punct" }
+  ]
+}

@@ -96,6 +96,19 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
 - `segments`、`parts`、`text`、`ruby` 或 `lang` 为空，`kind` 不认识，`options.ruby` 或 `options.announceRuby` 不是布尔值，`options.theme`、`options.speaker` 不是小写名字（`a-z`、数字和 `-`，以字母开头），或者 `options.motion` 里有 `Tsubu.MOTIONS` 之外的预设；
 - `id` 为空或不是字符串，同一个 `id` 用了两次，或者 `tags` 不是小写名字组成的数组。
 
+## 给 agent
+
+tsubu 从不分段、不猜读音、不估算时间，所以这些输入得由调用方准备好。
+[`docs/agents/segmenting.md`](docs/agents/segmenting.md) 是写给做这件事的 AI agent 的指南（英文，带版本号）：
+怎么把一句日语原文切成文节，怎么从形态素分析器取读音并只标在汉字上，怎么从强制对齐或语音合成引擎取时间，
+以及画出来之前怎么检查。指南里提到的每个工具都按它自己的文档核对过，注明了核对日期和链接；工具和模型会变，
+所以指南有版本号和变更记录。配套的还有一个无依赖的校验脚本
+[`docs/agents/validate.mjs`](docs/agents/validate.mjs)，以及一个手工制作、由测试检查的示例：
+
+```sh
+node docs/agents/validate.mjs input.json --text sentence.txt
+```
+
 ## 输出
 
 `Tsubu.sentence()` 返回一个冻结的对象：

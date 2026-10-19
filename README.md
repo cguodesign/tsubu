@@ -120,6 +120,22 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
 - an empty or non-string `id`, an `id` used twice, or `tags` that are not an array of lower-case
   names.
 
+## For agents
+
+tsubu never segments, guesses readings or estimates times, so whoever calls it has to prepare
+that input. [`docs/agents/segmenting.md`](docs/agents/segmenting.md) is a versioned guide for AI
+agents that do this: how to cut a raw Japanese sentence into bunsetsu, take readings from a
+morphological analyser and put them on the kanji, take times from forced alignment or from the
+speech synthesiser, and check the result before it is drawn. Each tool it names was checked
+against its own documentation on the date the guide gives, with links, and the guide has a
+changelog, because the tools and models change. It comes with a dependency-free validator,
+[`docs/agents/validate.mjs`](docs/agents/validate.mjs), and a hand-made worked example that the
+tests check:
+
+```sh
+node docs/agents/validate.mjs input.json --text sentence.txt
+```
+
 ## Output
 
 `Tsubu.sentence()` returns a frozen object:

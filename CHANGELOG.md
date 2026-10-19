@@ -95,6 +95,12 @@ All notable changes to tsubu are recorded here. The format follows
   (default `chromium`) and `--engine-executable` for another build; `capture-frames.py` takes
   `--engine` too. Each limitation of an engine is an expected failure there alone, with its
   reason; the README's Browser support says what holds where.
+- A versioned guide for agents, `docs/agents/segmenting.md` (guide 1.0.0, verified 2026-10-19):
+  bunsetsu from GiNZA or KNP/KWJA (or merged from SudachiPy, MeCab with UniDic, kuromoji.js),
+  readings from the analyser on the kanji only, times from WhisperX, the Montreal Forced Aligner
+  or a speech synthesiser's timing, never estimated, and the checks before use. With a
+  dependency-free validator, `docs/agents/validate.mjs`, a hand-made worked example in
+  `docs/agents/example/`, and `tests/test_agent_guide.py`.
 
 ### Changed
 
