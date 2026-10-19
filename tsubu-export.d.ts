@@ -1,6 +1,6 @@
 /*
  * Type declarations for tsubu-export.js: the global `TsubuExport` of the classic script, and what
- * require("tsubu/export") returns. tsubu-export.d.mts declares the ES module form.
+ * require("tsubu-js/export") returns. tsubu-export.d.mts declares the ES module form.
  */
 import Tsubu = require("./tsubu.js");
 

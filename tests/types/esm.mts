@@ -1,6 +1,6 @@
 // The declarations as an ES module user sees them, through the package's own exports map.
-import Tsubu, { sentence, version, STATES, MOTIONS, checkFit, type Input, type Frame } from "tsubu";
-import TsubuExport, { toSRT } from "tsubu/export";
+import Tsubu, { sentence, version, STATES, MOTIONS, checkFit, type Input, type Frame } from "tsubu-js";
+import TsubuExport, { toSRT } from "tsubu-js/export";
 
 const input: Input = {
   segments: [

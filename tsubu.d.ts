@@ -1,6 +1,6 @@
 /*
  * Type declarations for tsubu.js: the object that the classic script defines as the global
- * `Tsubu`, and that require("tsubu") returns. tsubu.d.mts declares the ES module form. The
+ * `Tsubu`, and that require("tsubu-js") returns. tsubu.d.mts declares the ES module form. The
  * behaviour behind each name is described in README.md; tests/test_package.py checks that every
  * name the library exports is declared here.
  */

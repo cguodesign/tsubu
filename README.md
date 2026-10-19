@@ -63,10 +63,11 @@ furigana switch.
 
 ## Install
 
-From npm, pinned to an exact version:
+From npm, where the package is named `tsubu-js` (npm refuses `tsubu` as too close to an
+existing name), pinned to an exact version:
 
 ```sh
-npm install --save-exact tsubu
+npm install --save-exact tsubu-js
 ```
 
 The package holds the same files as this repository, with no build step: `tsubu.js` (the classic
@@ -74,24 +75,24 @@ script), `tsubu.css`, `tsubu-export.js`, an ES module for each script (`tsubu.mj
 `tsubu-export.mjs`, which only re-export the script's object) and TypeScript declarations.
 
 ```js
-const Tsubu = require("tsubu");                     // Node, CommonJS
-const TsubuExport = require("tsubu/export");
-import Tsubu, { sentence } from "tsubu";            // ES modules and bundlers
-import { toSRT } from "tsubu/export";
-import "tsubu/tsubu.css";                           // with a bundler that handles CSS
+const Tsubu = require("tsubu-js");                     // Node, CommonJS
+const TsubuExport = require("tsubu-js/export");
+import Tsubu, { sentence } from "tsubu-js";            // ES modules and bundlers
+import { toSRT } from "tsubu-js/export";
+import "tsubu-js/tsubu.css";                           // with a bundler that handles CSS
 ```
 
 From a CDN, with an exact version and [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity),
 so the page runs only the file it was written against:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tsubu@0.1.0/tsubu.css"
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tsubu-js@0.1.0/tsubu.css"
       integrity="sha384-…" crossorigin="anonymous">
-<script src="https://cdn.jsdelivr.net/npm/tsubu@0.1.0/tsubu.js"
+<script src="https://cdn.jsdelivr.net/npm/tsubu-js@0.1.0/tsubu.js"
         integrity="sha384-…" crossorigin="anonymous"></script>
 ```
 
-`https://unpkg.com/tsubu@0.1.0/tsubu.js` serves the same file. The hash of a file is
+`https://unpkg.com/tsubu-js@0.1.0/tsubu.js` serves the same file. The hash of a file is
 `openssl dgst -sha384 -binary tsubu.js | openssl base64 -A`, taken from the package (`npm pack`)
 or the CDN's copy; ask the CDN for the file itself, not a minified version, whose hash differs.
 In a page without a bundler, `<script type="module">` can import `tsubu.mjs` from the same

@@ -51,10 +51,10 @@ tsubu **不做**的事：把文本切成词或段、把音频和文本对齐、�
 
 ## 安装
 
-从 npm 安装，锁定精确版本：
+从 npm 安装，锁定精确版本。npm 上的包名是 `tsubu-js`（npm 认为 `tsubu` 和已有的包名太像，不予注册）：
 
 ```sh
-npm install --save-exact tsubu
+npm install --save-exact tsubu-js
 ```
 
 包里的文件和本仓库相同，没有构建步骤：`tsubu.js`（普通脚本）、`tsubu.css`、`tsubu-export.js`，
@@ -62,24 +62,24 @@ npm install --save-exact tsubu
 TypeScript 类型声明。
 
 ```js
-const Tsubu = require("tsubu");                     // Node，CommonJS
-const TsubuExport = require("tsubu/export");
-import Tsubu, { sentence } from "tsubu";            // ES 模块和打包工具
-import { toSRT } from "tsubu/export";
-import "tsubu/tsubu.css";                           // 打包工具能处理 CSS 时
+const Tsubu = require("tsubu-js");                     // Node，CommonJS
+const TsubuExport = require("tsubu-js/export");
+import Tsubu, { sentence } from "tsubu-js";            // ES 模块和打包工具
+import { toSRT } from "tsubu-js/export";
+import "tsubu-js/tsubu.css";                           // 打包工具能处理 CSS 时
 ```
 
 从 CDN 加载时，写精确版本并加上[子资源完整性（SRI）](https://developer.mozilla.org/zh-CN/docs/Web/Security/Subresource_Integrity)，
 页面就只会运行它所针对的那个文件：
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tsubu@0.1.0/tsubu.css"
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tsubu-js@0.1.0/tsubu.css"
       integrity="sha384-…" crossorigin="anonymous">
-<script src="https://cdn.jsdelivr.net/npm/tsubu@0.1.0/tsubu.js"
+<script src="https://cdn.jsdelivr.net/npm/tsubu-js@0.1.0/tsubu.js"
         integrity="sha384-…" crossorigin="anonymous"></script>
 ```
 
-`https://unpkg.com/tsubu@0.1.0/tsubu.js` 提供同一个文件。文件的哈希是
+`https://unpkg.com/tsubu-js@0.1.0/tsubu.js` 提供同一个文件。文件的哈希是
 `openssl dgst -sha384 -binary tsubu.js | openssl base64 -A`，从包（`npm pack`）或 CDN 上的副本算；
 向 CDN 要文件本身，不要它压缩过的版本，那个哈希不同。不用打包工具的页面也可以用
 `<script type="module">` 从同样的地址导入 `tsubu.mjs`；这时普通脚本也会定义全局的 `Tsubu`。
