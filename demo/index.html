@@ -13,7 +13,7 @@
   header img { width: 56px; height: 56px; border-radius: 12px; }
   h1 { font-size: 22px; margin: 0; }
   .note { font-size: 14px; line-height: 1.5; color: #4b5563; margin: 0 0 16px; max-width: 72ch; }
-  code { font: 13px ui-monospace, Menlo, monospace; background: #e2e5ea; padding: 1px 4px; border-radius: 4px; }
+  code { font: 13px ui-monospace, Menlo, monospace; background: #e2e5ea; padding: 1px 4px; border-radius: 4px; overflow-wrap: anywhere; }
   #bar { position: sticky; top: 0; z-index: 1; display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; padding: 12px 16px; margin: 0 0 20px; background: #fff; border-radius: 10px; font-size: 14px; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
   #bar label:first-child { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px; }
   #bar input[type=range] { flex: 1; min-width: 0; }
@@ -24,13 +24,17 @@
   .state, .contrast { margin: 8px 0 0; font: 12px/1.4 ui-monospace, Menlo, monospace; color: #374151; white-space: pre-wrap; overflow-wrap: anywhere; }
   .contrast { margin-top: 2px; }
   .speaker { font-size: 12px; font-weight: 600; color: #6b7280; margin: 10px 0 0; }
+  /* A fluid frame: the sentence's size follows the frame's width (class tsubu-fluid). */
+  .controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 13px; margin: 4px 0 12px; }
+  .controls input[type=range] { width: 180px; max-width: 50vw; }
+  .frame { max-width: 100%; outline: 1px dashed #9ca3af; outline-offset: 6px; margin: 8px 0; }
   /* Each card is the backdrop its theme is designed for; "media" sits on a stand-in for a
    * photograph, light at the top and dark at the bottom, so the plate has to work on both. */
   #cards[data-tsubu-theme="dark"] .card { background: #0f172a; }
-  #cards[data-tsubu-theme="dark"] :is(h2, .state, .contrast, .speaker) { color: #94a3b8; }
+  #cards[data-tsubu-theme="dark"] :is(h2, .state, .contrast, .speaker, .controls) { color: #94a3b8; }
   #cards[data-tsubu-theme="media"] .card { background: linear-gradient(165deg, #fffbeb 0%, #fcd34d 30%, #ea580c 55%, #1e3a8a 80%, #020617 100%); }
   #cards[data-tsubu-theme="media"] .bubble { margin: 14px 10px; } /* room for the plate's spread */
-  #cards[data-tsubu-theme="media"] :is(h2, .state, .contrast, .speaker) { color: #f8fafc; background: rgba(0, 0, 0, .55); width: fit-content; padding: 1px 6px; border-radius: 4px; }
+  #cards[data-tsubu-theme="media"] :is(h2, .state, .contrast, .speaker, .controls) { color: #f8fafc; background: rgba(0, 0, 0, .55); width: fit-content; padding: 1px 6px; border-radius: 4px; }
   @media (max-width: 600px) {
     main { padding: 16px 16px 48px; }
     .card { padding: 12px 16px 16px; border-radius: 16px; }
@@ -44,7 +48,7 @@
     <img src="../assets/logo.svg" alt="">
     <h1>tsubu demo</h1>
   </header>
-  <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana, or pick another theme, and see that nothing moves. Under each card, <code>Tsubu.checkContrast()</code> reports the lowest contrast it measured in any state; "none" shows the unthemed defaults, which are not a preset and do not pass. The sentences were written for this page and their times are invented, not measured. The address accepts <code>?t=seconds&amp;ruby=off&amp;theme=dark</code>.</p>
+  <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana, or pick another theme, and see that nothing moves. Under each card, <code>Tsubu.checkContrast()</code> reports the lowest contrast it measured in any state; "none" shows the unthemed defaults, which are not a preset and do not pass. The sentences were written for this page and their times are invented, not measured. The last card is a fluid frame: drag its width to see the size follow it, and set a maximum number of lines to see the sentence paged by <code>t</code>. The address accepts <code>?t=seconds&amp;ruby=off&amp;theme=dark&amp;frame=320&amp;lines=2</code>.</p>
   <div id="bar">
     <label>t <input id="t" type="range" min="-0.5" max="16" step="0.01" value="0"></label>
     <output id="tv">0.00 s</output>
@@ -123,6 +127,9 @@ const EXAMPLES = [
       { parts: [{ text: "。" }], kind: "punct" },
     ] } },
 ];
+// The fluid frame shows the long sentence again.
+EXAMPLES.push({ title: "A fluid frame: the size follows the frame's width, and beyond the maximum number of lines the sentence is paged by t",
+  frame: true, input: EXAMPLES[2].input });
 
 const params = new URLSearchParams(location.search);
 const slider = document.getElementById("t");
@@ -132,6 +139,8 @@ const cards = document.getElementById("cards");
 if (params.has("t")) slider.value = params.get("t");
 if (params.get("ruby") === "off") rubyBox.checked = false;
 if (params.has("theme")) themeBox.value = params.get("theme");
+const frameWidth = Number(params.get("frame")) || 320;
+const frameLines = params.get("lines") || "2";
 
 // The theme is set once, on the container of every card; a sentence with a speaker carries it
 // on its own root.
@@ -156,6 +165,16 @@ const shown = EXAMPLES.map((ex) => {
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   bubble.innerHTML = s.html;
+  if (ex.frame) {
+    const controls = document.createElement("div");
+    controls.className = "controls";
+    controls.innerHTML = `<label>frame width <input id="fw" type="range" min="160" max="1000" step="1" value="${frameWidth}"></label>
+      <output id="fwv"></output>
+      <label>max lines <select id="ml"><option value="none">none</option><option>1</option><option>2</option><option>3</option></select></label>`;
+    parts.push(controls);
+    bubble.classList.add("frame", "tsubu-fluid");
+    bubble.id = "frame";
+  }
   const out = document.createElement("p");
   out.className = "state";
   const contrast = document.createElement("p");
@@ -183,8 +202,24 @@ setTheme(themeBox.value);
 
 function describe(st) {
   const marks = { future: "·", current: "▶", past: "✓" };
-  return `timing=${st.timing}  sentence=${st.state}  current=${st.current}  segments=${st.segments.map((x) => marks[x.state]).join(" ")}`;
+  const page = st.pages === null || st.pages === undefined ? "" : `  page=${st.page + 1}/${st.pages}`;
+  return `timing=${st.timing}  sentence=${st.state}  current=${st.current}${page}  segments=${st.segments.map((x) => marks[x.state]).join(" ")}`;
 }
+
+// The frame's width and its maximum number of lines are page settings like the furigana switch.
+const frame = document.getElementById("frame");
+const widthBox = document.getElementById("fw");
+const linesBox = document.getElementById("ml");
+linesBox.value = frameLines;
+function setFrame() {
+  frame.style.width = `${widthBox.value}px`;
+  frame.style.setProperty("--tsubu-max-lines", linesBox.value);
+  const size = parseFloat(getComputedStyle(frame.querySelector(".tsubu")).fontSize);
+  document.getElementById("fwv").textContent = `${widthBox.value} px wide, text ${size.toFixed(1)} px`;
+}
+setFrame();
+widthBox.addEventListener("input", () => { setFrame(); renderAt(Number(slider.value)); });
+linesBox.addEventListener("change", () => { setFrame(); renderAt(Number(slider.value)); });
 
 // What the page shows is a function of t and the furigana switch alone.
 function renderAt(t) {

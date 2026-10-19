@@ -64,3 +64,27 @@ def test_the_demo_page_switches_the_theme_and_reports_the_contrast(browser):
         assert errors == []
     finally:
         page.close()
+
+
+def test_the_demo_frame_follows_its_width_and_pages_by_t(browser):
+    page = browser.new_page(viewport={"width": 1280, "height": 900})
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    frame = """() => { const root = document.querySelector('#frame .tsubu');
+      return {size: parseFloat(getComputedStyle(root).fontSize), page: root.dataset.page ?? null, pages: root.dataset.pages ?? null,
+              hidden: root.querySelectorAll('[data-off-page]').length}; }"""
+    try:
+        page.goto(DEMO.as_uri() + "?t=7.2&frame=320&lines=1")
+        narrow = page.evaluate(frame)
+        assert narrow["page"] == "0" and int(narrow["pages"]) > 1 and narrow["hidden"] > 0
+        page.locator("#t").fill("11.5")
+        page.locator("#t").dispatch_event("input")
+        assert page.evaluate(frame)["page"] == str(int(narrow["pages"]) - 1)
+        page.locator("#fw").fill("900")
+        page.locator("#fw").dispatch_event("input")
+        page.locator("#ml").select_option("none")
+        wide = page.evaluate(frame)
+        assert wide["size"] > narrow["size"] and wide["page"] is None and wide["hidden"] == 0
+        assert errors == []
+    finally:
+        page.close()
