@@ -76,6 +76,7 @@ options = {                    // 都是可选的
 
 - **段**（segment）是一个朗读单位。它的 `parts` 是文字片段；带 `ruby` 的片段画成 `<ruby>text<rt>ruby</rt></ruby>`，所以带读音的词不会被拆开。
 - `kind: "punct"` 表示标点：没有下划线，永远不会是正在读的那一段，也不能带时间。
+- 一段可以带 `id`（非空字符串，句内唯一）和 `tags`（小写名字，比如 `["new-word"]`）。它们属于调用方：tsubu 把它们写成 `data-id` 和 `data-tags`，不赋予任何含义。给标签上样式用的是和其他地方一样的 token，比如 `.tsubu-seg[data-tags~="new-word"] { --tsubu-future-color: #be123c; }`；`checkContrast` 会测量由此得到的颜色。标签的样式只改颜色和线条，这样不会让字移动。
 - 时间以秒为单位，用调用方的时钟；`t` 也用同一个时钟。
 
 时间决定句子的 **timing**：
@@ -92,7 +93,8 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
 - 段的时间重叠或顺序颠倒，`end` 早于 `start`，时间不是有限的数，或者只给了 `start`/`end` 中的一个；
 - 段的时间落在整句的 `start`/`end` 之外；
 - 标点带时间，或者没有任何非标点的段；
-- `segments`、`parts`、`text`、`ruby` 或 `lang` 为空，`kind` 不认识，`options.ruby` 或 `options.announceRuby` 不是布尔值，`options.theme`、`options.speaker` 不是小写名字（`a-z`、数字和 `-`，以字母开头），或者 `options.motion` 里有 `Tsubu.MOTIONS` 之外的预设。
+- `segments`、`parts`、`text`、`ruby` 或 `lang` 为空，`kind` 不认识，`options.ruby` 或 `options.announceRuby` 不是布尔值，`options.theme`、`options.speaker` 不是小写名字（`a-z`、数字和 `-`，以字母开头），或者 `options.motion` 里有 `Tsubu.MOTIONS` 之外的预设；
+- `id` 为空或不是字符串，同一个 `id` 用了两次，或者 `tags` 不是小写名字组成的数组。
 
 ## 输出
 
@@ -109,6 +111,8 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
 
   （实际没有这些空白）。给了 `options.theme` 时根元素还带 `data-tsubu-theme`，给了 `options.speaker` 时带 `data-speaker`。标点段带 `data-kind="punct"`。段被分进一个个单元，行只在单元之间断开（见[多行](#多行)）：一段不会被拆到两行；不能出现在行首的段（以闭合符号、`ー` 或小假名开头的段）和它前面那段在同一个单元里，紧跟在开括号后面的段也是。所有文字都经过 HTML 转义。刚生成的 HTML 不带状态，`apply` 之后才有。
 - **`timing`**：`"segments"`、`"sentence"` 或 `"none"`。
+- **`span(i)`**：第 `i` 段自己的时间 `{ start, end }`，点中它时把调用方的音频跳到这里（`i` 用 `Tsubu.segmentOf(event.target)` 得到）；标点，以及没有逐段时间的句子，返回 `null`，因为不做任何估算。
+- **`find(id)`**：带这个 `id` 的段的下标，没有就是 `null`。
 - **`stateAt(t)`**：只取决于 `t` 的纯函数，返回
 
   ```js

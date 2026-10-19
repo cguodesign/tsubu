@@ -70,6 +70,8 @@ All notable changes to tsubu are recorded here. The format follows
 - `tsubu.css` uses logical properties for the ruby reserve and the underline (no change in
   horizontal text).
 - A vertical card in the demo, and `tests/test_vertical.py`.
+- Segment `id` and `tags`, written as `data-id` and `data-tags` for the caller to find and style
+  segments by, and `span(i)` and `find(id)` on a sentence, for click-to-seek.
 - `checkContrast` counts opacity on a layer, and checks every segment revealed and with its
   furigana on, so every colour that can be drawn is measured.
 

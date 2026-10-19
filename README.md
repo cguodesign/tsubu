@@ -91,6 +91,12 @@ options = {                    // all optional
 - `kind: "punct"` marks punctuation: it has no underline, is never the segment being spoken and
   may not carry a time.
 - Times are in seconds on the caller's clock, and `t` uses the same clock.
+- A segment may carry an `id` (a non-empty string, unique in the sentence) and `tags` (lower-case
+  names, such as `["new-word"]`). They are the caller's: tsubu writes them as `data-id` and
+  `data-tags` and gives them no meaning. Style a tag with the same tokens as everything else, for
+  example `.tsubu-seg[data-tags~="new-word"] { --tsubu-future-color: #be123c; }`;
+  `checkContrast` measures whatever colours that gives. Keep tag styles to colours and lines, so
+  that they move nothing.
 
 The times decide the sentence's **timing**:
 
@@ -110,7 +116,9 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
 - an empty `segments`, `parts`, `text`, `ruby` or `lang`, an unknown `kind`, an `options.ruby` or
   `options.announceRuby` that is not a boolean, an `options.theme` or `options.speaker` that is not a lower-case name
   (`a-z`, digits and `-`, starting with a letter), or an `options.motion` naming a preset that is
-  not in `Tsubu.MOTIONS`.
+  not in `Tsubu.MOTIONS`;
+- an empty or non-string `id`, an `id` used twice, or `tags` that are not an array of lower-case
+  names.
 
 ## Output
 
@@ -133,6 +141,10 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
   the one before it, as does one that follows an opening bracket. All text is HTML-escaped. The
   fresh HTML has no state: `apply` adds it.
 - **`timing`**: `"segments"`, `"sentence"` or `"none"`.
+- **`span(i)`**: segment `i`'s own time, `{ start, end }`, where to seek the caller's audio when it
+  is tapped (with `Tsubu.segmentOf(event.target)` for `i`); `null` for punctuation and for a
+  sentence without times for its segments, since nothing is estimated.
+- **`find(id)`**: the index of the segment with that `id`, or `null`.
 - **`stateAt(t)`**: a pure function of `t` that returns
 
   ```js

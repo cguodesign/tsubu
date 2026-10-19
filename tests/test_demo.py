@@ -101,6 +101,8 @@ def test_the_demo_motion_card_hides_what_is_unheard_and_reveals_a_clicked_segmen
         assert before[0] is False and before[2] is True  # 雨の日は is being spoken; 家で is still a blank
         page.locator("#motion-bubble .tsubu-seg[data-index='2']").click()
         assert page.evaluate(masked)[2] is False
+        assert page.locator("#clicked").text_content() == "segment 2: 0.90–1.30 s"
+        assert page.evaluate("() => getComputedStyle(document.querySelector('[data-tags~=new-word]'), '::after').borderBottomStyle") == "solid"
         page.locator("#motion-bubble .tsubu-seg[data-index='2']").click()
         assert page.evaluate(masked)[2] is True
         page.locator("#reveal-all").click()

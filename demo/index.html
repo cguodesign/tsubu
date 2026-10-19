@@ -28,6 +28,8 @@
   .controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 13px; margin: 4px 0 12px; }
   .controls input[type=range] { width: 180px; max-width: 50vw; }
   #motion-bubble .tsubu-seg { cursor: pointer; }
+  /* A tag is the page's to style: here a word to learn gets a solid underline. */
+  .tsubu-seg[data-tags~="new-word"] { --tsubu-underline-style: solid; }
   .frame { max-width: 100%; outline: 1px dashed #9ca3af; outline-offset: 6px; margin: 8px 0; }
   /* A vertical title card: the column length is the bubble's height; the sentence sits at the
    * right, where vertical text begins. */
@@ -53,7 +55,7 @@
     <img src="../assets/logo.svg" alt="">
     <h1>tsubu demo</h1>
   </header>
-  <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana, or pick another theme, and see that nothing moves. Under each card, <code>Tsubu.checkContrast()</code> reports the lowest contrast it measured in any state; "none" shows the unthemed defaults, which are not a preset and do not pass. The sentences were written for this page and their times are invented, not measured. The motion card hides what has not been heard yet; click a segment to reveal it. The vertical card is the same library with <code>writing: "vertical"</code>. The last card is a fluid frame: drag its width to see the size follow it, and set a maximum number of lines to see the sentence paged by <code>t</code>. The address accepts <code>?t=seconds&amp;ruby=off&amp;theme=dark&amp;frame=320&amp;lines=2&amp;motion=mask</code>.</p>
+  <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana, or pick another theme, and see that nothing moves. Under each card, <code>Tsubu.checkContrast()</code> reports the lowest contrast it measured in any state; "none" shows the unthemed defaults, which are not a preset and do not pass. The sentences were written for this page and their times are invented, not measured. The motion card hides what has not been heard yet; click a segment to reveal it and see its time, where a player would seek to. お茶を carries the tag <code>new-word</code>, which this page draws with a solid underline. The vertical card is the same library with <code>writing: "vertical"</code>. The last card is a fluid frame: drag its width to see the size follow it, and set a maximum number of lines to see the sentence paged by <code>t</code>. The address accepts <code>?t=seconds&amp;ruby=off&amp;theme=dark&amp;frame=320&amp;lines=2&amp;motion=mask</code>.</p>
   <div id="bar">
     <label>t <input id="t" type="range" min="-0.5" max="21" step="0.01" value="0"></label>
     <output id="tv">0.00 s</output>
@@ -79,7 +81,7 @@ const EXAMPLES = [
       { parts: [{ text: "、" }], kind: "punct" },
       { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], start: 0.9, end: 1.3 },
       { parts: [{ text: "温", ruby: "あたた" }, { text: "かい" }], start: 1.3, end: 1.9 },
-      { parts: [{ text: "お" }, { text: "茶", ruby: "ちゃ" }, { text: "を" }], start: 1.9, end: 2.4 },
+      { parts: [{ text: "お" }, { text: "茶", ruby: "ちゃ" }, { text: "を" }], start: 1.9, end: 2.4, id: "ocha", tags: ["new-word"] },
       { parts: [{ text: "飲", ruby: "の" }, { text: "みます" }], start: 2.45, end: 3.3 },
       { parts: [{ text: "。" }], kind: "punct" },
     ] } },
@@ -193,7 +195,8 @@ const shown = EXAMPLES.map((ex) => {
     const controls = document.createElement("div");
     controls.className = "controls";
     controls.innerHTML = `<label>motion <select id="motion">${Tsubu.MOTIONS.map((m) => `<option>${m.name}</option>`).join("")}</select></label>
-      <button type="button" id="reveal-all">reveal all</button> <button type="button" id="reveal-none">hide again</button>`;
+      <button type="button" id="reveal-all">reveal all</button> <button type="button" id="reveal-none">hide again</button>
+      <output id="clicked">click a segment</output>`;
     parts.push(controls);
     bubble.id = "motion-bubble";
   }
@@ -244,6 +247,7 @@ function describe(st) {
 const motionBubble = document.getElementById("motion-bubble");
 const motionBox = document.getElementById("motion");
 const motionRoot = motionBubble.querySelector(".tsubu");
+const motionSentence = shown.find((x) => x.root === motionRoot).s;
 let revealed = new Set();
 if (params.has("motion")) motionBox.value = params.get("motion");
 function setMotion() { motionBubble.dataset.tsubuMotion = motionBox.value; }
@@ -253,6 +257,9 @@ motionBox.addEventListener("change", setMotion);
 motionBubble.addEventListener("click", (event) => {
   const i = Tsubu.segmentOf(event.target);
   if (i === null) return;
+  // Where a player would seek to: the segment's own time (null for punctuation).
+  const span = motionSentence.span(i);
+  document.getElementById("clicked").textContent = span ? `segment ${i}: ${span.start.toFixed(2)}–${span.end.toFixed(2)} s` : `segment ${i}: punctuation, no time`;
   if (revealed.has(i)) revealed.delete(i); else revealed.add(i);
   reveal([...revealed]);
 });
