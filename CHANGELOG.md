@@ -72,6 +72,9 @@ All notable changes to tsubu are recorded here. The format follows
 - A vertical card in the demo, and `tests/test_vertical.py`.
 - Segment `id` and `tags`, written as `data-id` and `data-tags` for the caller to find and style
   segments by, and `span(i)` and `find(id)` on a sentence, for click-to-seek.
+- `Tsubu.checkFit(root, options)`: whether a drawn sentence fits its container, measured where
+  it is drawn: overflow, units longer than a line, clipped furigana, and too many lines for a
+  sentence that cannot be paged; paged sentences page by page.
 - `checkContrast` counts opacity on a layer, and checks every segment revealed and with its
   furigana on, so every colour that can be drawn is measured.
 - The website in `site/`: a home page with a film drawn frame by frame from `t` and a furigana

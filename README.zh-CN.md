@@ -138,6 +138,13 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
 - **`Tsubu.segmentOf(node)`**：某个节点（比如事件的 target）所在的段的下标，不在任何段里就是 `null`；给点击、轻触的处理函数用。
 - **`Tsubu.MOTIONS`**：动效预设的目录。
 - **`Tsubu.checkContrast(root, options)`**：在浏览器里测量已画好的句子的颜色，见[主题与对比度](#主题与对比度)。
+- **`Tsubu.checkFit(root, options)`**：测量已画好的句子在它所在的地方是否放得下：在它的容器里（`options.container`，否则是根元素的父元素），按它在那里的字号、字体和宽度。它在一个隐藏副本上测量（所有段都显示、注音打开），按 `t` 翻页的句子逐页检查。返回 `{ ok, issues, lines, pages }`；每个问题是 `{ kind, segment, page, by, message }`，`by` 以像素计：
+  - `"overflow"`：某段超出容器的内边距框；
+  - `"too-wide"`：不能分开的几段比一行（或一列）还长，只会溢出：缩短这一段或调小字号；
+  - `"ruby-clipped"`：注音超出容器：调大 `--tsubu-ruby-reserve` 或给容器留出空间；
+  - `"too-many-lines"`：不能翻页的句子超过了 `--tsubu-max-lines`。
+
+  库本身的保证已经在各种宽度的网格上测过（见下文）；`checkFit` 是给调用方、或替调用方工作的 agent，在自己的容器、字体和句子上运行的。
 - **`Tsubu.contrast(foreground, background, backdrop)`**：两个颜色（十六进制、`rgb()`、`rgba()`）的 WCAG 对比度（1 到 21）。半透明的前景先叠到背景上，半透明的背景先叠到 `backdrop` 上（默认白色）。在 Node 里也能用。
 - **`Tsubu.CONTRAST`**：阈值，`{ text: 4.5, ruby: 4.5, underline: 3, highlight: 3 }`。
 - **`Tsubu.THEMES`**：`["light", "dark", "media"]`；**`Tsubu.SPEAKERS`**：`["a", "b"]`。

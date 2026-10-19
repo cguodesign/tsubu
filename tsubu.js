@@ -326,6 +326,26 @@
       layer: (r, s) => (rl ? [r.right - px(s.right) - px(s.width), r.right - px(s.right)] : [r.left + px(s.left), r.left + px(s.left) + px(s.width)]) };
   }
 
+  /* Which line each element lies on, from the layout: segments are nowrap, so each lies on one
+   * line, and one further along the block axis by half a line or more (lower, or in vertical text
+   * further left) begins a new one. Measured as laid out greedily, the way pages are counted. */
+  function lineIndexes(root, elements) {
+    root.setAttribute("data-measuring", "");
+    const axis = blockAxis(root);
+    const starts = Array.from(elements, (el) => axis.start(el.getBoundingClientRect()));
+    root.removeAttribute("data-measuring");
+    const half = (parseFloat(getComputedStyle(root).fontSize) || 16) / 2;
+    let line = 0, lineStart = starts[0];
+    return starts.map((start) => {
+      if (start >= lineStart + half) {
+        line++;
+        lineStart = start;
+      }
+      return line;
+    });
+  }
+
+
   /* With a maximum number of lines, shows only the page that holds the segment being spoken:
    * between two segments, the page of the one just spoken; before the first, the first page.
    * The lines come from the layout itself: the sentence is laid out whole and greedily, segment
@@ -340,21 +360,7 @@
     root.removeAttribute("data-pages");
     if (lines === null || s.timing !== "segments") return { page: null, pages: null };
 
-    root.setAttribute("data-measuring", "");
-    const axis = blockAxis(root);
-    const starts = Array.from(elements, (el) => axis.start(el.getBoundingClientRect()));
-    root.removeAttribute("data-measuring");
-    // Segments are nowrap, so each lies on one line; a segment further along the block axis by
-    // half a line or more (lower, or in vertical text further left) begins a new one.
-    const half = (parseFloat(getComputedStyle(root).fontSize) || 16) / 2;
-    let line = 0, lineStart = starts[0];
-    const pageOf = starts.map((start) => {
-      if (start >= lineStart + half) {
-        line++;
-        lineStart = start;
-      }
-      return Math.floor(line / lines);
-    });
+    const pageOf = lineIndexes(root, elements).map((line) => Math.floor(line / lines));
     const pages = pageOf[pageOf.length - 1] + 1;
 
     let at = s.current;
@@ -696,5 +702,103 @@
     return { ok: failures.length === 0, checks, failures };
   }
 
-  return Object.freeze({ version: VERSION, sentence, setRuby, setRevealed, segmentOf, contrast, checkContrast, STATES, THEMES, SPEAKERS, CONTRAST, MOTIONS });
+  /**
+   * Tsubu.checkFit(root, options) -> { ok, issues, lines, pages }
+   * Measures whether a drawn sentence fits where it is drawn: in its container (options.container,
+   * else the root's parent element), at the size, font and width it has there. It works on a copy
+   * of the sentence the same size as the root, with every segment shown and the furigana on, and
+   * removes it again: the page is left as it was. A sentence paged by t is checked page by page.
+   * Each issue is { kind, segment, page, by, message }:
+   *   "overflow"        a segment or its furigana reach past the container's padding box (by px);
+   *   "too-wide"        a unit of segments that may not be parted is longer than a line, so it can
+   *                     only overflow: shorten the segment, or make the text smaller;
+   *   "ruby-clipped"    furigana reach past the container's padding box above the text (or beside
+   *                     it, in vertical text): raise --tsubu-ruby-reserve, or give the container room;
+   *   "too-many-lines"  more lines than --tsubu-max-lines in a sentence that cannot be paged (one
+   *                     without times for its segments).
+   */
+  function checkFit(root, options) {
+    if (!root || !root.classList || !root.classList.contains("tsubu")) fail('checkFit needs the element with class "tsubu"');
+    if (typeof getComputedStyle !== "function") fail("checkFit measures a page, so it needs a browser");
+    const opts = options || {};
+    const container = opts.container === undefined ? root.parentElement : opts.container;
+    if (!container || typeof container.getBoundingClientRect !== "function") fail("options.container must be an element");
+
+    const vertical = blockAxis(root).vertical;
+    const at = root.getBoundingClientRect();
+    const copy = root.cloneNode(true);
+    copy.removeAttribute("id");
+    copy.setAttribute("aria-hidden", "true");
+    copy.setAttribute("data-ruby", "on");
+    copy.removeAttribute("data-measuring");
+    // The same box as the root: its width (and in vertical text its height, the length of a
+    // column), border included; placed out of sight, then measured as if it stood where the
+    // root stands.
+    Object.assign(copy.style, { position: "absolute", left: "-100000px", top: "0", boxSizing: "border-box", width: `${at.width}px` });
+    if (vertical) copy.style.height = `${at.height}px`;
+    root.after(copy);
+    const issues = [];
+    let lines = 0, pages = null;
+    try {
+      const elements = [...copy.querySelectorAll(":scope > .tsubu-unit > .tsubu-seg")];
+      const units = [...copy.querySelectorAll(":scope > .tsubu-unit")];
+      for (const el of elements) el.removeAttribute("data-off-page");
+      const origin = copy.getBoundingClientRect();
+      const shift = (r) => ({ left: r.left - origin.left + at.left, right: r.right - origin.left + at.left, top: r.top - origin.top + at.top, bottom: r.bottom - origin.top + at.top });
+      const cs = getComputedStyle(container), cr = container.getBoundingClientRect(), px = (v) => parseFloat(v) || 0;
+      const box = { left: cr.left + px(cs.borderLeftWidth), right: cr.right - px(cs.borderRightWidth), top: cr.top + px(cs.borderTopWidth), bottom: cr.bottom - px(cs.borderBottomWidth) };
+      const past = (r) => Math.max(box.left - r.left, r.right - box.right, box.top - r.top, r.bottom - box.bottom, 0);
+      // a segment's text without its readings, for the messages
+      const name = (el) => { const r = el.cloneNode(true); r.querySelectorAll("rt").forEach((rt) => rt.remove()); return r.textContent; };
+
+      // A unit longer than the line it has: measured along the line, against the root's content box
+      // or the container's, whichever is shorter (a vertical sentence without a height of its own
+      // grows with its content, so its column is as long as the container lets it be).
+      const ps = getComputedStyle(copy), pr = copy.getBoundingClientRect();
+      const inner = (r, st) => (vertical ? r.height - px(st.paddingTop) - px(st.paddingBottom) : r.width - px(st.paddingLeft) - px(st.paddingRight));
+      const room = Math.min(inner(pr, ps), inner(cr, cs) - (vertical ? px(cs.borderTopWidth) + px(cs.borderBottomWidth) : px(cs.borderLeftWidth) + px(cs.borderRightWidth)));
+      units.forEach((unit) => {
+        const r = unit.getBoundingClientRect(), length = vertical ? r.height : r.width;
+        if (length > room + 0.5) {
+          const first = unit.querySelector(".tsubu-seg"), i = Number(first.getAttribute("data-index"));
+          const words = [...unit.querySelectorAll(".tsubu-seg")].map(name).join("");
+          issues.push({ kind: "too-wide", segment: i, page: null, by: round(length - room),
+            message: `segments that may not be parted, ${JSON.stringify(words)}, are ${round(length)}px long on a line of ${round(room)}px` });
+        }
+      });
+
+      const lineOf = lineIndexes(copy, elements);
+      const perPage = linesPerPage(copy);
+      const paged = perPage !== null && copy.getAttribute("data-timing") === "segments";
+      const pageOf = paged ? lineOf.map((l) => Math.floor(l / perPage)) : lineOf.map(() => 0);
+      const count = pageOf[pageOf.length - 1] + 1;
+      if (paged) pages = count;
+      lines = paged ? Math.min(perPage, lineOf[lineOf.length - 1] + 1) : lineOf[lineOf.length - 1] + 1;
+      if (perPage !== null && !paged && lines > perPage)
+        issues.push({ kind: "too-many-lines", segment: null, page: null, by: lines - perPage,
+          message: `${lines} lines, more than --tsubu-max-lines (${perPage}), in a sentence that cannot be paged: it has no times for its segments` });
+
+      for (let page = 0; page < count; page++) {
+        elements.forEach((el, i) => (pageOf[i] === page ? el.removeAttribute("data-off-page") : el.setAttribute("data-off-page", "")));
+        elements.forEach((el, i) => {
+          if (pageOf[i] !== page) return;
+          const r = shift(el.getBoundingClientRect()), by = past(r);
+          if (by > 0.5) issues.push({ kind: "overflow", segment: i, page: paged ? page : null, by: round(by),
+            message: `segment ${i}, ${JSON.stringify(name(el))}, reaches ${round(by)}px past its container` });
+          el.querySelectorAll("rt").forEach((rt) => {
+            const q = shift(rt.getBoundingClientRect()), out = past(q);
+            if (out > 0.5) issues.push({ kind: "ruby-clipped", segment: i, page: paged ? page : null, by: round(out),
+              message: `the furigana ${JSON.stringify(rt.textContent)} of segment ${i} reach ${round(out)}px past the container` });
+          });
+        });
+      }
+    } finally {
+      copy.remove();
+    }
+    return { ok: issues.length === 0, issues, lines, pages };
+  }
+
+  function round(v) { return Math.round(v * 10) / 10; }
+
+  return Object.freeze({ version: VERSION, sentence, setRuby, setRevealed, segmentOf, contrast, checkContrast, checkFit, STATES, THEMES, SPEAKERS, CONTRAST, MOTIONS });
 });

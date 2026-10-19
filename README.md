@@ -193,6 +193,20 @@ Also on `Tsubu`:
 - **`Tsubu.MOTIONS`**: the catalogue of motion presets.
 - **`Tsubu.checkContrast(root, options)`** measures a drawn sentence's colours in the browser;
   see [Themes and contrast](#themes-and-contrast).
+- **`Tsubu.checkFit(root, options)`** measures whether a drawn sentence fits where it is drawn:
+  in its container (`options.container`, else the root's parent element), at the size, font and
+  width it has there. It works on a hidden copy with every segment shown and the furigana on, and
+  checks a sentence paged by `t` page by page. It returns `{ ok, issues, lines, pages }`; each
+  issue is `{ kind, segment, page, by, message }`, `by` in pixels:
+  - `"overflow"`: a segment reaches past the container's padding box;
+  - `"too-wide"`: segments that may not be parted are longer than a line (or column), so they can
+    only overflow: shorten the segment or make the text smaller;
+  - `"ruby-clipped"`: furigana reach past the container: raise `--tsubu-ruby-reserve` or give the
+    container room;
+  - `"too-many-lines"`: more lines than `--tsubu-max-lines` in a sentence that cannot be paged.
+
+  The library's own guarantees are tested over a grid of widths (see below); `checkFit` is for the
+  caller, or the agent working for it, to run on its own container, font and sentences.
 - **`Tsubu.contrast(foreground, background, backdrop)`**: the WCAG contrast ratio (1 to 21) of two
   colours (hex, `rgb()`, `rgba()`). A translucent foreground is painted over the background, and a
   translucent background over `backdrop` (default white). Works in Node too.
