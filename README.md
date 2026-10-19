@@ -415,6 +415,35 @@ readers read it; for a test, keep the answer out of the page or use `appear`. `c
 reveals every segment in its copy, so every colour that can be drawn is checked, and it counts
 opacity on a layer.
 
+## Recording video
+
+Because each frame depends on `t` alone, a video is a loop over frame times. Two examples, both run
+by the tests (`tests/test_examples.py`), use `examples/sentence.json`:
+
+- **`examples/capture-frames.py`** draws the sentence in headless Chromium and saves one PNG per
+  frame, calling `apply(root, t)` at each frame's time, then prints the ffmpeg command that joins
+  the frames with your audio (it does not run it):
+
+  ```sh
+  python examples/capture-frames.py examples/sentence.json frames --fps 30 --theme media --motion appear
+  ```
+
+- **`examples/frames-from-node.mjs`** writes each frame as an HTML page with `htmlAt(t)`, with no
+  browser, for renderers that take markup:
+
+  ```sh
+  node examples/frames-from-node.mjs examples/sentence.json frames 30
+  ```
+
+The test renders every frame forward and then backward and requires the PNGs to be identical, byte
+for byte. One thing it found: calling `apply` on the same element frame after frame gives the same
+state, but Chromium repaints only what changed, and where a highlight's rounded corner lies over
+the translucent `media` plate, a few edge pixels then depend on the frame before. The example draws
+each frame on a fresh copy of the sentence (`innerHTML = s.html`, then `apply`), which makes frames
+identical in any order, and lets them be rendered in parallel. In a renderer that draws markup per
+frame, such as a Remotion composition, render `s.htmlAt(frame / fps)` (untested here: Remotion is
+not part of the test suite).
+
 ## Exporting subtitles
 
 An optional script, `tsubu-export.js`, turns the same input into subtitles. Load it after
@@ -563,6 +592,7 @@ JP); the measurements are relative, so another CJK font should give the same res
 | `tsubu.js` | the library: a classic script that defines `Tsubu`, or `module.exports` in Node |
 | `tsubu.css` | the styles; everything adjustable is a custom property |
 | `tsubu-export.js` | optional: WebVTT and ASS karaoke subtitles from the same input |
+| `examples/` | recording video: PNG frames through Playwright, HTML frames from Node |
 | `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker, a dialogue and a fluid, paged frame; accepts `?t=seconds&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | the test suite (pytest; Node for the state, Playwright Chromium for the layout) |
 | `assets/` | the logo |

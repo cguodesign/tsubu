@@ -1,0 +1,10 @@
+{
+  "segments": [
+    { "parts": [{ "text": "雨", "ruby": "あめ" }, { "text": "の" }, { "text": "日", "ruby": "ひ" }, { "text": "は" }], "start": 0.0, "end": 0.7 },
+    { "parts": [{ "text": "、" }], "kind": "punct" },
+    { "parts": [{ "text": "家", "ruby": "いえ" }, { "text": "で" }], "start": 0.9, "end": 1.3 },
+    { "parts": [{ "text": "お" }, { "text": "茶", "ruby": "ちゃ" }, { "text": "を" }], "start": 1.3, "end": 1.8 },
+    { "parts": [{ "text": "飲", "ruby": "の" }, { "text": "みます" }], "start": 1.85, "end": 2.6 },
+    { "parts": [{ "text": "。" }], "kind": "punct" }
+  ]
+}

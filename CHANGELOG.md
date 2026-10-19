@@ -56,6 +56,8 @@ All notable changes to tsubu are recorded here. The format follows
   drift-free centisecond rounding, readings inline or omitted, and override braces and backslashes
   written in full-width). Input is checked by `Tsubu.sentence()`, and a sentence without times is
   refused.
+- Examples for recording video: `examples/capture-frames.py` (PNG frames through Playwright, the
+  same pixels in any frame order) and `examples/frames-from-node.mjs` (HTML frames with `htmlAt`).
 - `checkContrast` counts opacity on a layer, and checks every segment revealed and with its
   furigana on, so every colour that can be drawn is measured.
 

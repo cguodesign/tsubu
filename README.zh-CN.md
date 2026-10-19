@@ -284,6 +284,24 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 
 没有提供：逐字擦除，因为那需要 tsubu 没有的逐字时间。在 `prefers-reduced-motion: reduce` 下，`underline-draw` 一次把下划线画完；其他几个是状态变化，不是移动。被 `mask` 藏起来的文字仍在页面里，读屏软件会读出来；用来考试时，请不要把答案放进页面，或者用 `appear`。`checkContrast` 在它的副本里揭示所有段，所以所有可能画出来的颜色都被检查，而且它会把图层上的透明度算进去。
 
+## 录制视频
+
+每一帧只取决于 `t`，所以一段视频就是按每帧时间循环一遍。有两个示例，测试（`tests/test_examples.py`）都会运行它们，用的是 `examples/sentence.json`：
+
+- **`examples/capture-frames.py`** 在无界面 Chromium 里画出句子，在每帧的时间调用 `apply(root, t)`，每帧存一张 PNG，然后打印把帧和你的音频合成视频的 ffmpeg 命令（它不运行这条命令）：
+
+  ```sh
+  python examples/capture-frames.py examples/sentence.json frames --fps 30 --theme media --motion appear
+  ```
+
+- **`examples/frames-from-node.mjs`** 不需要浏览器，用 `htmlAt(t)` 把每一帧写成一个 HTML 页面，给接受标记的渲染器用：
+
+  ```sh
+  node examples/frames-from-node.mjs examples/sentence.json frames 30
+  ```
+
+测试先按顺序、再倒序渲染所有帧，要求 PNG 逐字节相同。它发现了一件事：在同一个元素上逐帧调用 `apply`，状态是一样的，但 Chromium 只重画变化的部分；高亮的圆角压在半透明的 `media` 底板上时，边缘的几个像素会受前一帧影响。示例在每帧都用一份新的句子副本来画（`innerHTML = s.html`，然后 `apply`），这样任何顺序画出的帧都相同，也可以并行渲染。在逐帧绘制标记的渲染器里（比如 Remotion 的 composition），渲染 `s.htmlAt(frame / fps)` 即可（这里没有测试：测试套件里没有 Remotion）。
+
 ## 导出字幕
 
 可选脚本 `tsubu-export.js` 把同样的输入转成字幕。在 `tsubu.js` 之后加载（它定义 `TsubuExport`），或在 Node 里 `require("./tsubu-export.js")`。输入由 `Tsubu.sentence()` 检查，因此会以相同的错误拒绝。没有时间的句子无法导出，任何时间都不做估算。
@@ -360,6 +378,7 @@ python -m pytest -q
 | `tsubu.js` | 库本身：一个普通脚本，在页面里定义 `Tsubu`，在 Node 里是 `module.exports` |
 | `tsubu.css` | 样式；可调的都是自定义属性 |
 | `tsubu-export.js` | 可选：用同样的输入生成 WebVTT 和 ASS 卡拉 OK 字幕 |
+| `examples/` | 录制视频：用 Playwright 生成 PNG 帧，用 Node 生成 HTML 帧 |
 | `demo/index.html` | 演示页：拖动时间、开关注音、选主题，有一段对话和一个流式、会翻页的框；地址可带 `?t=秒数&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | 测试（pytest；状态用 Node，版面用 Playwright 的 Chromium） |
 | `assets/` | logo |
