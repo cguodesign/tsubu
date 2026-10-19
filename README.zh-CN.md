@@ -123,7 +123,7 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
   - `progress` 是整句或该段从 0 到 1 的进度。timing 为 `"sentence"` 时各段的 `progress` 是 `null`（不知道）；标点的永远是 `null`。
   - `current` 是正在读的那一段的下标，没有就是 `null`。timing 为 `"sentence"` 时永远是 `null`。
   - timing 为 `"segments"` 时，标点和它前面那个非标点段一起变成 past；句首的标点在第一个非标点段开始时变成 past。timing 为 `"sentence"` 时，每一段（包括标点）的状态都和整句相同。
-- **`htmlAt(t, { revealed })`**：不需要页面，把第 `t` 秒那一帧作为 HTML 字符串返回：也就是带上 `apply(root, t)`（以及 `setRevealed(root, revealed)`）会写的那些属性的 `html`。用在服务器上、Node 里，或者接受 HTML 的渲染器里（服务端渲染、HTML 转图片、视频渲染器的逐帧画面）。测试检查它和刚生成的 `html` 在 Chromium 里经过 `apply` 之后是同样的元素树、文字和属性，在 Chromium 里连字符串都相同。它不翻页（翻页需要版面），和 `stateAt` 一样，句子没有时间时会拒绝。
+- **`htmlAt(t, { revealed })`**：不需要页面，把第 `t` 秒那一帧作为 HTML 字符串返回：也就是带上 `apply(root, t)`（以及 `setRevealed(root, revealed)`）会写的那些属性的 `html`。用在服务器上、Node 里，或者接受 HTML 的渲染器里（服务端渲染、HTML 转图片、视频渲染器的逐帧画面）。测试检查它和刚生成的 `html` 在浏览器里经过 `apply` 之后是同样的元素树、文字和属性，在 Chromium 和 WebKit 里连字符串都相同（Firefox 的属性顺序不同）。它不翻页（翻页需要版面），和 `stateAt` 一样，句子没有时间时会拒绝。
 - **`apply(root, t)`**：把 `stateAt(t)` 写到页面上并返回它。`root` 必须是由 `html` 生成的那个 `.tsubu` 元素（是别的元素或段数不对就抛错）。它只设置属性：
   - 根元素：`data-state`、`--tsubu-progress`；timing 为 `"sentence"` 的句子正在读时带 `aria-current="true"`；
   - 每一段：`data-state`、`--tsubu-progress`（只有带时间的段）；正在读的那一段带 `aria-current="true"`；
@@ -319,7 +319,7 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 
 每一帧只取决于 `t`，所以一段视频就是按每帧时间循环一遍。有两个示例，测试（`tests/test_examples.py`）都会运行它们，用的是 `examples/sentence.json`：
 
-- **`examples/capture-frames.py`** 在无界面 Chromium 里画出句子，在每帧的时间调用 `apply(root, t)`，每帧存一张 PNG，然后打印把帧和你的音频合成视频的 ffmpeg 命令（它不运行这条命令）：
+- **`examples/capture-frames.py`** 在无界面 Chromium（或 `--engine firefox`、`webkit`）里画出句子，在每帧的时间调用 `apply(root, t)`，每帧存一张 PNG，然后打印把帧和你的音频合成视频的 ffmpeg 命令（它不运行这条命令）：
 
   ```sh
   python examples/capture-frames.py examples/sentence.json frames --fps 30 --theme media --motion appear
@@ -340,7 +340,7 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 - **`TsubuExport.toWebVTT(input, { ruby = true, offset = 0, id })`** 返回一个 WebVTT 文件，只有一条覆盖整句的 cue。每一段是一个类 span：`<c.tsubu-seg>`（标点为 `<c.tsubu-seg.punct>`）；读音写成 `<ruby>雨<rt>あめ</rt></ruby>`。timing 为 `"segments"` 时，每个非标点段的开始处有一个 cue 时间戳，所以 `::cue(:past)` 会跟着朗读走。时间戳严格递增，都在 cue 之内。`ruby: false` 去掉读音，`offset` 以秒平移所有时间，`id` 设置 cue 标识符。`&`、`<`、`>` 会被转义。
 - **`TsubuExport.toASS(input, { ruby = "omit", offset = 0 })`** 返回一行 ASS 卡拉 OK `Dialogue:`，使用 `\k` 时长。段与段之间的空隙是一个空音节，标点并入它前面的音节。先把每个边界取整到百分之一秒再求差，所以各时长之和总是等于这一行的长度。ASS 没有 ruby：`ruby: "inline"` 写成 `雨(あめ)`。ASS 无法转义 `{`、`}` 和 `\`，所以写成全角的 ｛ ｝ ＼。**`toASSScript`** 用只含一个 `Default` 样式的最小脚本把这一行包起来。
 
-时间按书写的十进制值四舍五入（到毫秒或百分之一秒），文本里的换行变成空格，负时间会被拒绝。测试（`tests/test_export.py`）在 Node 里检查精确输出，检查 Chromium 把 WebVTT 解析成一条带 span、ruby 和时间戳的 cue；装了带 libass 的 ffmpeg 时，还检查 ASS 卡拉 OK 在每个音节开始时亮起。
+时间按书写的十进制值四舍五入（到毫秒或百分之一秒），文本里的换行变成空格，负时间会被拒绝。测试（`tests/test_export.py`）在 Node 里检查精确输出，检查浏览器把 WebVTT 解析成一条带 span、ruby 和时间戳的 cue；装了带 libass 的 ffmpeg 时，还检查 ASS 卡拉 OK 在每个音节开始时亮起。
 
 ## 无障碍
 
@@ -350,7 +350,7 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 
 ## 版面保证，以及怎么测
 
-下面每一条都在无界面 Chromium 里实际测量页面来检查（见 `tests/test_layout.py`）：
+下面每一条都在无界面浏览器里实际测量页面来检查（见 `tests/test_layout.py`），默认用 Chromium，用 `--engine` 可换成 Firefox 或 WebKit；哪些在哪里成立，见[浏览器支持](#浏览器支持)：
 
 - **开关注音什么都不动。** 隐藏的注音用 `visibility: hidden`，不用 `display: none`，所以仍然占位：如果用 `display: none`，读音比汉字宽的词会变窄，后面所有的字都会移动。测试记下每个字、每一段、每个读音的框，然后开关注音、来回改变 `t`，要求每个框都留在原处，单行和两行都测。
 - **高亮什么都不动。** 同一个测试：在许多 `t` 值之间比较这些框。
@@ -373,33 +373,46 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 
 ## 浏览器支持
 
-如实说明：
+浏览器测试在 Chromium、Firefox 和 WebKit 里都能跑（`--engine`，见[运行测试](#运行测试)）。用 Playwright 1.54 在 Chromium 139.0.7258.5、Firefox 139.0 和 WebKit 26.0（Safari 26 的引擎）上实测，三个引擎都通过整套测试。某个引擎做不到 tsubu 依赖的东西时，测试只在那个引擎里标为预期失败，并写明原因（`tests/conftest.py` 里的 `limitation` 标记）；只是测量方式不同时，测试按那个引擎的方式检查同一条保证。
 
-- 竖排只在 Chromium 里实测过：Firefox 和 Safari 的竖排替代字形、`text-combine-upright`，以及竖排的流式字号（`:has()`、`cqh`）都没有检查。
-- 目前**只在 Chromium 里测过**（Playwright 自带的版本，写这份说明时是 Chromium 139）。Firefox 和 WebKit 还没有跑过版面测试。
+- **Chromium**：每条保证都成立。
+- **Firefox**：除了均衡换行，每条保证都成立。断行点只在 nowrap 单元之间时（tsubu 正是这样执行禁则的），Firefox 不执行 `text-wrap: balance`，所以行和列都按贪心断行。另外实测到：竖排时一列的宽度不管字体的 ascent 和 descent 如何都是 em 框；没有注音留白时，第一列的读音会伸出句子的框几个像素（留白把它们收进来，这正是留白的用途）；`htmlAt` 给出相同的元素树，只是 style 属性的位置不同。
+- **WebKit（Safari）**：横排除了均衡换行，每条保证都成立。**竖排不成立：暂时不要在 Safari 里用竖排。**
+  - 竖排：WebKit 把 `vertical-rl` 文字里一个内联元素中的绝对定位框，以块的右边缘为轴镜像放置，段在边缘左边多远，框就落在边缘右边多远（实测）。每段的高亮和侧线都画在离段很远的地方，正在读的那一段可能变成页面上的浅色文字。字、读音、直立的字符串和分列都是对的，`checkContrast` 也会报告这个失败。
+  - 均衡换行：内联内容里有绝对定位的框（每段的高亮和下划线）时，WebKit 不执行 `text-wrap: balance`，所以按贪心断行。
+  - 强制颜色：WebKit 没有自己的强制颜色模式。模拟这个媒体查询时 tsubu 的规则生效，正在读的那一段用系统高亮色，但 WebKit 不替换其他任何颜色。
+  - 不支持 `ascent-override` 和 `descent-override`，所以给字体套上 Noto Sans JP 度量的那组测试跑不了；用系统的 Hiragino Sans 时每条保证都实测过。
+  - 已在 tsubu 里修正：WebKit 让比汉字宽的读音伸到后面的假名上方，但段的框长度不变，于是伸进下一段，相邻的下划线连在一起；tsubu 设了 `ruby-overhang: none`。另外 WebKit 对内联元素中绝对定位框的计算 inset 是按外面的块给出的，所以 `checkContrast` 改为在取同样几何的探针上测量高亮和下划线，而不再读回这些值。
 - "宽读音不拉开汉字"这条保证需要 `ruby-align`。据 MDN，**Chrome 128** 和 **Safari 18.2** 起支持。在更旧的浏览器里，注音开关仍然不会重排，但读音比汉字宽时汉字会被拉开。
 - 均衡换行用 `text-wrap: balance`（Chrome 114、Firefox 121、Safari 17.5）；不支持时按贪心断行。流式字号用容器查询和 `cqi` 单位（Chrome 105、Firefox 110、Safari 16）。
 - 脚本用了 ES2015 以上的语法（`const`、箭头函数、模板字符串）和 `:scope` 选择器。
 - 还不输出 `<rp>` 后备括号，所以不支持 ruby 的浏览器会把读音直接显示在汉字后面。
 
-已知限制：读音比汉字宽很多时（一週間上的いっしゅうかん），ruby 的框取读音的宽度，汉字两边会出现明显的空隙；浏览器不让读音伸到相邻的假名上方。
+已知限制：读音比汉字宽很多时（一週間上的いっしゅうかん），ruby 的框取读音的宽度，汉字两边会出现明显的空隙；Chromium 和 Firefox 不让读音伸到相邻的假名上方，WebKit 里 tsubu 把它关掉了（见上）。
 
 ## 运行测试
 
 需要：
 
 - `PATH` 上有 Node 18 或更新的版本（用 Node 22 测过）；
-- Python 3.9 或更新的版本（用 3.13 测过），装好 `pytest` 和 `playwright`，以及 Playwright 的 Chromium：
+- Python 3.9 或更新的版本（用 3.13 测过），装好 `pytest` 和 `playwright`，以及 Playwright 的 Chromium（要在 Firefox 和 WebKit 里跑，再装它们）：
 
   ```sh
   python -m pip install pytest playwright
-  python -m playwright install chromium
+  python -m playwright install chromium firefox webkit
   ```
 
 然后在仓库根目录用一条命令跑全部测试（状态、版面和演示页）：
 
 ```sh
 python -m pytest -q
+```
+
+浏览器测试默认用 Chromium，可以指定别的引擎；`--engine-executable PATH` 启动那个引擎的另一个构建，而不是 Playwright 自带的：
+
+```sh
+python -m pytest -q --engine firefox
+python -m pytest -q --engine webkit
 ```
 
 版面测试使用系统里的日文字体（Hiragino Sans、Noto Sans JP 或 Noto Sans CJK JP）；测量都是相对的，换别的 CJK 字体结果应该相同。
@@ -414,7 +427,7 @@ python -m pytest -q
 | `examples/` | 录制视频：用 Playwright 生成 PNG 帧，用 Node 生成 HTML 帧 |
 | `site/` | 项目网站：首页（短片由 `t` 绘制）、快速开始、指南、API 参考、试验场和画廊，中英双语。页面从同级文件加载库（检出里是符号链接），所以从磁盘直接打开就能看 |
 | `demo/index.html` | 演示页：拖动时间、开关注音、选主题，有一段对话和一个流式、会翻页的框；地址可带 `?t=秒数&ruby=off&theme=dark&frame=320&lines=2` |
-| `tests/` | 测试（pytest；状态用 Node，版面用 Playwright 的 Chromium） |
+| `tests/` | 测试（pytest；状态用 Node，版面用 Playwright，在 Chromium、Firefox 或 WebKit 里） |
 | `assets/` | logo |
 
 ## 许可证

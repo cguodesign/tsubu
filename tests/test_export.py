@@ -1,6 +1,6 @@
 """The exporters in tsubu-export.js: WebVTT and ASS karaoke.
 
-The exact output is computed by running tsubu-export.js in Node. Chromium then parses the WebVTT
+The exact output is computed by running tsubu-export.js in Node. The browser then parses the WebVTT
 as a <track>, and, when ffmpeg is installed, libass renders the ASS script.
 """
 
@@ -272,7 +272,7 @@ def test_the_export_object_is_frozen_and_the_output_deterministic():
     assert a == b and c == d
 
 
-# --- Chromium parses the WebVTT -----------------------------------------------------------------
+# --- the browser parses the WebVTT --------------------------------------------------------------
 
 PAGE = """<!doctype html><html lang="ja"><head><meta charset="utf-8"></head><body>
 <video id="video" width="320" height="180"></video>
@@ -300,7 +300,7 @@ LOAD_TRACK = """async (vtt) => {
     (WHOLE, {"offset": 0.25}, (4.25, 6.25)),
     (dict(TIMED, start=-0.5, end=4.0), {"offset": 1}, (0.5, 5.0)),
 ], ids=["timed", "whole", "padded"])
-def test_chromium_parses_the_webvtt_as_one_cue_with_ruby_and_class_spans(browser, tmp_path, sentence, options, span):
+def test_the_browser_parses_the_webvtt_as_one_cue_with_ruby_and_class_spans(browser, tmp_path, sentence, options, span):
     page_file = tmp_path / "track.html"
     page_file.write_text(PAGE.format(js=SCRIPT.as_uri(), export=EXPORT.as_uri()), encoding="utf-8")
     page = browser.new_page()

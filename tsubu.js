@@ -312,18 +312,12 @@
    * (left to right in vertical-lr, which tsubu does not set but measures correctly).
    *   start(rect)  where a box lies along that axis, growing from one line to the next;
    *   span(rect)   the box's extent across its line, in page coordinates, as [low, high];
-   *   layer(rect, style)  the same for a positioned layer of the box (the highlight's band), from
-   *                the layer's computed insets and size;
    *   side         the physical side of a segment's line, its block-end side. */
   function blockAxis(root) {
     const mode = getComputedStyle(root).writingMode || "horizontal-tb";
-    const px = (v) => parseFloat(v) || 0;
-    if (mode === "horizontal-tb") return { vertical: false, start: (r) => r.top, span: (r) => [r.top, r.bottom], side: "bottom",
-      // a positioned layer of the box, from its computed insets, along the same axis
-      layer: (r, s) => [r.top + px(s.top), r.top + px(s.top) + px(s.height)] };
+    if (mode === "horizontal-tb") return { vertical: false, start: (r) => r.top, span: (r) => [r.top, r.bottom], side: "bottom" };
     const rl = !/-lr$/.test(mode);
-    return { vertical: true, start: (r) => (rl ? -r.right : r.left), span: (r) => [r.left, r.right], side: rl ? "left" : "right",
-      layer: (r, s) => (rl ? [r.right - px(s.right) - px(s.width), r.right - px(s.right)] : [r.left + px(s.left), r.left + px(s.left) + px(s.width)]) };
+    return { vertical: true, start: (r) => (rl ? -r.right : r.left), span: (r) => [r.left, r.right], side: rl ? "left" : "right" };
   }
 
   /* Which line each element lies on, from the layout: segments are nowrap, so each lies on one
@@ -621,9 +615,17 @@
       // Every segment shown, revealed and with its furigana: whatever can be drawn is checked.
       // (What a motion preset hides while it is unheard is drawn in these colours once revealed.)
       copy.setAttribute("data-ruby", "on");
+      // Where each segment's highlight and underline lie is measured on probes that take their
+      // geometry from the same rules as its ::before and ::after (see the stylesheet).
+      const probes = new Map();
       for (const el of segments) {
         el.removeAttribute("data-off-page");
         el.setAttribute("data-revealed", "");
+        const band = document.createElement("span"), line = document.createElement("span");
+        band.className = "tsubu-band-probe";
+        line.className = "tsubu-line-probe";
+        el.append(band, line);
+        probes.set(el, { band, line });
       }
       // Opacity on a layer or between it and the sentence fades it; a hidden layer is not drawn.
       const fade = (el, own) => {
@@ -651,8 +653,7 @@
             const bandColour = bandColourOf(band);
             const highlight = band.visibility === "hidden" ? [0, 0, 0, 0] : parseColour(bandColour);
             const behind = over(highlight, base);
-            const box = el.getBoundingClientRect();
-            const [from, to] = axis.layer(box, band);
+            const [from, to] = axis.span(probes.get(el).band.getBoundingClientRect());
             const backgroundsFor = (top, bottom) => {
               if (highlight[3] === 0) return [base];
               const middle = (top + bottom) / 2;
@@ -660,7 +661,11 @@
               return top >= from && bottom <= to ? [behind] : [behind, base];
             };
             const layers = [];
-            if (style.visibility !== "hidden") layers.push(["text", style.color, behind, fade(el)]);
+            // The text too: the band covers its middle, wherever the band is drawn as the
+            // stylesheet means it.
+            const [top, bottom] = axis.span(el.getBoundingClientRect());
+            const onBand = (top + bottom) / 2 >= from && (top + bottom) / 2 <= to;
+            if (style.visibility !== "hidden") layers.push(["text", style.color, onBand ? behind : base, fade(el)]);
             const rt = el.querySelector("rt");
             const rtStyle = rt && getComputedStyle(rt);
             if (rt && rtStyle.visibility !== "hidden") {
@@ -668,12 +673,12 @@
               for (const under of backgroundsFor(a, b)) layers.push(["ruby", rtStyle.color, under, fade(rt)]);
             }
             // The underline, or in vertical text the side line: a border on the block-end side of
-            // the segment's ::after, offset from the segment's box.
+            // the segment's ::after, whose box its probe takes.
             const after = getComputedStyle(el, "::after");
             if (after.content !== "none" && after[`border${side}Style`] !== "none" && after.visibility !== "hidden") {
               const width = parseFloat(after[`border${side}Width`]);
-              const edge = axis.side === "left" ? box.left + parseFloat(after.left) : axis.side === "right" ? box.right - parseFloat(after.right) : box.bottom - parseFloat(after.bottom);
-              const [a, b] = axis.side === "left" ? [edge, edge + width] : [edge - width, edge];
+              const line = probes.get(el).line.getBoundingClientRect();
+              const [a, b] = axis.side === "left" ? [line.left, line.left + width] : axis.side === "right" ? [line.right - width, line.right] : [line.bottom - width, line.bottom];
               for (const under of backgroundsFor(a, b)) layers.push(["underline", after[`border${side}Color`], under, fade(el, after)]);
             }
             if (highlight[3] > 0) layers.push(["highlight", bandColour, base, fade(el, band)]);

@@ -1,7 +1,7 @@
 """Colour tokens, theme presets, speakers and the contrast check.
 
-The contrast ratio and the options run in Node; the presets are measured in headless Chromium on
-the library's own CSS, in every state and for each speaker, at the thresholds in Tsubu.CONTRAST.
+The contrast ratio and the options run in Node; the presets are measured in a headless browser
+on the library's own CSS, in every state and for each speaker, at the thresholds in Tsubu.CONTRAST.
 """
 
 import json
@@ -10,7 +10,7 @@ import subprocess
 
 import pytest
 
-from support import BAND_COLOUR, LONG, SCRIPT, TIMED, WHOLE
+from support import BAND_COLOUR, LONG, SCRIPT, TIMED, VERTICAL_MIRROR, WHOLE
 from test_layout import png_rows
 
 THEMES = ["light", "dark", "media"]
@@ -85,7 +85,7 @@ def test_the_theme_and_speaker_options_are_written_on_the_root():
         assert message and message.startswith("tsubu: options."), options
 
 
-# --- the presets, measured in Chromium ------------------------------------------------------
+# --- the presets, measured in the browser ---------------------------------------------------
 
 CHECK = "(options) => Tsubu.checkContrast(document.querySelector('.tsubu'), options || undefined)"
 
@@ -226,19 +226,31 @@ TALL_FACE = """@font-face { font-family: "tsubu-tall"; ascent-override: 116%; de
        local("Noto Sans CJK JP Regular"), local("NotoSansCJKjp-Regular"), local("Noto Sans CJK JP"); }
 .bubble { font-family: "tsubu-tall"; }"""
 
-# The current segment's text and furigana in colours nothing else has, its highlight's band (the
-# segment's ::before) and the underline from their computed insets, and the baseline of the text.
+# The boxes of a segment's ::before (the highlight's band) and ::after (the underline), from probes
+# that take the same geometry (see the stylesheet): WebKit reports the computed insets of a box
+# positioned inside an inline against the block around it.
+PROBES = """(seg) => { const out = {};
+  for (const kind of ["band", "line"]) { const p = document.createElement("span"); p.className = `tsubu-${kind}-probe`;
+    seg.append(p); out[kind] = p.getBoundingClientRect(); p.remove(); }
+  return out; }"""
+
+# The current segment's text and furigana in colours nothing else has, its highlight's band and
+# the underline, and the baseline of the text.
 GEOMETRY = """() => { const root = document.querySelector(".tsubu"), seg = root.querySelector('.tsubu-seg[data-state="current"]');
-  const box = seg.getBoundingClientRect(), band = getComputedStyle(seg, "::before"), after = getComputedStyle(seg, "::after");
+  const box = seg.getBoundingClientRect(), after = getComputedStyle(seg, "::after"), {band, line} = (PROBES)(seg);
   const probe = document.createElement("span"); probe.style.cssText = "display: inline-block; width: 0; height: 0; vertical-align: baseline";
   seg.append(probe); const baseline = probe.getBoundingClientRect().top; probe.remove();
   const rt = seg.querySelector("rt").getBoundingClientRect();
   const em = parseFloat(getComputedStyle(seg).fontSize), content = box.height / em;
   return {box: {left: box.left, right: box.right, top: box.top, bottom: box.bottom}, root: root.getBoundingClientRect().toJSON(),
           em, content, baseline, rt: {top: rt.top, bottom: rt.bottom, left: rt.left, right: rt.right},
-          band: {top: box.top + parseFloat(band.top), bottom: box.top + parseFloat(band.top) + parseFloat(band.height),
-                 left: box.left + parseFloat(band.left), right: box.right - parseFloat(band.right), color: BAND_COLOUR(seg)},
-          underline: {bottom: box.bottom - parseFloat(after.bottom), width: parseFloat(after.borderBottomWidth)}}; }""".replace("BAND_COLOUR", BAND_COLOUR)
+          band: {top: band.top, bottom: band.bottom, left: band.left, right: band.right, color: BAND_COLOUR(seg)},
+          underline: {bottom: line.bottom, width: parseFloat(after.borderBottomWidth)}}; }""".replace("BAND_COLOUR", BAND_COLOUR).replace("PROBES", PROBES)
+
+
+# WebKit ignores the two descriptors, so the face keeps the system's metrics there (measured).
+NO_METRIC_OVERRIDES = pytest.mark.limitation("webkit", reason="ascent-override and descent-override are not supported, so "
+                                             "the test cannot give a face Noto Sans JP's metrics")
 
 
 def tall(found):
@@ -253,6 +265,7 @@ def rows_with(page, clip, colour, tolerance=40):
             if any(all(abs(row[x * bpp + i] - colour[i]) <= tolerance for i in range(3)) for x in range(width))]
 
 
+@NO_METRIC_OVERRIDES
 @pytest.mark.parametrize("theme", THEMES)
 @pytest.mark.parametrize("sentence", [TIMED, WHOLE], ids=["timed", "whole"])
 def test_every_preset_meets_the_thresholds_in_a_font_with_a_tall_content_area(drawn, theme, sentence):
@@ -268,48 +281,54 @@ def test_every_preset_meets_the_thresholds_in_a_font_with_a_tall_content_area(dr
         {"light": ["#ffffff", "#f1f5f9"], "dark": ["#0f172a", "#1e293b"], "media": ["#000000", "#404040"]}[theme])
 
 
-def test_the_highlight_and_the_underline_are_drawn_from_the_em_box_whatever_the_font(drawn):
-    for css in ("", TALL_FACE):
-        at = drawn(TIMED, css=css, theme="light")
-        at(1.2)
-        found = at.page.evaluate(GEOMETRY)
-        if css:
-            tall(found)
-        else:
-            assert found["content"] == pytest.approx(1, abs=0.01)  # the system face: content area = em box
-        em, baseline, spread = found["em"], found["baseline"], 0.06 * found["em"]
-        # the band: the em box (0.88em above the baseline to 0.12em below it) and the spread past it,
-        # within the rounding of the font's ascent and descent to whole pixels
-        assert found["band"]["top"] == pytest.approx(baseline - 0.88 * em - spread, abs=0.75), css
-        assert found["band"]["bottom"] == pytest.approx(baseline + 0.12 * em + spread, abs=0.75), css
-        assert found["band"]["left"] == pytest.approx(found["box"]["left"] - spread, abs=0.05)
-        assert found["band"]["right"] == pytest.approx(found["box"]["right"] + spread, abs=0.05)
-        assert found["band"]["color"] == "rgb(29, 78, 216)"
-        # the underline: its offset below the em box, not below the segment's box
-        assert found["underline"]["bottom"] == pytest.approx(baseline + 0.12 * em + 0.02 * em, abs=0.75), css
-        # the reading's box is above the band, apart from what the spread grazes
-        assert (found["rt"]["top"] + found["rt"]["bottom"]) / 2 < found["band"]["top"]
-        assert found["rt"]["bottom"] - found["band"]["top"] < 0.5 * em, css
-        # and in a screenshot: the text's ink lies inside the band, the reading's ink above it
-        at.page.evaluate("""() => { const root = document.querySelector(".tsubu");
-          root.style.setProperty("--tsubu-current-color", "#00ff00"); root.style.setProperty("--tsubu-current-ruby-color", "#ff0000"); }""")
-        clip = {"x": found["box"]["left"] + 2, "y": found["root"]["y"], "width": found["box"]["right"] - found["box"]["left"] - 4, "height": found["root"]["height"]}
-        text, reading, band = (rows_with(at.page, clip, c) for c in ((0, 255, 0), (255, 0, 0), (29, 78, 216)))
-        assert text and reading and band, css
-        assert band[0] <= text[0] and text[-1] <= band[-1], (css, band[0], band[-1], text[0], text[-1])
-        assert reading[-1] <= band[0] + 1, (css, reading[-1], band[0])  # one row for anti-aliasing
+@pytest.mark.parametrize("css", ["", pytest.param(TALL_FACE, marks=NO_METRIC_OVERRIDES)], ids=["system-face", "tall-face"])
+def test_the_highlight_and_the_underline_are_drawn_from_the_em_box_whatever_the_font(drawn, css):
+    at = drawn(TIMED, css=css, theme="light")
+    at(1.2)
+    found = at.page.evaluate(GEOMETRY)
+    if css:
+        tall(found)
+    else:
+        # the system face: content area = em box (Firefox rounds the ascent and descent up to whole pixels)
+        assert found["content"] == pytest.approx(1, abs=1 / found["em"])
+    em, baseline, spread = found["em"], found["baseline"], 0.06 * found["em"]
+    # the band: the em box (0.88em above the baseline to 0.12em below it) and the spread past it,
+    # within the rounding of the font's ascent and descent to whole pixels
+    assert found["band"]["top"] == pytest.approx(baseline - 0.88 * em - spread, abs=0.75), css
+    assert found["band"]["bottom"] == pytest.approx(baseline + 0.12 * em + spread, abs=0.75), css
+    assert found["band"]["left"] == pytest.approx(found["box"]["left"] - spread, abs=0.05)
+    assert found["band"]["right"] == pytest.approx(found["box"]["right"] + spread, abs=0.05)
+    assert found["band"]["color"] == "rgb(29, 78, 216)"
+    # the underline: its offset below the em box, not below the segment's box
+    assert found["underline"]["bottom"] == pytest.approx(baseline + 0.12 * em + 0.02 * em, abs=0.75), css
+    # the reading's box is above the band, apart from what the spread grazes
+    assert (found["rt"]["top"] + found["rt"]["bottom"]) / 2 < found["band"]["top"]
+    assert found["rt"]["bottom"] - found["band"]["top"] < 0.5 * em, css
+    # and in a screenshot: the text's ink lies inside the band, the reading's ink above it
+    at.page.evaluate("""() => { const root = document.querySelector(".tsubu");
+      root.style.setProperty("--tsubu-current-color", "#00ff00"); root.style.setProperty("--tsubu-current-ruby-color", "#ff0000"); }""")
+    clip = {"x": found["box"]["left"] + 2, "y": found["root"]["y"], "width": found["box"]["right"] - found["box"]["left"] - 4, "height": found["root"]["height"]}
+    text, reading, band = (rows_with(at.page, clip, c) for c in ((0, 255, 0), (255, 0, 0), (29, 78, 216)))
+    assert text and reading and band, css
+    assert band[0] <= text[0] and text[-1] <= band[-1], (css, band[0], band[-1], text[0], text[-1])
+    assert reading[-1] <= band[0] + 1, (css, reading[-1], band[0])  # one row for anti-aliasing
 
 
-def test_in_vertical_text_the_highlight_is_drawn_from_the_em_box_too(drawn):
+@pytest.mark.limitation("webkit", reason=VERTICAL_MIRROR)
+def test_in_vertical_text_the_highlight_is_drawn_from_the_em_box_too(drawn, engine):
     at = drawn(TIMED, css=TALL_FACE, style="height: 700px", theme="light", writing="vertical")
     at(1.2)
     found = at.page.evaluate("""() => { const seg = document.querySelector('.tsubu-seg[data-state="current"]');
-      const box = seg.getBoundingClientRect(), band = getComputedStyle(seg, "::before"), after = getComputedStyle(seg, "::after");
+      const box = seg.getBoundingClientRect(), {band, line} = (PROBES)(seg);
       const rt = seg.querySelector("rt").getBoundingClientRect(), em = parseFloat(getComputedStyle(seg).fontSize);
       return {em, content: box.width / em, centre: (box.left + box.right) / 2, rtMiddle: (rt.left + rt.right) / 2,
-              band: {left: box.right - parseFloat(band.right) - parseFloat(band.width), right: box.right - parseFloat(band.right)},
-              sideLine: box.left + parseFloat(after.left)}; }""")
-    tall(found)
+              band: {left: band.left, right: band.right}, sideLine: line.left}; }""".replace("PROBES", PROBES))
+    if engine == "chromium":
+        tall(found)
+    else:
+        # Firefox makes a column of upright text as wide as the em box, whatever the font's ascent
+        # and descent; WebKit ignores the overrides (both measured). The content area is the em box.
+        assert found["content"] == pytest.approx(1, abs=1 / found["em"])
     em, spread = found["em"], 0.06 * found["em"]
     # across the column the em box is centred in the content area; the band is that and the spread
     assert found["band"]["left"] == pytest.approx(found["centre"] - 0.5 * em - spread, abs=0.25)

@@ -205,8 +205,12 @@
  * stacking context) and, in tree order, over the plate. Its colour is painted as a one-colour
  * gradient, not as a background colour: Chromium rasterises the rounded corners of a positioned
  * box's background colour differently after a partial repaint, by a pixel, and a frame must be
- * the same whatever was drawn before it; the gradient is clipped to the corners and is not. */
-.tsubu-seg::before {
+ * the same whatever was drawn before it; the gradient is clipped to the corners and is not.
+ * checkContrast() measures where the highlight and the underline lie on probes that take the
+ * same geometry (.tsubu-band-probe, .tsubu-line-probe): WebKit reports the computed insets of a
+ * box positioned inside an inline against the block around it, so they cannot be read back. */
+.tsubu-seg::before,
+.tsubu-seg > .tsubu-band-probe {
   content: "";
   position: absolute;
   z-index: -1;
@@ -218,7 +222,8 @@
   pointer-events: none;
 }
 
-.tsubu-seg:not([data-kind="punct"])::after {
+.tsubu-seg:not([data-kind="punct"])::after,
+.tsubu-seg:not([data-kind="punct"]) > .tsubu-line-probe {
   content: "";
   position: absolute;
   /* Logical sides: below the segment in horizontal text, and in vertical text a side line at its
@@ -235,9 +240,13 @@
   --tsubu-em-trail: 0.5;
 }
 
+/* No overhang: WebKit lets a wide reading overhang the kana next to it, but leaves the segment's
+ * box as long as before, so it reaches into the next segment and the two underlines meet
+ * (measured). The other engines do not read the property. */
 .tsubu ruby {
   ruby-position: over;
   ruby-align: center;
+  ruby-overhang: none;
 }
 
 .tsubu rt {

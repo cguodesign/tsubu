@@ -14,6 +14,11 @@ SCRIPT = ROOT / "tsubu.js"
 STYLES = ROOT / "tsubu.css"
 DEMO = ROOT / "demo" / "index.html"
 
+# Why WebKit fails the tests of the highlight and the side line in vertical text (measured there:
+# the boxes land as far right of the block's right edge as the segment lies left of it).
+VERTICAL_MIRROR = ("an absolutely positioned box inside an inline in vertical-rl text is placed mirrored across the "
+                   "block's right edge, so each segment's highlight and side line are drawn off the segment")
+
 
 def seg(*parts, start=None, end=None, punct=False):
     """A segment: each part is a plain string or a (text, ruby) pair."""

@@ -1,5 +1,5 @@
 """Vertical writing (writing-mode: vertical-rl): the horizontal guarantees, measured again with
-columns instead of lines, in headless Chromium on the library's own CSS and script. The HTML is
+columns instead of lines, in a headless browser on the library's own CSS and script. The HTML is
 checked in Node.
 
 In vertical text the lines are columns, running from right to left; the furigana are at the right
@@ -11,7 +11,7 @@ import json
 
 import pytest
 
-from support import BAND_COLOUR, LONG, TIMED, WHOLE, run_library, seg
+from support import BAND_COLOUR, LONG, TIMED, VERTICAL_MIRROR, WHOLE, run_library, seg
 from test_layout import png_rows
 from test_lines import KINSOKU, NO_END, NO_START, VERY_LONG, segment_times
 
@@ -68,12 +68,14 @@ def check_columns(found):
     keeps the Japanese line-breaking rules. Returns the columns."""
     assert found["writing"] == "vertical-rl"
     chars, root, bubble = visible(found), found["root"], found["bubble"]
-    for c in chars:
-        b = c["box"]
-        assert b["width"] > 0 and b["height"] > 0, c
-        assert bubble["top"] - 0.5 <= b["top"] and b["bottom"] <= bubble["bottom"] + 0.5, (c["ch"], b, bubble)
+    # A character set upright with others is measured as their run: WebKit gives the run's box to
+    # its first character and none to the rest (measured).
+    measured = [(c["ch"], c["box"]) for c in chars if not c["upright"]] + [(u["text"], u["box"]) for u in found["upright"]]
+    for ch, b in measured:
+        assert b["width"] > 0 and b["height"] > 0, ch
+        assert bubble["top"] - 0.5 <= b["top"] and b["bottom"] <= bubble["bottom"] + 0.5, (ch, b, bubble)
         # furigana are not clipped at the right, where the first column's readings are
-        assert bubble["left"] - 0.5 <= b["left"] and b["right"] <= root["right"] + 0.5 and b["right"] <= bubble["right"] + 0.5, (c["ch"], b, root)
+        assert bubble["left"] - 0.5 <= b["left"] and b["right"] <= root["right"] + 0.5 and b["right"] <= bubble["right"] + 0.5, (ch, b, root)
     # plain characters, each upright run as a whole, each <ruby> and each reading
     rts = [r for r in found["rts"] if not r["hidden"]]
     boxes = [(c["ch"], c["box"]) for c in chars if not c["rt"] and not c["ruby"] and not c["upright"]]
@@ -144,7 +146,7 @@ def test_the_line_breaking_units_do_not_depend_on_the_writing_mode():
     assert units(V) == units({"writing": "horizontal"}) == units({})
 
 
-# --- layout, in Chromium -----------------------------------------------------------------------
+# --- layout, in the browser --------------------------------------------------------------------
 
 @pytest.mark.parametrize("sentence", [TIMED, WHOLE, LONG], ids=["timed", "whole", "two-columns"])
 def test_furigana_sit_at_the_right_unclipped_and_clear_of_the_column_to_the_right(drawn, sentence):
@@ -172,7 +174,7 @@ def test_furigana_sit_at_the_right_unclipped_and_clear_of_the_column_to_the_righ
                 assert line["left"] >= box["right"], (line, box)
 
 
-def test_the_ruby_reserve_is_room_at_the_right_of_the_first_column(drawn):
+def test_the_ruby_reserve_is_room_at_the_right_of_the_first_column(drawn, engine):
     at = drawn(TIMED, style=TALL, **V)
     found = at()
     padding = at.page.evaluate("""() => { const s = getComputedStyle(document.querySelector('.tsubu'));
@@ -180,11 +182,17 @@ def test_the_ruby_reserve_is_room_at_the_right_of_the_first_column(drawn):
     assert padding == [0, 0.3 * 40, 0, 0]
     assert found["root"]["top"] == min(c["box"]["top"] for c in found["chars"] if not c["rt"])
     assert max(r["box"]["right"] for r in found["rts"]) <= found["root"]["right"] - 1
-    # Without it, Chromium grows the first column to hold its readings (by 5px here), so they stay
-    # inside; with it, the readings reach into the reserve instead. Either way no character moves:
-    # only the sentence's box reaches further right.
+    # Without it, Chromium and WebKit grow the first column to hold its readings (by 5px and 6px
+    # here), so they stay inside; with it, the readings reach into the reserve instead. Firefox
+    # does not grow the column, so without the reserve the readings stick out of the sentence's
+    # box (by 5px here, measured), which is why the reserve is there. Either way no character
+    # moves: only the sentence's box reaches further right.
     bare = drawn(TIMED, style=TALL + "; --tsubu-ruby-reserve: 0", **V)()
-    assert max(r["box"]["right"] for r in bare["rts"]) <= bare["root"]["right"]
+    reach = max(r["box"]["right"] for r in bare["rts"]) - bare["root"]["right"]
+    if engine == "firefox":
+        assert 0 < reach <= 0.3 * 40
+    else:
+        assert reach <= 0
     assert base_chars(found) == base_chars(bare) and [r["box"] for r in found["rts"]] == [r["box"] for r in bare["rts"]]
     assert found["root"]["left"] == bare["root"]["left"] and 0 < found["root"]["right"] - bare["root"]["right"] <= 0.3 * 40
 
@@ -229,6 +237,7 @@ def test_no_character_moves_when_the_theme_or_the_speaker_changes(drawn):
                     assert boxes(at(t)) == boxes(first), (where, theme, speaker, t)
 
 
+@pytest.mark.limitation("webkit", reason=VERTICAL_MIRROR)
 def test_every_segment_has_its_own_side_line_at_the_left_apart_from_its_neighbours(drawn):
     for sentence in (TIMED, WHOLE, LONG):
         found = drawn(sentence, style=TALL, **V)()
@@ -266,6 +275,10 @@ def test_in_a_fluid_container_nothing_overflows_or_overlaps_and_the_furigana_do_
     assert base_chars(off) == base_chars(first) and off["root"] == first["root"]
 
 
+@pytest.mark.limitation("firefox", reason="text-wrap: balance is not applied when the only break opportunities are "
+                                    "between nowrap units (<wbr>), so columns break greedily")
+@pytest.mark.limitation("webkit", reason="text-wrap: balance is not applied to inline content that holds absolutely "
+                                   "positioned boxes (each segment's highlight and underline), so columns break greedily")
 def test_columns_are_balanced(drawn):
     def spoken_per_column(found):
         rows = {}
@@ -329,20 +342,22 @@ def test_upright_digits_are_set_upright_and_rotated_ones_are_turned_in_a_screens
     assert tall > 2.5 * wide, (wide, tall)
 
 
-def test_the_marks_change_nothing_in_horizontal_text(drawn):
+def test_the_marks_change_nothing_in_horizontal_text(drawn, engine):
     marked = drawn(DIGITS)(0.7)
     plain = drawn(DIGITS, writing="horizontal")(0.7)
     assert marked["writing"] == plain["writing"] == "horizontal-tb"
     assert len(marked["upright"]) == 3 and plain["upright"] == []
     assert {u["combine"] for u in marked["upright"]} == {"all"}  # set, but without effect in horizontal text
     # The same boxes, to within one Chromium layout unit (1/64 px): ending a run of Latin letters at
-    # an element boundary can round the next character's left edge by that much (measured).
-    def near(a, b):
-        return all(abs(a[k] - b[k]) <= 1 / 64 + 1e-6 for k in a)
+    # an element boundary can round the next character's left edge by that much (measured). WebKit
+    # rounds the range box of a character there to whole pixels (by up to 0.6px, measured); the
+    # boxes of the segments and readings stay the same to 1/64 px.
+    def near(a, b, slack=1 if engine == "webkit" else 1 / 64):
+        return all(abs(a[k] - b[k]) <= slack + 1e-6 for k in a)
     assert [ch for ch, _ in base_chars(marked)] == [ch for ch, _ in base_chars(plain)]
     assert all(near(a, b) for (_, a), (_, b) in zip(base_chars(marked), base_chars(plain)))
-    assert all(near(a["box"], b["box"]) for a, b in zip(marked["segments"], plain["segments"]))
-    assert all(near(a["box"], b["box"]) for a, b in zip(marked["rts"], plain["rts"]))
+    assert all(near(a["box"], b["box"], 1 / 64) for a, b in zip(marked["segments"], plain["segments"]))
+    assert all(near(a["box"], b["box"], 1 / 64) for a, b in zip(marked["rts"], plain["rts"]))
     assert marked["root"] == plain["root"]
 
 
@@ -364,8 +379,10 @@ def test_punctuation_brackets_and_the_long_vowel_mark_take_their_vertical_forms(
         found = at()
         for c in found["chars"]:
             if c["ch"] in "「」、。ー（）ょ":
-                # a whole em each: nothing was trimmed, so the fractions compare
-                assert c["box"]["width"] == pytest.approx(40, abs=0.5) and c["box"]["height"] == pytest.approx(40, abs=0.5), c
+                # a whole em each: nothing was trimmed, so the fractions compare (across the line,
+                # Firefox rounds the font's ascent and descent up to whole pixels: 41px, measured)
+                along, across = ("width", "height") if mode == "horizontal" else ("height", "width")
+                assert c["box"][along] == pytest.approx(40, abs=0.5) and 39.5 <= c["box"][across] <= 41.5, c
                 left, top, right, bottom = ink_box(at.page, c["box"])
                 shapes[mode, c["ch"]] = {"x": (left + right) / 2, "y": (top + bottom) / 2, "w": right - left, "h": bottom - top}
     h = {ch: shapes["horizontal", ch] for ch in "「」、。ー（）ょ"}
@@ -452,10 +469,14 @@ def test_in_vertical_text_the_width_does_not_change_the_size_and_every_step_is_c
     assert len(columns_of(drawn(VERY_LONG, fluid=True, style=style, **V)(3.0))) == 1
 
 
-def test_the_writing_mode_can_come_from_an_ancestor_and_the_root_can_refuse_it(drawn):
+def test_the_writing_mode_can_come_from_an_ancestor_and_the_root_can_refuse_it(drawn, engine):
     at = drawn(DIGITS, fluid=True, style="height: 600px")
     assert at()["writing"] == "horizontal-tb"
     at.page.evaluate("() => document.getElementById('bubble').dataset.tsubuWriting = 'vertical'")
+    if engine == "webkit":
+        # WebKit draws the change, but the range boxes of the characters after an upright run
+        # keep their horizontal advance until the boxes are built again (measured)
+        at.page.evaluate("() => { const r = document.querySelector('.tsubu'); r.style.display = 'none'; r.offsetHeight; r.style.display = ''; }")
     found = at(0.7)
     assert found["writing"] == "vertical-rl" and found["fontSize"] == pytest.approx(40)  # 600px tall / 15
     assert {u["text"] for u in found["upright"]} == {"10", "AI", "!?"}  # marked without the option
@@ -471,6 +492,7 @@ def test_the_writing_mode_can_come_from_an_ancestor_and_the_root_can_refuse_it(d
 CHECK = "(options) => Tsubu.checkContrast(document.querySelector('.tsubu'), options || undefined)"
 
 
+@pytest.mark.limitation("webkit", reason=VERTICAL_MIRROR)
 @pytest.mark.parametrize("theme", THEMES)
 @pytest.mark.parametrize("sentence", [TIMED, WHOLE], ids=["timed", "whole"])
 def test_every_preset_meets_the_thresholds_in_vertical_text(drawn, theme, sentence):
@@ -482,6 +504,7 @@ def test_every_preset_meets_the_thresholds_in_vertical_text(drawn, theme, senten
     assert {("current", "ruby"), ("current", "underline"), ("current", "highlight")} <= layers
 
 
+@pytest.mark.limitation("webkit", reason=VERTICAL_MIRROR)
 def test_furigana_at_the_right_of_the_highlight_are_measured_against_the_page(drawn):
     # The geometry runs across the column, which is horizontal here: the readings sit at the right
     # of the highlight, on the page, and the side line at its left, inside the highlight's spread.

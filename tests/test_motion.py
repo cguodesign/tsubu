@@ -1,6 +1,6 @@
 """Motion presets, revealing segments on the caller's events, and the preset catalogue.
 
-The catalogue and the options run in Node; the presets are measured in headless Chromium on the
+The catalogue and the options run in Node; the presets are measured in a headless browser on the
 library's own CSS: what each one draws, that nothing moves, that every frame is a function of t (and
 of what has been revealed), and that every theme still meets its contrast thresholds."""
 
@@ -62,7 +62,7 @@ def test_html_at_draws_what_has_been_revealed():
     assert found["bad"].startswith("tsubu: revealed segments must be")
 
 
-# --- the presets, in Chromium -----------------------------------------------------------------
+# --- the presets, in the browser --------------------------------------------------------------
 
 LOOK = """() => [...document.querySelectorAll('.tsubu-seg')].map((s) => { const st = getComputedStyle(s), after = getComputedStyle(s, '::after'), rt = s.querySelector('rt');
   return {state: s.dataset.state || null, punct: s.dataset.kind === 'punct', visibility: st.visibility, color: st.color, filter: st.filter,

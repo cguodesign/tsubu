@@ -1,4 +1,5 @@
-"""Browser fixtures for the layout and demo tests (Playwright, headless Chromium)."""
+"""Browser fixtures for the layout and demo tests (Playwright, headless). The engine is Chromium
+unless `--engine firefox` or `--engine webkit` is given."""
 
 import pytest
 
@@ -29,23 +30,43 @@ MEASURE = """() => {
                   box: box(range.getBoundingClientRect())});
     }
   }
+  // The box of each segment's ::after, from a probe that takes the same geometry (see the
+  // stylesheet): WebKit reports the computed insets of a box positioned inside an inline against
+  // the block around it.
+  const lineOf = (el) => {
+    const probe = document.createElement("span");
+    probe.className = "tsubu-line-probe";
+    el.append(probe);
+    const r = probe.getBoundingClientRect();
+    probe.remove();
+    return r;
+  };
   const segments = [...root.querySelectorAll(".tsubu-seg")].map((el) => {
-    const r = el.getBoundingClientRect(), after = getComputedStyle(el, "::after");
-    const left = r.left + parseFloat(after.left), width = parseFloat(after.width);
+    const r = el.getBoundingClientRect(), after = getComputedStyle(el, "::after"), line = lineOf(el);
     return {punct: el.dataset.kind === "punct", box: box(r), state: el.dataset.state || null, offPage: el.hasAttribute("data-off-page"),
             current: el.getAttribute("aria-current"), decoration: getComputedStyle(el).textDecorationLine,
             progress: el.style.getPropertyValue("--tsubu-progress") || null,
             underline: {content: after.content, style: after.borderBottomStyle, width: parseFloat(after.borderBottomWidth),
-                        left, right: left + width, bottom: r.bottom + parseFloat(after.bottom) * -1},
+                        left: line.left, right: line.right, bottom: line.bottom},
             // in vertical-rl text the underline is a side line: the left border of the ::after
             side: {style: after.borderLeftStyle, width: parseFloat(after.borderLeftWidth), color: after.borderLeftColor,
-                   left: r.left + parseFloat(after.left), right: r.left + parseFloat(after.left) + parseFloat(after.borderLeftWidth),
-                   top: r.top + parseFloat(after.top), bottom: r.top + parseFloat(after.top) + parseFloat(after.height)}};
+                   left: line.left, right: line.left + parseFloat(after.borderLeftWidth), top: line.top, bottom: line.bottom}};
   });
   const upright = [...root.querySelectorAll(".tsubu-upright")].map((el) => ({text: el.textContent, box: box(el.getBoundingClientRect()),
     combine: getComputedStyle(el).textCombineUpright}));
+  // The base of a ruby: its box, but no further than its own text reaches. WebKit's ruby box takes
+  // in a reading that overhangs the kana next to it; Chromium's range box of the text takes in the
+  // space a wider reading gives it.
+  const baseOf = (ruby) => {
+    const r = ruby.getBoundingClientRect(), range = document.createRange();
+    range.setStartBefore(ruby.firstChild);
+    range.setEndBefore(ruby.querySelector("rt"));
+    const t = range.getBoundingClientRect(), left = Math.max(r.left, t.left), top = Math.max(r.top, t.top);
+    const right = Math.min(r.right, t.right), bottom = Math.min(r.bottom, t.bottom);
+    return {left, right, top, bottom, width: right - left, height: bottom - top};
+  };
   const rts = [...root.querySelectorAll("rt")].map((rt) => ({box: box(rt.getBoundingClientRect()), hidden: !!rt.closest("[data-off-page]"),
-    visibility: getComputedStyle(rt).visibility, base: box(rt.parentElement.getBoundingClientRect())}));
+    visibility: getComputedStyle(rt).visibility, base: baseOf(rt.parentElement)}));
   const motion = [root, ...root.querySelectorAll("*")].map((el) => {
     const s = getComputedStyle(el); return s.transitionDuration + " " + s.animationName; });
   return {root: box(root.getBoundingClientRect()), bubble: box(document.getElementById("bubble").getBoundingClientRect()),
@@ -58,11 +79,47 @@ MEASURE = """() => {
 }"""
 
 
+ENGINES = ("chromium", "firefox", "webkit")
+
+
+def pytest_addoption(parser):
+    parser.addoption("--engine", choices=ENGINES, default="chromium",
+                     help="the browser engine the layout tests run in (default: chromium)")
+    parser.addoption("--engine-executable", default=None, metavar="PATH",
+                     help="a build of that engine to launch instead of the one Playwright installed")
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "limitation(engine, reason): a limitation of that engine that tsubu cannot "
+                                       "work around; the test is expected to fail there, and only there")
+
+
+def pytest_collection_modifyitems(config, items):
+    engine = config.getoption("engine")
+    for item in items:
+        for mark in item.iter_markers("limitation"):
+            if mark.args[0] == engine:
+                # strict: if the engine starts to pass, the limitation is gone and the mark must go too
+                item.add_marker(pytest.mark.xfail(reason=f"{engine}: {mark.kwargs['reason']}", strict=True))
+
+
+def pytest_report_header(config):
+    executable = config.getoption("engine_executable")
+    return f"browser engine: {config.getoption('engine')}" + (" (a build given by --engine-executable)" if executable else "")
+
+
 @pytest.fixture(scope="session")
-def browser():
+def engine(request):
+    """The name of the engine the browser tests run in: chromium, firefox or webkit."""
+    return request.config.getoption("engine")
+
+
+@pytest.fixture(scope="session")
+def browser(engine, request):
     playwright_api = pytest.importorskip("playwright.sync_api", reason="the layout tests need Playwright")
     with playwright_api.sync_playwright() as playwright:
-        launched = playwright.chromium.launch(headless=True)
+        launched = getattr(playwright, engine).launch(headless=True,
+                                                      executable_path=request.config.getoption("engine_executable"))
         try:
             yield launched
         finally:

@@ -164,8 +164,8 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
 - **`htmlAt(t, { revealed })`**: the frame at `t` as an HTML string, without a page: `html` with
   the attributes `apply(root, t)` (and `setRevealed(root, revealed)`) would write. Use it on a server, in Node, or with a renderer that
   takes HTML (server-side rendering, HTML-to-image, a video renderer's frames). The tests check that
-  it is the same element tree, text and attributes as a fresh `html` after `apply` in Chromium,
-  and in Chromium even the same string. It does not page (paging needs the layout), and like
+  it is the same element tree, text and attributes as a fresh `html` after `apply` in the browser,
+  and in Chromium and WebKit even the same string (Firefox orders the attributes differently). It does not page (paging needs the layout), and like
   `stateAt` it refuses a sentence without times.
 - **`apply(root, t)`**: writes `stateAt(t)` onto the page and returns it. `root` must be the
   `.tsubu` element made from `html` (it throws if it is another element or the segment count does
@@ -503,7 +503,8 @@ opacity on a layer.
 Because each frame depends on `t` alone, a video is a loop over frame times. Two examples, both run
 by the tests (`tests/test_examples.py`), use `examples/sentence.json`:
 
-- **`examples/capture-frames.py`** draws the sentence in headless Chromium and saves one PNG per
+- **`examples/capture-frames.py`** draws the sentence in headless Chromium (or `--engine firefox`
+  or `webkit`) and saves one PNG per
   frame, calling `apply(root, t)` at each frame's time, then prints the ffmpeg command that joins
   the frames with your audio (it does not run it):
 
@@ -550,7 +551,7 @@ exported, and nothing is estimated.
 
 Times are rounded half up as written (to milliseconds or centiseconds), line breaks in text become
 spaces, and negative times are refused. The tests (`tests/test_export.py`) check exact output in
-Node, that Chromium parses the WebVTT as one cue with its spans, ruby and timestamps, and, where
+Node, that the browser parses the WebVTT as one cue with its spans, ruby and timestamps, and, where
 ffmpeg with libass is installed, that the ASS karaoke lights up at each syllable's start.
 
 ## Accessibility
@@ -568,7 +569,9 @@ ffmpeg with libass is installed, that the ASS karaoke lights up at each syllable
 
 ## Layout guarantees, and how they are tested
 
-Each of these is checked by measuring the page in headless Chromium (see `tests/test_layout.py`):
+Each of these is checked by measuring the page in a headless browser (see `tests/test_layout.py`),
+Chromium by default and Firefox or WebKit with `--engine`; [Browser support](#browser-support)
+says which hold where:
 
 - **Switching furigana moves nothing.** Hidden furigana get `visibility: hidden`, not
   `display: none`, so they keep their room: with `display: none` a word whose reading is wider than
@@ -634,12 +637,39 @@ punctuation, progress, every refused input, and that `stateAt` depends on `t` al
 
 ## Browser support
 
-Stated honestly:
+The browser tests run in Chromium, Firefox and WebKit (`--engine`, see
+[Running the tests](#running-the-tests)). Measured with Playwright 1.54 on Chromium 139.0.7258.5,
+Firefox 139.0 and WebKit 26.0 (the engine of Safari 26). The suite passes in all three. Where an
+engine cannot do something tsubu relies on, the test is marked as an expected failure in that
+engine alone, with the reason (the `limitation` mark in `tests/conftest.py`); where the engine
+only measures differently, the test checks the same guarantee in that engine's terms.
 
-- Vertical writing has been measured in Chromium only: Firefox's and Safari's vertical
-  alternates, `text-combine-upright`, and the fluid vertical size (`:has()`, `cqh`) are unchecked.
-- **Tested in Chromium only** so far (the build bundled with Playwright, Chromium 139 at the time
-  of writing). Firefox and WebKit have not been run through the layout tests yet.
+- **Chromium**: every guarantee holds.
+- **Firefox**: every guarantee holds but balanced lines. Firefox does not apply
+  `text-wrap: balance` when the only break opportunities are between nowrap units, which is how
+  tsubu keeps the line-breaking rules, so lines and columns break greedily. Also measured: a
+  column of upright text is as wide as the em box whatever the font's ascent and descent; without
+  the ruby reserve the first column's readings stick out of the sentence's box by a few pixels
+  (the reserve holds them, as intended); `htmlAt` gives the same element tree, with the style
+  attribute in another place.
+- **WebKit (Safari)**: horizontal text holds every guarantee but balanced lines. **Vertical text
+  does not: do not use it in Safari yet.**
+  - Vertical text: WebKit places an absolutely positioned box inside an inline in `vertical-rl`
+    text mirrored across the block's right edge, as far right of it as the segment lies left of
+    it (measured). Each segment's highlight and side line are drawn away from the segment, and the
+    segment being spoken can be left as light text on the page. Characters, readings, upright
+    runs and column breaks are right, and `checkContrast` reports the failure.
+  - Balanced lines: WebKit does not apply `text-wrap: balance` to inline content that holds
+    absolutely positioned boxes (each segment's highlight and underline), so lines break greedily.
+  - Forced colours: WebKit has none of its own. With the media query emulated tsubu's rules apply
+    and the segment being spoken gets the system highlight, but WebKit replaces no other colour.
+  - `ascent-override` and `descent-override` are not supported, so the test that gives a face
+    Noto Sans JP's metrics cannot run; with the system's Hiragino Sans every guarantee is measured.
+  - Fixed in tsubu: WebKit lets a reading wider than its base overhang the next kana but keeps
+    the segment's box as long as before, so neighbouring underlines met; tsubu sets
+    `ruby-overhang: none`. And WebKit reports the computed insets of a box positioned inside an
+    inline against the block around it, so `checkContrast` measures the highlight and the
+    underline on probes that take the same geometry instead of reading them back.
 - `ruby-align` is needed for the "wide reading does not spread its base" guarantee. Per MDN it is
   supported from **Chrome 128** and **Safari 18.2**. In older browsers the furigana still switch
   without reflow, but a reading wider than its base spreads the base characters apart.
@@ -652,25 +682,34 @@ Stated honestly:
   reading inline after its base.
 
 Known limitation: when a reading is much wider than its base (いっしゅうかん over 一週間), the
-ruby box takes the reading's width, so a visible gap appears around the base; browsers do not let
-the reading overhang the neighbouring kana.
+ruby box takes the reading's width, so a visible gap appears around the base; Chromium and Firefox
+do not let the reading overhang the neighbouring kana, and in WebKit tsubu turns it off (above).
 
 ## Running the tests
 
 Requirements:
 
 - Node 18 or newer on `PATH` (tested with Node 22);
-- Python 3.9 or newer (tested with 3.13) with `pytest` and `playwright`, and Playwright's Chromium:
+- Python 3.9 or newer (tested with 3.13) with `pytest` and `playwright`, and Playwright's Chromium
+  (and its Firefox and WebKit, to run the tests there):
 
   ```sh
   python -m pip install pytest playwright
-  python -m playwright install chromium
+  python -m playwright install chromium firefox webkit
   ```
 
 Then, from the repository root, one command runs everything (state, layout and demo tests):
 
 ```sh
 python -m pytest -q
+```
+
+The browser tests run in Chromium unless another engine is named; `--engine-executable PATH`
+launches another build of that engine instead of Playwright's own:
+
+```sh
+python -m pytest -q --engine firefox
+python -m pytest -q --engine webkit
 ```
 
 The layout tests use a Japanese font from the system (Hiragino Sans, Noto Sans JP or Noto Sans CJK
@@ -686,7 +725,7 @@ JP); the measurements are relative, so another CJK font should give the same res
 | `examples/` | recording video: PNG frames through Playwright, HTML frames from Node |
 | `site/` | the project's website: a home page whose film is drawn from `t`, getting started, a guide, the API reference, a playground and a gallery, in English and 简体中文. The pages load the library from sibling files (symlinks in the checkout), so they open straight from disk |
 | `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker, a dialogue and a fluid, paged frame; accepts `?t=seconds&ruby=off&theme=dark&frame=320&lines=2` |
-| `tests/` | the test suite (pytest; Node for the state, Playwright Chromium for the layout) |
+| `tests/` | the test suite (pytest; Node for the state, Playwright for the layout, in Chromium, Firefox or WebKit) |
 | `assets/` | the logo |
 
 ## Licence

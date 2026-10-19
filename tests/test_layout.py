@@ -1,4 +1,4 @@
-"""The layout guarantees, measured in headless Chromium on the library's own CSS and script."""
+"""The layout guarantees, measured in a headless browser on the library's own CSS and script."""
 
 import struct
 import zlib
@@ -61,7 +61,7 @@ def test_furigana_are_not_clipped_and_do_not_run_into_the_line_above(drawn, sent
 
 
 def png_rows(data):
-    """The pixel rows of a Chromium screenshot (8-bit RGB or RGBA, not interlaced), as (width, bytes per pixel, rows)."""
+    """The pixel rows of a screenshot (8-bit RGB or RGBA, not interlaced), as (width, bytes per pixel, rows)."""
     assert data[:8] == b"\x89PNG\r\n\x1a\n"
     at, idat, header = 8, b"", None
     while at < len(data):

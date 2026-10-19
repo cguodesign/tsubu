@@ -1,4 +1,4 @@
-"""Forced colours and screen readers, in headless Chromium.
+"""Forced colours and screen readers, in a headless browser.
 
 In forced-colours mode (Windows contrast themes and the like) browsers replace backgrounds; the
 segment being spoken must still stand out, in the user's own colours, and nothing
@@ -20,7 +20,7 @@ LOOK = """() => [...document.querySelectorAll('.tsubu-seg')].map((s) => { const 
 
 @pytest.mark.parametrize("theme", [None, "light", "dark", "media"])
 @pytest.mark.parametrize("sentence", [TIMED, WHOLE], ids=["timed", "whole"])
-def test_in_forced_colours_the_segment_being_spoken_keeps_a_highlight_in_the_users_colours(drawn, theme, sentence):
+def test_in_forced_colours_the_segment_being_spoken_keeps_a_highlight_in_the_users_colours(drawn, engine, theme, sentence):
     at = drawn(sentence, **({"theme": theme} if theme else {}))
     at(1.2 if sentence is TIMED else 5.0)
     at.page.emulate_media(forced_colors="active")
@@ -35,7 +35,11 @@ def test_in_forced_colours_the_segment_being_spoken_keeps_a_highlight_in_the_use
         if not x["punct"]:
             assert x["underline"] == system["HighlightText"]
     for x in others:  # everything else is left to the browser's forced colours
-        assert x["bg"] != system["Highlight"] and x["color"] == system["CanvasText"]
+        assert x["bg"] != system["Highlight"]
+        # WebKit has no forced-colours mode of its own: the emulated media query matches and
+        # tsubu's rules apply, but the browser replaces no colour (measured)
+        if engine != "webkit":
+            assert x["color"] == system["CanvasText"]
 
 
 def test_forced_colours_move_nothing(drawn):

@@ -82,6 +82,10 @@ All notable changes to tsubu are recorded here. The format follows
   against the README and the library by a test), a playground with `checkContrast` live, and a
   gallery of every theme, motion preset and writing mode, in English and 简体中文. Every page is
   tested for errors, horizontal scroll at phone width and colour contrast.
+- The browser tests run in Firefox and WebKit as well as Chromium: `--engine firefox|webkit`
+  (default `chromium`) and `--engine-executable` for another build; `capture-frames.py` takes
+  `--engine` too. Each limitation of an engine is an expected failure there alone, with its
+  reason; the README's Browser support says what holds where.
 
 ### Changed
 
@@ -99,6 +103,11 @@ All notable changes to tsubu are recorded here. The format follows
   every preset in a face given those metrics, horizontally and vertically.
 - A line could begin with punctuation or another mark that may not start a line: Chromium breaks
   at the underline's positioned box between two segments without applying its own rules.
+- In WebKit a reading wider than its base overhung the next kana while the segment's box kept its
+  length, so the underlines of neighbouring segments met: `ruby-overhang: none`.
+- In WebKit `checkContrast` read the highlight and the underline from computed insets that WebKit
+  gives against the wrong box; it now measures them on probes that take the same geometry, and it
+  checks the text against the page where the highlight does not cover it.
 
 ## [0.1.0] - unreleased
 

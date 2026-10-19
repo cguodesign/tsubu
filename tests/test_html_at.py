@@ -28,13 +28,15 @@ TIMES = [-1, 0, 0.25, 0.5, 1.0, 1.45, 2.2, 3.0, 3.5, 4.0, 4.9, 5.0, 6.0, 9.0]
                                      {"writing": "vertical", "motion": "underline-draw mask"}],
                          ids=["plain", "ruby-off", "themed", "vertical-motion"])
 @pytest.mark.parametrize("sentence", [TIMED, WHOLE, LONG], ids=["timed", "whole", "two-lines"])
-def test_html_at_t_is_exactly_what_apply_makes_of_the_html(drawn, sentence, options):
+def test_html_at_t_is_exactly_what_apply_makes_of_the_html(drawn, engine, sentence, options):
     page = drawn(TIMED).page  # any page that has loaded the library
     for t, equal, live, rendered in page.evaluate(SAME, [sentence, options, TIMES]):
         # the same elements, text and attributes (isEqualNode ignores attribute order) ...
         assert equal, (t, live, rendered)
-        # ... and in Chromium even the same string
-        assert rendered == live, t
+        # ... and in Chromium and WebKit even the same string. Firefox writes the style attribute as
+        # soon as a property is set, so there it comes before aria-current (measured).
+        if engine != "firefox":
+            assert rendered == live, t
 
 
 def test_html_at_is_a_pure_function_of_t_and_refuses_a_sentence_without_times():

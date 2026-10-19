@@ -1,5 +1,5 @@
 """Several lines: Japanese line-breaking rules, balanced lines, a size that follows the container,
-and paging by t. Measured in headless Chromium on the library's own CSS and script, over a grid of
+and paging by t. Measured in a headless browser on the library's own CSS and script, over a grid of
 container widths and sentence lengths."""
 
 import itertools
@@ -107,7 +107,7 @@ def test_no_break_is_offered_where_a_line_would_start_with_a_closing_mark_or_sma
     assert breaks_before(TIMED) == [2, 3, 4, 5, 6]
 
 
-# --- the grid, in Chromium ---------------------------------------------------------------------
+# --- the grid ----------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("width", WIDTHS)
 @pytest.mark.parametrize("name", list(SENTENCES))
@@ -130,6 +130,10 @@ def test_with_a_fixed_size_lines_break_by_the_same_rules(drawn, width):
         check_layout(drawn(sentence, width=width)())
 
 
+@pytest.mark.limitation("firefox", reason="text-wrap: balance is not applied when the only break opportunities are "
+                                    "between nowrap units (<wbr>), so lines break greedily")
+@pytest.mark.limitation("webkit", reason="text-wrap: balance is not applied to inline content that holds absolutely "
+                                   "positioned boxes (each segment's highlight and underline), so lines break greedily")
 def test_balanced_lines_keep_the_last_line_from_holding_a_single_segment(drawn):
     def spoken_per_line(found):
         rows = {}
