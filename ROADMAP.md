@@ -15,22 +15,6 @@ are left out on purpose.
 - **No dependencies, and the script still loads from `file://`.**
 - **One sentence.** Bubbles, cameras and the arrangement of several sentences stay with the caller.
 
-## Multi-line layout and responsiveness
-
-- Line breaks stay between segments; add Japanese line-breaking rules (small kana, the long-vowel
-  mark and closing punctuation not at the start of a line), relying on the browser where it can and
-  documenting where it cannot.
-- **Balanced lines**: when a sentence takes several lines, keep their lengths close, so that the
-  last line is not a single segment.
-- **Responsive to the container**: container queries adjust size and spacing to the container's
-  width, between a minimum and a maximum, with every step configurable. Targets include narrow
-  speech bubbles on phone-sized layouts as well as wide 16:9 frames.
-- **When it does not fit**: a maximum number of lines; beyond it the sentence is **paged by `t`**
-  (the page that contains the current segment is shown). Still a pure function of `t`: no
-  scrolling, no estimates.
-- Tests over a grid of widths and sentence lengths: nothing overflows or overlaps, furigana are
-  not clipped, switching furigana does not reflow.
-
 ## Vertical writing
 
 - Segments, furigana (to the right of the characters), side lines in place of underlines, and the

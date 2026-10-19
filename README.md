@@ -16,7 +16,10 @@ renders exactly one sentence for read-along and language-learning use:
   same thing;
 - colours are tokens, one group per state, with presets for a light page, a dark page and text
   over an image or video, and colours per speaker for dialogue. Every preset's contrast is
-  measured against WCAG-based thresholds that are part of the library.
+  measured against WCAG-based thresholds that are part of the library;
+- a sentence that takes several lines breaks only between segments and by Japanese line-breaking
+  rules, keeps its lines close in length, can take its size from its container, and beyond a
+  maximum number of lines is paged by `t`.
 
 It is one classic script (`tsubu.js`, about 21 KB unminified) and one stylesheet (`tsubu.css`). It loads from
 a `file://` page, from any web page, and from Node with `require()`.
@@ -112,15 +115,18 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
 
   ```html
   <span class="tsubu" lang="ja" data-timing="segments" data-ruby="on">
-    <span class="tsubu-seg" data-index="0">…</span><wbr><span class="tsubu-seg" data-index="1">…</span>…
+    <span class="tsubu-unit"><span class="tsubu-seg" data-index="0">…</span><span class="tsubu-seg" data-index="1" data-kind="punct">、</span></span>
+    <wbr><span class="tsubu-unit"><span class="tsubu-seg" data-index="2">…</span></span>…
   </span>
   ```
 
   (without the whitespace). With `options.theme` the root also carries `data-tsubu-theme`, and
-  with `options.speaker` it carries `data-speaker`. Punctuation segments carry `data-kind="punct"`. Every segment is
-  `white-space: nowrap`, so a segment is never split across lines; a `<wbr>` before each segment
-  lets the line break between segments, and there is none before punctuation, so punctuation never
-  starts a line. All text is HTML-escaped. The fresh HTML has no state: `apply` adds it.
+  with `options.speaker` it carries `data-speaker`. Punctuation segments carry `data-kind="punct"`.
+  Segments are grouped in units, and a line breaks only between units (see
+  [Several lines](#several-lines)): a segment is never split across lines, and a segment that may
+  not begin a line (one that starts with a closing mark, `ー` or a small kana) shares a unit with
+  the one before it, as does one that follows an opening bracket. All text is HTML-escaped. The
+  fresh HTML has no state: `apply` adds it.
 - **`timing`**: `"segments"`, `"sentence"` or `"none"`.
 - **`stateAt(t)`**: a pure function of `t` that returns
 
@@ -144,7 +150,11 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
   - on the root: `data-state`, `--tsubu-progress`, and `aria-current="true"` while a sentence with
     timing `"sentence"` is being spoken;
   - on each segment: `data-state`, `--tsubu-progress` (timed segments only), and
-    `aria-current="true"` on the segment being spoken.
+    `aria-current="true"` on the segment being spoken;
+  - with a maximum number of lines (see [Paging by t](#paging-by-t)): `data-page` and
+    `data-pages` on the root, and `data-off-page` on the segments of other pages. The object it
+    returns then also has `page` (from 0) and `pages`; both are `null` when the sentence is not
+    paged.
 
   It never changes text and never adds or removes nodes.
 
@@ -189,6 +199,8 @@ Layout and shape:
 | `--tsubu-current-radius` | `0.18em` | highlight corner radius (0 with timing `"sentence"`, so the sentence reads as one band per line) |
 | `--tsubu-plate-spread` | `0px` | how far the plate reaches past the sentence's box (it takes no room) |
 | `--tsubu-plate-radius` | `0` | plate corner radius |
+| `--tsubu-wrap` | `balance` | `text-wrap` of the sentence: `balance`, `pretty` or `wrap` |
+| `--tsubu-max-lines` | `none` | more lines than this are paged by `t` |
 | `--tsubu-progress` | written by `apply` | 0 to 1; read it in your own CSS, do not set it |
 
 Colour tokens come in groups. The base group applies before the first `apply` and with timing
@@ -260,6 +272,77 @@ theme's `--tsubu-backdrop`, else the background colours of the root's ancestors 
 It does not see background images, `text-shadow` or anti-aliasing: over an image, use the `media`
 plate or pass the image's lightest and darkest colours as backdrops.
 
+## Several lines
+
+### Line breaks
+
+A line breaks only between segments, and never where Japanese line-breaking rules (*kinsoku*)
+forbid it: no closing bracket or punctuation, long-vowel mark `ー`, small kana, iteration mark,
+middle dot or colon at the start of a line, and no opening bracket at its end (the set of CSS
+`line-break: strict`). tsubu applies these rules itself: segments that may not be parted share a
+`white-space: nowrap` unit, and a `<wbr>` between units gives the line its place to break.
+
+Why not leave it to the browser's `line-break`: Chromium treats an absolutely positioned box, such
+as each segment's underline, as a place to break, and does not apply its line-breaking rules
+there; a `<wbr>` likewise overrides them. Both were measured (Chromium 139). The rules work on the
+first and last characters of segments as the caller cut them; tsubu does not look inside a
+segment, which never breaks anyway. A segment wider than the line overflows it rather than being
+split. Closing punctuation is not hung outside the line (`hanging-punctuation` is not supported in
+Chromium), so a segment moves to the next line together with the comma after it.
+
+### Balanced lines
+
+The sentence has `text-wrap: balance` (change it with `--tsubu-wrap`), so the lines of a sentence
+that takes several are kept close in length and the last line does not hold a lone segment.
+Balancing is the browser's: Chromium balances a block of up to six lines and leaves a longer one
+as it breaks greedily (measured in Chromium 139); per MDN, Firefox balances up to ten. Paging (below) keeps each page short enough.
+
+### A size that follows the container
+
+Inside an element with class `tsubu-fluid`, which becomes a query container named `tsubu`, the
+sentence's font size is the container's width divided by a number of characters per line,
+between a minimum and a maximum. Everything else in tsubu is in `em`, so spacing, furigana and
+underlines follow. The width falls in one of three steps; the breakpoints are fixed, because a
+container query cannot read a custom property, and every value in each step is configurable:
+
+| Step | Container width | Characters per line | Maximum lines |
+|---|---|---|---|
+| narrow | under 480px | `--tsubu-narrow-chars` (`11`) | `--tsubu-narrow-max-lines` (else `--tsubu-max-lines`) |
+| medium | 480px to 960px | `--tsubu-chars` (`15`) | `--tsubu-max-lines` |
+| wide | 960px and over | `--tsubu-wide-chars` (`18`) | `--tsubu-wide-max-lines` (else `--tsubu-max-lines`) |
+
+and `--tsubu-size-min` (`14px`) and `--tsubu-size-max` (`72px`) bound the size in every step. A
+280px speech bubble on a phone gets about 25px text; a 1280px 16:9 frame gets 71px. The container
+needs a width of its own: a query container does not take its width from its content, so a bubble
+that shrinks to fit its text must be given a width or a `max-width` instead. Without
+`tsubu-fluid` the size is inherited as before.
+
+```html
+<div class="tsubu-fluid" style="width: 100%; --tsubu-narrow-max-lines: 3; --tsubu-max-lines: 2">
+  <!-- the .tsubu element made by Tsubu.sentence() -->
+</div>
+```
+
+### Paging by t
+
+With `--tsubu-max-lines` set (on the sentence or any ancestor, or per step), a sentence that takes
+more lines is shown one page at a time, and `apply(root, t)` decides which:
+
+- the page that holds the segment being spoken;
+- between two segments, the page of the one just spoken; before the first, the first page;
+  after the last, the last page.
+
+The pages come from the layout: `apply` lays the sentence out whole and greedily, and every
+`--tsubu-max-lines` lines make a page, so a page always begins at the start of a line; shown on its
+own, it breaks into the same lines, which are then balanced among themselves. The page shown
+depends on `t` and that layout alone, not on earlier calls: there is no scrolling and nothing is
+estimated. Because it reads the layout, call `apply` after the fonts have loaded
+(`document.fonts.ready`), and again after the container changes size.
+
+A sentence without times for its segments (timing `"sentence"`) is never paged, since which part
+of it is being read is not known: it is shown whole. Segments on other pages get `display: none`,
+so they are also hidden from assistive technology until their page comes.
+
 ## Layout guarantees, and how they are tested
 
 Each of these is checked by measuring the page in headless Chromium (see `tests/test_layout.py`):
@@ -290,7 +373,22 @@ Each of these is checked by measuring the page in headless Chromium (see `tests/
 - **Every segment has its own underline.** The underline is the segment's own `::after`, inset at
   both ends, and segments have no `text-decoration`, so neighbouring underlines never join. The
   test checks the gap between neighbours on the same line.
-- **Lines break only between segments, never before punctuation**, at several container widths.
+- **Lines break only between segments and by Japanese line-breaking rules**
+  (`tests/test_lines.py`), at many container widths, including a sentence cut on purpose so that
+  segments begin with `っ` and `ー` next to brackets and commas.
+- **Over a grid of container widths and sentence lengths** (`tests/test_lines.py`, 7 widths from
+  200px to 1280px in a fluid container, 5 sentences from one line to many): nothing overflows the
+  container, no two characters, rubies or readings overlap, no reading is clipped at the top, and
+  switching the furigana moves no character.
+- **Balanced lines**: wherever a greedy layout of up to six lines leaves a single segment on the
+  last line, the balanced one does not, and its lines are closer in length.
+- **The fluid size** is checked at and around every breakpoint, with defaults and with every step
+  configured.
+- **Paging**: with a maximum number of lines, every segment is on the page while it is spoken, no
+  page has more lines than allowed, a page begins at the start of a line, the pages share no
+  segment and together hold all of them, they turn only forward as `t` grows, a gap keeps the page
+  of the segment just spoken, the same `t` always shows the same page, and switching the furigana
+  does not reflow a page.
 - **No motion.** Every element has `transition: none` and `animation: none`, and repeated
   `apply` calls produce the same attributes, text and node count.
 
@@ -301,11 +399,14 @@ punctuation, progress, every refused input, and that `stateAt` depends on `t` al
 
 Stated honestly:
 
-- **Tested in Chromium only** so far (the build bundled with Playwright, Chromium 138 at the time
+- **Tested in Chromium only** so far (the build bundled with Playwright, Chromium 139 at the time
   of writing). Firefox and WebKit have not been run through the layout tests yet.
 - `ruby-align` is needed for the "wide reading does not spread its base" guarantee. Per MDN it is
   supported from **Chrome 128** and **Safari 18.2**. In older browsers the furigana still switch
   without reflow, but a reading wider than its base spreads the base characters apart.
+- Balanced lines use `text-wrap: balance` (Chrome 114, Firefox 121, Safari 17.5); without it,
+  lines break greedily. The fluid size uses container queries and `cqi` units (Chrome 105,
+  Firefox 110, Safari 16).
 - The script uses ES2015+ syntax (`const`, arrow functions, template literals) and the `:scope`
   selector.
 - No `<rp>` fallback parentheses are written yet, so a browser without ruby support shows the
@@ -342,7 +443,7 @@ JP); the measurements are relative, so another CJK font should give the same res
 |---|---|
 | `tsubu.js` | the library: a classic script that defines `Tsubu`, or `module.exports` in Node |
 | `tsubu.css` | the styles; everything adjustable is a custom property |
-| `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker and a dialogue; accepts `?t=seconds&ruby=off&theme=dark` |
+| `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker, a dialogue and a fluid, paged frame; accepts `?t=seconds&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | the test suite (pytest; Node for the state, Playwright Chromium for the layout) |
 | `assets/` | the logo |
 

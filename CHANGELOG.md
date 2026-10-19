@@ -25,6 +25,24 @@ All notable changes to tsubu are recorded here. The format follows
 - Tests: every preset and speaker meets the thresholds in every state; a colour below its
   threshold is reported; changing the theme or the speaker moves no character.
 - The demo has a theme picker, a dialogue with two speakers and each card's contrast result.
+- Japanese line-breaking rules: segments that may not be parted at a line break (one that begins
+  with a closing mark, the long-vowel mark or a small kana, or follows an opening bracket) share a
+  nowrap `tsubu-unit`, and a line breaks only between units. The HTML gains that unit element.
+- Balanced lines with `text-wrap: balance`, changeable with `--tsubu-wrap`.
+- A size that follows the container: inside `.tsubu-fluid`, the font size is the container's width
+  divided by a number of characters per line, between `--tsubu-size-min` and `--tsubu-size-max`,
+  in three steps (narrow, medium, wide) whose values are all configurable.
+- Paging by `t`: beyond `--tsubu-max-lines` (or a step's own maximum), `apply` shows only the page
+  that holds the segment being spoken, and returns `page` and `pages`.
+- Tests over a grid of container widths and sentence lengths: nothing overflows or overlaps,
+  furigana are not clipped, switching them does not reflow, and the line-breaking rules hold;
+  and tests of balancing, the fluid size and paging.
+- The demo has a fluid frame with a width slider and a maximum number of lines.
+
+### Fixed
+
+- A line could begin with punctuation or another mark that may not start a line: Chromium breaks
+  at the underline's positioned box between two segments without applying its own rules.
 
 ## [0.1.0] - unreleased
 

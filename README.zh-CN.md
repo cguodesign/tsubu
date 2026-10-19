@@ -10,7 +10,8 @@
 - 每段有自己的一条点状下划线；
 - 可选的注音（`<ruby>`）可以开关，**开关时任何一个字都不移动**；
 - 正在读的那一段（或整句）按时间戳高亮，而且是**时间的纯函数**：`stateAt(t)` 和 `apply(root, t)`。不用 `requestAnimationFrame`、不用计时器、不用 CSS 过渡，所以逐帧截图录视频和实时播放画出来的完全一样；
-- 颜色是一组组的 token，每个状态一组；有浅色页面、深色页面、叠在图片或视频上三套预设，对话里每个说话人可以有自己的颜色。每套预设的对比度都按库里自带的、基于 WCAG 的阈值实际测量。
+- 颜色是一组组的 token，每个状态一组；有浅色页面、深色页面、叠在图片或视频上三套预设，对话里每个说话人可以有自己的颜色。每套预设的对比度都按库里自带的、基于 WCAG 的阈值实际测量；
+- 占好几行的句子只在段与段之间、按日语禁则断行，各行长度接近，字号可以随容器变化，超过最大行数时按 `t` 翻页。
 
 它只有一个普通脚本（`tsubu.js`，未压缩约 21 KB）和一个样式表（`tsubu.css`）。可以从 `file://` 页面加载，也可以在任何网页里用，在 Node 里用 `require()` 也行。
 
@@ -97,11 +98,12 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
 
   ```html
   <span class="tsubu" lang="ja" data-timing="segments" data-ruby="on">
-    <span class="tsubu-seg" data-index="0">…</span><wbr><span class="tsubu-seg" data-index="1">…</span>…
+    <span class="tsubu-unit"><span class="tsubu-seg" data-index="0">…</span><span class="tsubu-seg" data-index="1" data-kind="punct">、</span></span>
+    <wbr><span class="tsubu-unit"><span class="tsubu-seg" data-index="2">…</span></span>…
   </span>
   ```
 
-  （实际没有这些空白）。给了 `options.theme` 时根元素还带 `data-tsubu-theme`，给了 `options.speaker` 时带 `data-speaker`。标点段带 `data-kind="punct"`。每段都是 `white-space: nowrap`，所以一段不会被拆到两行；每段前面有一个 `<wbr>`，让行在段与段之间断开；标点前没有，所以标点不会出现在行首。所有文字都经过 HTML 转义。刚生成的 HTML 不带状态，`apply` 之后才有。
+  （实际没有这些空白）。给了 `options.theme` 时根元素还带 `data-tsubu-theme`，给了 `options.speaker` 时带 `data-speaker`。标点段带 `data-kind="punct"`。段被分进一个个单元，行只在单元之间断开（见[多行](#多行)）：一段不会被拆到两行；不能出现在行首的段（以闭合符号、`ー` 或小假名开头的段）和它前面那段在同一个单元里，紧跟在开括号后面的段也是。所有文字都经过 HTML 转义。刚生成的 HTML 不带状态，`apply` 之后才有。
 - **`timing`**：`"segments"`、`"sentence"` 或 `"none"`。
 - **`stateAt(t)`**：只取决于 `t` 的纯函数，返回
 
@@ -115,7 +117,8 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
   - timing 为 `"segments"` 时，标点和它前面那个非标点段一起变成 past；句首的标点在第一个非标点段开始时变成 past。timing 为 `"sentence"` 时，每一段（包括标点）的状态都和整句相同。
 - **`apply(root, t)`**：把 `stateAt(t)` 写到页面上并返回它。`root` 必须是由 `html` 生成的那个 `.tsubu` 元素（是别的元素或段数不对就抛错）。它只设置属性：
   - 根元素：`data-state`、`--tsubu-progress`；timing 为 `"sentence"` 的句子正在读时带 `aria-current="true"`；
-  - 每一段：`data-state`、`--tsubu-progress`（只有带时间的段）；正在读的那一段带 `aria-current="true"`。
+  - 每一段：`data-state`、`--tsubu-progress`（只有带时间的段）；正在读的那一段带 `aria-current="true"`；
+  - 设了最大行数时（见[按 t 翻页](#按-t-翻页)）：根元素带 `data-page` 和 `data-pages`，不在当前页的段带 `data-off-page`。这时返回的对象还有 `page`（从 0 开始）和 `pages`；句子不翻页时两者都是 `null`。
 
   它从不改文字，也从不增删节点。
 
@@ -151,6 +154,8 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
 | `--tsubu-current-radius` | `0.18em` | 高亮圆角（timing 为 `"sentence"` 时为 0，整句每行是一整条） |
 | `--tsubu-plate-spread` | `0px` | 底板超出句子的框多少（不占位置） |
 | `--tsubu-plate-radius` | `0` | 底板圆角 |
+| `--tsubu-wrap` | `balance` | 句子的 `text-wrap`：`balance`、`pretty` 或 `wrap` |
+| `--tsubu-max-lines` | `none` | 超过这么多行就按 `t` 翻页 |
 | `--tsubu-progress` | 由 `apply` 写入 | 0 到 1；在你自己的 CSS 里读取，不要自己设 |
 
 颜色 token 按组划分。基础组用在第一次 `apply` 之前和 timing 为 `"none"` 时；每个状态的组都回退到基础组，所以只设基础组的颜色就能给全部换色。
@@ -196,6 +201,47 @@ Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  //
 
 背景依次取 `options.backdrop`（一个颜色、一组颜色，或表示黑和白的 `"any"`）、主题的 `--tsubu-backdrop`、根元素各祖先的背景色叠在白色上的结果。它看不到背景图片、`text-shadow` 和抗锯齿：叠在图片上时，请用 `media` 底板，或者把图片最亮和最暗的颜色作为背景传进去。
 
+## 多行
+
+### 断行
+
+行只在段与段之间断开，而且不在日语禁则不允许的地方断：闭合括号和标点、长音符 `ー`、小假名、叠字符号、中点和冒号不出现在行首，开括号不出现在行尾（即 CSS `line-break: strict` 的那一组）。这些规则由 tsubu 自己执行：不能分开的段放在同一个 `white-space: nowrap` 单元里，单元之间的 `<wbr>` 给出断行的位置。
+
+为什么不交给浏览器的 `line-break`：Chromium 把绝对定位的框（比如每段的下划线）当作可以断行的地方，而且在那里不执行它的断行规则；`<wbr>` 同样会绕过这些规则。这两点都实测过（Chromium 139）。规则只看调用方切出来的每段的首字和末字，不看段的内部，反正段内从不断行。比一行还宽的段会超出这一行，而不会被拆开。闭合标点不会悬挂到行外（Chromium 不支持 `hanging-punctuation`），所以一段会和它后面的逗号一起换到下一行。
+
+### 均衡换行
+
+句子设了 `text-wrap: balance`（用 `--tsubu-wrap` 修改），所以占好几行的句子各行长度接近，最后一行不会只剩一段。均衡由浏览器完成：Chromium 只均衡不超过六行的块，更长的照常贪心断行（在 Chromium 139 里实测）；据 MDN，Firefox 的上限是十行。下面的翻页能让每页都足够短。
+
+### 字号随容器变化
+
+放在带 `tsubu-fluid` 类的元素里时（这个元素会成为名为 `tsubu` 的查询容器），句子的字号等于容器宽度除以每行字数，并限制在最小值和最大值之间。tsubu 其他尺寸都用 `em`，所以间距、注音和下划线一起缩放。宽度分成三档；分档的位置是固定的，因为容器查询读不了自定义属性，但每一档的每个值都可以配置：
+
+| 档 | 容器宽度 | 每行字数 | 最大行数 |
+|---|---|---|---|
+| 窄 | 小于 480px | `--tsubu-narrow-chars`（`11`） | `--tsubu-narrow-max-lines`（否则用 `--tsubu-max-lines`） |
+| 中 | 480px 到 960px | `--tsubu-chars`（`15`） | `--tsubu-max-lines` |
+| 宽 | 960px 及以上 | `--tsubu-wide-chars`（`18`） | `--tsubu-wide-max-lines`（否则用 `--tsubu-max-lines`） |
+
+`--tsubu-size-min`（`14px`）和 `--tsubu-size-max`（`72px`）在每一档都限制字号。手机上 280px 宽的对话气泡大约是 25px 的字；1280px 宽的 16:9 画面是 71px。容器要有自己的宽度：查询容器不根据内容决定宽度，所以随文字收缩的气泡要改为给定宽度或 `max-width`。不加 `tsubu-fluid` 时字号照旧继承。
+
+```html
+<div class="tsubu-fluid" style="width: 100%; --tsubu-narrow-max-lines: 3; --tsubu-max-lines: 2">
+  <!-- 由 Tsubu.sentence() 生成的 .tsubu 元素 -->
+</div>
+```
+
+### 按 t 翻页
+
+设了 `--tsubu-max-lines`（设在句子或任何祖先上，或按档设）时，超过这么多行的句子一次只显示一页，由 `apply(root, t)` 决定显示哪一页：
+
+- 正在读的那一段所在的页；
+- 两段之间，刚读完的那一段所在的页；第一段之前是第一页；最后一段之后是最后一页。
+
+页来自版面：`apply` 把整句贪心排一遍，每 `--tsubu-max-lines` 行为一页，所以每页都从行首开始；单独显示时它断成同样的几行，再在页内均衡。显示哪一页只取决于 `t` 和这个版面，和之前的调用无关：不滚动，也不估算。因为要读版面，请在字体加载完之后（`document.fonts.ready`）调用 `apply`，容器尺寸变化后也要再调用一次。
+
+没有每段时间的句子（timing 为 `"sentence"`）从不翻页，因为不知道读到了哪一部分：整句都显示。其他页的段是 `display: none`，所以在翻到那一页之前，辅助技术也读不到它们。
+
 ## 版面保证，以及怎么测
 
 下面每一条都在无界面 Chromium 里实际测量页面来检查（见 `tests/test_layout.py`）：
@@ -207,7 +253,11 @@ Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  //
 - **注音不被裁掉，也不碰到上一行。** `--tsubu-ruby-reserve` 在第一行上方留出空间，因为各浏览器对"第一行的行框是否撑高来放注音"做法不同；有了这个留白，读音就留在句子的框里（因此也在 `overflow: hidden` 的容器里）。测试检查每个读音都在根元素之内，并且避开上一行的字和下划线。如果调大注音字号或调小行高，要一起调大这个留白。
 - **读音比汉字宽时不会把汉字拉开。** tsubu 设了 `ruby-align: center`；默认的 `space-around` 会在汉字之间插入空隙。测试在截图里比较带注音和不带注音时汉字的墨迹宽度，并确认 `space-around` 的情况会被测出来。
 - **每段有自己的下划线。** 下划线是每段自己的 `::after`，两端缩进，段上没有 `text-decoration`，所以相邻的下划线不会连在一起。测试检查同一行相邻两段下划线之间的间隙。
-- **只在段与段之间断行，标点不在行首**，在几种容器宽度下都测。
+- **只在段与段之间、按日语禁则断行**（`tests/test_lines.py`），在许多容器宽度下测，包括一个故意切得让段以 `っ` 和 `ー` 开头、旁边还有括号和逗号的句子。
+- **在容器宽度和句子长度组成的网格上**（`tests/test_lines.py`，流式容器里 200px 到 1280px 共 7 种宽度，从一行到很多行共 5 个句子）：没有内容超出容器，没有两个字、ruby 或读音重叠，没有读音在顶部被裁掉，开关注音没有字移动。
+- **均衡换行**：在贪心排版不超过六行、最后一行只剩一段的地方，均衡后的最后一行都不止一段，各行长度也更接近。
+- **流式字号**在每个分档点和它两边检查，默认值和每一档都配置过的情况都测。
+- **翻页**：设了最大行数时，每一段被读时都在当前页上，没有一页超过允许的行数，每页从行首开始，各页没有共同的段、合起来包含全部的段，随 `t` 增大只往后翻，两段之间的空隙保持刚读完那段的页，同一个 `t` 总是显示同一页，开关注音不会让一页重排。
 - **没有动效。** 每个元素都是 `transition: none` 和 `animation: none`；反复调用 `apply` 得到相同的属性、文字和节点数。
 
 状态逻辑（`tests/test_state.py`）在 Node 里运行 `tsubu.js` 本身：左闭右开的时间段、空隙、标点、进度、每一种被拒绝的输入，以及 `stateAt` 只取决于 `t`。
@@ -216,8 +266,9 @@ Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  //
 
 如实说明：
 
-- 目前**只在 Chromium 里测过**（Playwright 自带的版本，写这份说明时是 Chromium 138）。Firefox 和 WebKit 还没有跑过版面测试。
+- 目前**只在 Chromium 里测过**（Playwright 自带的版本，写这份说明时是 Chromium 139）。Firefox 和 WebKit 还没有跑过版面测试。
 - "宽读音不拉开汉字"这条保证需要 `ruby-align`。据 MDN，**Chrome 128** 和 **Safari 18.2** 起支持。在更旧的浏览器里，注音开关仍然不会重排，但读音比汉字宽时汉字会被拉开。
+- 均衡换行用 `text-wrap: balance`（Chrome 114、Firefox 121、Safari 17.5）；不支持时按贪心断行。流式字号用容器查询和 `cqi` 单位（Chrome 105、Firefox 110、Safari 16）。
 - 脚本用了 ES2015 以上的语法（`const`、箭头函数、模板字符串）和 `:scope` 选择器。
 - 还不输出 `<rp>` 后备括号，所以不支持 ruby 的浏览器会把读音直接显示在汉字后面。
 
@@ -249,7 +300,7 @@ python -m pytest -q
 |---|---|
 | `tsubu.js` | 库本身：一个普通脚本，在页面里定义 `Tsubu`，在 Node 里是 `module.exports` |
 | `tsubu.css` | 样式；可调的都是自定义属性 |
-| `demo/index.html` | 演示页：拖动时间、开关注音、选主题，还有一段对话；地址可带 `?t=秒数&ruby=off&theme=dark` |
+| `demo/index.html` | 演示页：拖动时间、开关注音、选主题，有一段对话和一个流式、会翻页的框；地址可带 `?t=秒数&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | 测试（pytest；状态用 Node，版面用 Playwright 的 Chromium） |
 | `assets/` | logo |
 
