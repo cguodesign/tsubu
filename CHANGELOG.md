@@ -74,6 +74,11 @@ All notable changes to tsubu are recorded here. The format follows
   segments by, and `span(i)` and `find(id)` on a sentence, for click-to-seek.
 - `checkContrast` counts opacity on a layer, and checks every segment revealed and with its
   furigana on, so every colour that can be drawn is measured.
+- The website in `site/`: a home page with a film drawn frame by frame from `t` and a furigana
+  loupe, getting started, a guide with a live example per section, the API reference (checked
+  against the README and the library by a test), a playground with `checkContrast` live, and a
+  gallery of every theme, motion preset and writing mode, in English and 简体中文. Every page is
+  tested for errors, horizontal scroll at phone width and colour contrast.
 
 ### Fixed
 

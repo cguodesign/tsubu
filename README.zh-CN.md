@@ -402,7 +402,7 @@ python -m pytest -q
 | `tsubu.css` | 样式；可调的都是自定义属性 |
 | `tsubu-export.js` | 可选：用同样的输入生成 WebVTT 和 ASS 卡拉 OK 字幕 |
 | `examples/` | 录制视频：用 Playwright 生成 PNG 帧，用 Node 生成 HTML 帧 |
-| `site/` | 项目首页的原型：一段由 `t` 绘制的短片和一个注音透视镜 |
+| `site/` | 项目网站：首页（短片由 `t` 绘制）、快速开始、指南、API 参考、试验场和画廊，中英双语。页面从同级文件加载库（检出里是符号链接），所以从磁盘直接打开就能看 |
 | `demo/index.html` | 演示页：拖动时间、开关注音、选主题，有一段对话和一个流式、会翻页的框；地址可带 `?t=秒数&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | 测试（pytest；状态用 Node，版面用 Playwright 的 Chromium） |
 | `assets/` | logo |

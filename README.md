@@ -652,7 +652,7 @@ JP); the measurements are relative, so another CJK font should give the same res
 | `tsubu.css` | the styles; everything adjustable is a custom property |
 | `tsubu-export.js` | optional: WebVTT and ASS karaoke subtitles from the same input |
 | `examples/` | recording video: PNG frames through Playwright, HTML frames from Node |
-| `site/` | a prototype of the project's home page: a film drawn from `t` and a furigana loupe |
+| `site/` | the project's website: a home page whose film is drawn from `t`, getting started, a guide, the API reference, a playground and a gallery, in English and 简体中文. The pages load the library from sibling files (symlinks in the checkout), so they open straight from disk |
 | `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker, a dialogue and a fluid, paged frame; accepts `?t=seconds&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | the test suite (pytest; Node for the state, Playwright Chromium for the layout) |
 | `assets/` | the logo |
