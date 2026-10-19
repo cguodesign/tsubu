@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="tsubu">
+  <defs>
+    <path id="grain" d="M0 -46 C26 -46 36 -16 34 10 C32 36 16 48 -2 48 C-22 48 -34 30 -34 6 C-34 -6 -31 -14 -26 -20 C-21 -18 -16 -20 -14 -26 C-12 -40 -8 -46 0 -46 Z"/>
+    <filter id="ink" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="7" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 2.05" result="speck"/>
+      <feComposite in="SourceGraphic" in2="speck" operator="in"/>
+    </filter>
+    <path id="groove" d="M7 -36 C15 -14 15 14 6 38" fill="none" stroke-width="3.2" stroke-linecap="round"/>
+  </defs>
+  <rect width="400" height="400" fill="#F2F4F7"/>
+  <g filter="url(#ink)">
+    <use href="#grain" fill="#0D1B2A" transform="translate(168 132) rotate(-28) scale(1.15)"/>
+    <use href="#grain" fill="#1565FF" transform="translate(236 168) rotate(22) scale(1.05)"/>
+    <use href="#grain" fill="#0D1B2A" transform="translate(190 222) rotate(98) scale(1.1)"/>
+  </g>
+  <g opacity=".55">
+    <use href="#groove" stroke="#F2F4F7" transform="translate(168 132) rotate(-28) scale(1.15)"/>
+    <use href="#groove" stroke="#F2F4F7" transform="translate(236 168) rotate(22) scale(1.05)"/>
+    <use href="#groove" stroke="#F2F4F7" transform="translate(190 222) rotate(98) scale(1.1)"/>
+  </g>
+  <text x="200" y="330" text-anchor="middle" font-family="'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif" font-size="56" letter-spacing="10" fill="#0D1B2A">tsubu</text>
+  <path d="M146 352 H254" stroke="#1565FF" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 11" fill="none"/>
+</svg>
