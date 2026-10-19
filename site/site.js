@@ -10,6 +10,8 @@ window.Site = (function () {
     ["index.html", "Home", "首页"], ["start.html", "Getting started", "快速开始"], ["guide.html", "Guide", "指南"],
     ["api.html", "API", "API"], ["playground.html", "Playground", "试验场"], ["gallery.html", "Gallery", "画廊"],
   ];
+  // The repository's address, once it is public: the masthead and the footer link to it.
+  const REPO = "";
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } } };
 
@@ -28,13 +30,14 @@ window.Site = (function () {
   function mast(active) {
     const el = document.querySelector(".mast"); if (!el) return;
     const links = PAGES.map(([href, en, zh]) => `<li><a href="${href}"${href === active ? ' aria-current="page"' : ""}><span class="en">${en}</span><span class="zh" lang="zh-CN">${zh}</span></a></li>`).join("");
+    const repo = REPO ? `<li><a class="ext" href="${REPO}" rel="noopener">GitHub</a></li>` : "";
     el.innerHTML = `<a class="mark" href="index.html">tsubu<span class="kanji">粒</span></a>
-      <nav aria-label="Site"><ul class="nav">${links}<li><button type="button" class="lang"></button></li></ul></nav>`;
+      <nav aria-label="Site"><ul class="nav">${links}${repo}<li><button type="button" class="lang"></button></li></ul></nav>`;
     el.querySelector(".lang").addEventListener("click", () => setLang(lang() === "zh" ? "en" : "zh"));
     setLang(lang());
     const foot = document.querySelector("footer.foot");
     if (foot) foot.innerHTML = `<span>tsubu · <span class="en">MIT licence</span><span class="zh" lang="zh-CN">MIT 许可证</span> · v${Tsubu.version}</span>
-      <span><span class="en">Colours</span><span class="zh" lang="zh-CN">用色</span>: 白練 濃藍 瑠璃 紺青 朱 山吹 白藍 銀鼠 群青</span>`;
+      <span>${REPO ? `<a href="${REPO}" rel="noopener">GitHub</a> · ` : ""}<span class="en">Colours</span><span class="zh" lang="zh-CN">用色</span>: 白練 濃藍 瑠璃 紺青 朱 山吹 白藍 銀鼠 群青</span>`;
   }
 
   // A clock that drives renderers with t. `render(t)` is the only thing it calls; a scrubber and
@@ -88,5 +91,5 @@ window.Site = (function () {
   }
 
   document.addEventListener("DOMContentLoaded", () => { labels(); code(); });
-  return { PAGES, reduce, lang, setLang, mast, clock, draw, labels, code, worst, fmt };
+  return { PAGES, REPO, reduce, lang, setLang, mast, clock, draw, labels, code, worst, fmt };
 })();

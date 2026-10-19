@@ -96,6 +96,32 @@ const TsubuExport = require("./tsubu-export.js");</code></pre>
       </div>
     </div>
 
+    <h2 class="label"><span class="kanji" data-ruby="つかい">使</span><span class="en">For agents</span><span class="zh" lang="zh-CN">给 agent 的说明</span></h2>
+    <p class="en">An agent that writes pages or templates with tsubu needs the contract, not the whole README. The block below is that contract, in the README's words; paste it into the agent's instructions. The API page and <code>Tsubu.MOTIONS</code> (the motion catalogue as data: each preset's purpose, what it needs, its parameters) are the references it can read on its own.</p>
+    <p class="zh" lang="zh-CN">用 tsubu 写页面或模板的 agent 需要的是契约，不是整份 README。下面这段就是契约，措辞与 README 一致；把它贴进 agent 的指令里。API 页和 <code>Tsubu.MOTIONS</code>（动效目录的数据形式：每个预设的用途、需要什么、参数）是它可以自己读的参考。</p>
+<pre><code class="plain" id="agent-brief">tsubu draws ONE sentence, already cut into segments, for read-along use.
+- Input: { segments: [{ parts: [{ text, ruby? }], kind?: "punct", start?, end?, id?, tags? }], start?, end?, lang? }.
+  Times are seconds on the caller's clock. tsubu never segments text, never estimates times and never plays audio.
+- Timing: every spoken segment timed → "segments" (one segment lights at a time); only the sentence timed → "sentence"
+  (the whole sentence lights; the span is NOT divided among segments); no times → "none" (static; stateAt/apply throw).
+  Partly timed, overlapping or punctuation times are refused with an Error whose message starts with "tsubu:".
+- Draw: s = Tsubu.sentence(input, options); el.innerHTML = s.html; root = el.querySelector(".tsubu"); s.apply(root, t).
+  The frame at t depends on t alone: no timers, no transitions. For video, call apply(root, t) at each frame's time,
+  or render s.htmlAt(t) without a page. Never add CSS transitions to make it "smooth".
+- Furigana: Tsubu.setRuby(root, on) switches them without moving any character. Keep that: never set display: none on rt.
+- Themes: options.theme "light" | "dark" | "media"; speakers "a" | "b". Verify colours with Tsubu.checkContrast(root):
+  4.5 for text and furigana, 3 for the underline and the highlight. The unthemed defaults are not a preset and fail.
+- Motion: choose from Tsubu.MOTIONS only, to show what is being read, never to decorate. Plain read-along: none.
+  Teaching line by line: "appear" (or "underline-draw" to keep the sentence readable). Listening and dictation:
+  "mask" or "blur", revealed by time or by Tsubu.setRevealed(root, [i…]) on the learner's events.
+  Do not combine "appear" with "mask"/"blur", nor "mask" with "underline-draw". Do not dim read text with opacity.
+- Lines: breaks only between segments and by Japanese rules, balanced. Fluid size: wrap in class "tsubu-fluid"
+  with a definite width. Paging: --tsubu-max-lines; call apply after document.fonts.ready and after resizes.
+- Vertical: options.writing "vertical"; give the container a height.
+- Subtitles: TsubuExport.toWebVTT(input) / toASS(input) from the same input (times required).
+- Tags: segment id and tags are written as data-id / data-tags for the caller to style; colours and lines only.</code></pre>
+    <div class="transport" style="padding-top: 0"><button type="button" class="btn quiet" id="copy-brief"><span class="en">Copy</span><span class="zh" lang="zh-CN">复制</span></button><output id="copied" class="small muted"></output></div>
+
     <h2 class="label"><span class="kanji" data-ruby="つぎ">次</span><span class="en">Next</span><span class="zh" lang="zh-CN">接下来</span></h2>
     <div class="grid">
       <a class="pointer" href="guide.html"><b class="en">Guide</b><b class="zh" lang="zh-CN">指南</b><span class="en">Timing, several lines, themes, motion, vertical text, video, subtitles and accessibility, each with a live example.</span><span class="zh" lang="zh-CN">时间、多行、主题、动效、竖排、录视频、字幕和无障碍，每节都有活的示例。</span></a>
@@ -147,6 +173,10 @@ function redraw() {
   } catch (e) { $("ex2-err").textContent = e.message; }
 }
 $("ex2-src").addEventListener("input", redraw);
+$("copy-brief").addEventListener("click", () => {
+  const text = $("agent-brief").textContent, done = () => { $("copied").textContent = Site.lang() === "zh" ? "已复制" : "Copied"; };
+  navigator.clipboard.writeText(text).then(done).catch(() => { const r = document.createRange(); r.selectNodeContents($("agent-brief")); getSelection().removeAllRanges(); getSelection().addRange(r); });
+});
 document.fonts.ready.then(() => { redraw(); window.__ready = true; });
 </script>
 </body>

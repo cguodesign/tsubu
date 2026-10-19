@@ -12,11 +12,11 @@
 <style>
 .toc { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 32px; padding: 0; list-style: none; font-size: 14px; }
 .toc a { color: var(--ink); }
-.api h2 { font-size: 24px; margin: 40px 0 10px; }
-.api h3 { font-size: 17px; margin: 24px 0 8px; font-family: var(--body); }
+.api section { padding-top: 36px; margin-top: 44px; border-top: 1px solid var(--rule); }
+.api section:first-child { border-top: 0; margin-top: 8px; padding-top: 0; }
+.api h2 { font-size: 24px; margin: 0 0 14px; }
+.api h3 { font-size: 17px; margin: 30px 0 10px; font-family: var(--body); }
 .api table { margin: 0 0 8px; }
-.api td:first-child { white-space: nowrap; }
-.api td:first-child code { white-space: nowrap; }
 .api td { font-size: 13.5px; }
 .api .en, .api .zh { display: inline; }
 :root:not([data-lang="zh"]) .api .zh, :root[data-lang="zh"] .api .en { display: none; }
@@ -44,7 +44,10 @@
 Site.mast("api.html");
 const E = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
 const both = (en, zh) => `<span class="en">${en}</span><span class="zh" lang="zh-CN">${zh}</span>`;
-const table = (heads, rows) => `<div class="table-wrap"><table><thead><tr>${heads.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+// Every table sits on a twelve-column grid whose first two columns are two twelfths each, so
+// their edges run through the page from section to section; the rest share the remaining eight.
+const GRID = { 2: [2, 10], 3: [2, 2, 8], 4: [2, 2, 4, 4], 5: [2, 2, 2, 2, 4], 7: [2, 2, 2, 2, 2, 1, 1] };
+const table = (heads, rows) => `<div class="table-wrap"><table><colgroup>${GRID[heads.length].map((n) => `<col class="c${n}">`).join("")}</colgroup><thead><tr>${heads.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 const c = (s) => `<code>${E(s)}</code>`;
 const sections = [];
 const section = (id, en, zh, html) => sections.push({ id, en, zh, html });
@@ -127,7 +130,7 @@ ${table([both("Property", "属性"), both("Default", "默认值"), both("Meaning
   [c("--tsubu-underline-width"), c("0.06em"), both("underline thickness", "下划线粗细")],
   [c("--tsubu-underline-offset"), c("0.02em"), both("distance below the bottom of the segment's box", "下划线在段的框底下方多远")],
   [c("--tsubu-underline-inset"), c("0.12em"), both("inset from each end, so neighbouring underlines stay apart", "两端各缩进多少，让相邻的下划线分开")],
-  [c("--tsubu-current-spread"), c("0.06em"), both("how far the highlight reaches past the text (a <code>box-shadow</code>, so it takes no room)", "高亮超出文字多少（用 <code>box-shadow</code> 画，不占位置）")],
+  [c("--tsubu-current-spread"), c("0.06em"), both("how far the highlight reaches past the em box of the text (a positioned layer, so it takes no room)", "高亮超出文字的 em 框多少（画在一个定位的图层上，不占位置）")],
   [c("--tsubu-current-radius"), c("0.18em"), both('highlight corner radius (0 with timing <code>"sentence"</code>)', '高亮圆角（timing 为 <code>"sentence"</code> 时为 0）')],
   [c("--tsubu-plate-spread"), c("0px"), both("how far the plate reaches past the sentence's box", "底板超出句子的框多少")],
   [c("--tsubu-plate-radius"), c("0"), both("plate corner radius", "底板圆角")],

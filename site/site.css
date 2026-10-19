@@ -24,8 +24,11 @@
   color-scheme: light;
 }
 html { background: var(--paper); }
-body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.7; -webkit-text-size-adjust: 100%; }
-.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.7; -webkit-text-size-adjust: 100%; }
+/* one column; the footer sits at the bottom of the window when the page is short */
+.wrap { flex: 1 0 auto; display: flex; flex-direction: column; width: 100%; max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap > * { flex: 0 0 auto; }
+.wrap > :nth-last-child(2) { margin-bottom: 48px; } /* the last section keeps its distance from the footer */
 *, *::before, *::after { box-sizing: border-box; }
 img, svg, canvas { max-width: 100%; }
 a { color: var(--ruri); text-decoration-color: color-mix(in srgb, var(--ruri) 45%, transparent); text-underline-offset: 0.16em; }
@@ -58,8 +61,11 @@ h1, h2, h3, h4 { font-family: var(--display); font-weight: 700; line-height: 1.3
 .label .kanji .tsubu, .layer .tsubu, .facts .ja .tsubu, .stage.paper .tsubu { --tsubu-backdrop: #f3f3f2; --tsubu-text-color: var(--ink); --tsubu-ruby-color: var(--ruri); --tsubu-underline-color: var(--gunjo);
   --tsubu-current-bg: var(--ruri); --tsubu-current-color: var(--paper); --tsubu-current-ruby-color: var(--ruri); --tsubu-current-underline-color: var(--shirooi); --tsubu-past-color: var(--gunjo); --tsubu-past-ruby-color: var(--gunjo); }
 
-/* section labels: a kanji drawn by tsubu, then the title */
-.label { display: flex; gap: 12px; align-items: baseline; margin: 0 0 12px; font-size: 13px; letter-spacing: 0.06em; color: var(--gunjo); font-family: var(--body); font-weight: 500; }
+/* section labels: a kanji drawn by tsubu at 22px, then the title at 13px; the proportion is the
+   same on every page, so the rule outranks the running-text heading sizes */
+h2.label, .prose h2.label, .api h2.label { display: flex; gap: 12px; align-items: baseline; margin: 0 0 12px; font-size: 13px; letter-spacing: 0.06em; color: var(--gunjo); font-family: var(--body); font-weight: 500; line-height: 1.4; }
+.prose h2.label { margin-top: 44px; }
+.prose h2.label:first-child { margin-top: 0; }
 .label .kanji { font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: 0; --tsubu-ruby-size: 0.45em; --tsubu-ruby-color: var(--ruri); --tsubu-underline-color: transparent; --tsubu-ruby-reserve: 0.2em; }
 .label .kanji .tsubu { line-height: 1.2; }
 
@@ -80,6 +86,9 @@ pre .c { color: var(--ruri); font-style: italic; } pre .s { color: #a34300; } pr
 hr { border: 0; border-top: 1px solid var(--rule); margin: 40px 0; }
 
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.api table { table-layout: fixed; min-width: 720px; }
+.api col.c1 { width: 8.3333%; } .api col.c2 { width: 16.6667%; } .api col.c3 { width: 25%; } .api col.c4 { width: 33.3333%; } .api col.c8 { width: 66.6667%; } .api col.c10 { width: 83.3333%; }
+.api td code, .api th code { white-space: normal; overflow-wrap: anywhere; }
 .table-wrap { overflow-x: auto; margin: 0 0 16px; }
 th, td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--rule); }
 th { font-weight: 700; font-family: var(--body); font-size: 13px; letter-spacing: 0.04em; color: var(--gunjo); }
@@ -91,19 +100,15 @@ td code, th code { white-space: nowrap; }
 @media (max-width: 760px) { .cols { grid-template-columns: minmax(0, 1fr); } }
 
 /* an example: a sentence drawn by tsubu on a surface, with a small transport under it.
-   The web fonts have a content area of about 1.42em, so the highlight's box, which is the
-   segment's box, reaches into the furigana box above it (measured: the reading's middle lands
-   0.5px above the box's top). The site lifts the readings with relative positioning, which moves no layout,
-   and gives the lines a little more height to keep them clear of the line above; checkContrast
-   measures the moved position, so the furigana count as on the page, where they are. */
+   The web fonts have a content area of about 1.45em; tsubu draws the highlight and the underline
+   from the em box of the text (see "The em box" in tsubu.css), so nothing here needs to move the
+   readings. A little more line height and reserve than the defaults keep the examples airy. */
 .stage .tsubu, .facts .ja .tsubu { --tsubu-line-height: 1.9; --tsubu-ruby-reserve: 0.45em; }
-.tsubu rt { position: relative; inset-block-start: -0.36em; } /* rt is a ruby box, which a transform cannot move */
-.film-line .tsubu rt { inset-block-start: 0; } /* the film's band is drawn from the font's own metrics */
 .ex { margin: 16px 0 24px; }
-.stage { position: relative; padding: 22px 24px 26px; border-radius: 4px; background: #ffffff; outline: 1px solid var(--rule); font-family: var(--body); font-size: clamp(22px, 3.2vw, 34px); overflow: hidden; }
-.stage[data-tsubu-theme="dark"] { background: #0f172a; outline-color: transparent; }
-.stage[data-tsubu-theme="media"] { background: linear-gradient(165deg, #fffbeb 0%, #fcd34d 30%, #ea580c 55%, #1e3a8a 80%, #020617 100%); outline-color: transparent; padding: 34px 28px 36px; }
-.stage.paper { background: var(--paper); outline-color: var(--rule); font-family: var(--display); font-weight: 700; --tsubu-ruby-weight: 500; --tsubu-ruby-size: 0.42em; }
+.stage { position: relative; padding: 24px 26px 28px; border-radius: 6px; background: #ffffff; font-family: var(--body); font-size: clamp(22px, 3.2vw, 34px); overflow: hidden; }
+.stage[data-tsubu-theme="dark"] { background: #0f172a; }
+.stage[data-tsubu-theme="media"] { background: linear-gradient(165deg, #fffbeb 0%, #fcd34d 30%, #ea580c 55%, #1e3a8a 80%, #020617 100%); padding: 34px 28px 36px; }
+.stage.paper { background: var(--paper); font-family: var(--display); font-weight: 700; --tsubu-ruby-weight: 500; --tsubu-ruby-size: 0.42em; }
 .stage.vertical { height: 380px; display: flex; justify-content: flex-end; }
 .transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-block: 10px 0; font-size: 13px; }
 .transport button, .btn { font: inherit; font-size: 13px; font-weight: 500; color: var(--paper); background: var(--ink); border: 0; border-radius: 999px; padding: 5px 15px; cursor: pointer; }
@@ -131,7 +136,7 @@ textarea.json { width: 100%; min-height: 220px; font-family: var(--mono); font-s
 .pointer b { display: block; font-family: var(--display); font-size: 18px; margin: 0 0 4px; }
 .pointer span { font-size: 14px; color: var(--ink); }
 
-footer.foot { padding-block: 32px 40px; margin-top: 48px; border-top: 1px solid var(--rule); font-size: 12.5px; color: var(--gunjo); display: flex; flex-wrap: wrap; gap: 6px 24px; justify-content: space-between; }
+footer.foot { margin-top: auto; padding-block: 32px 40px; border-top: 1px solid var(--rule); font-size: 12.5px; color: var(--gunjo); display: flex; flex-wrap: wrap; gap: 6px 24px; justify-content: space-between; }
 footer.foot a { color: var(--gunjo); }
 @media (max-width: 600px) { .mark { font-size: 22px; } body { font-size: 14.5px; } .stage { padding: 18px 16px 22px; } }
 @media (prefers-reduced-motion: no-preference) { .nav a, .btn, .transport button { transition: background-color 120ms, border-color 120ms; } }

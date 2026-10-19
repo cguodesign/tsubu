@@ -140,6 +140,33 @@ def test_the_navigation_links_every_page_and_marks_the_current_one(site):
         assert page.evaluate("() => document.querySelector('.nav a[aria-current=page]').getAttribute('href')") == name
 
 
+def test_the_design_system_holds_on_every_page(site):
+    """The section label keeps its proportion (a 22px kanji, a 13px title) whatever heading rules
+    surround it, no example surface has an outline, and the footer sits at the bottom of the
+    window when the page is shorter than it."""
+    for name in PAGES:
+        page = site(name)
+        labels = page.evaluate("""() => [...document.querySelectorAll('h2.label')].map((h) => [getComputedStyle(h.querySelector('.kanji')).fontSize, getComputedStyle(h).fontSize])""")
+        assert labels and all(l == ["22px", "13px"] for l in labels), (name, labels)
+        outlines = page.evaluate("""() => [...document.querySelectorAll('.stage, .frame')].map((e) => getComputedStyle(e).outlineStyle + ' ' + getComputedStyle(e).borderStyle)""")
+        assert all(o == "none none" for o in outlines), (name, outlines)
+    page = site("playground.html")
+    page.set_viewport_size({"width": 1280, "height": 2400})
+    found = page.evaluate("() => ({ foot: document.querySelector('footer.foot').getBoundingClientRect().bottom, inner: innerHeight, doc: document.documentElement.scrollHeight })")
+    assert found["doc"] <= found["inner"] and found["inner"] - found["foot"] < 60, found
+
+
+def test_the_api_tables_share_a_grid(site):
+    """Every table's first two columns are two twelfths each, so their edges line up down the page."""
+    page = site("api.html")
+    edges = page.evaluate("""() => [...document.querySelectorAll('.api table')].map((t) => {
+      const cells = [...t.querySelector('tbody tr').children].map((c) => c.getBoundingClientRect()); const w = t.getBoundingClientRect().width;
+      return cells.slice(0, 2).map((c) => Math.round((c.width / w) * 12 * 10) / 10); })""")
+    assert len(edges) >= 10
+    for e in edges:
+        assert abs(e[0] - 2) < 0.15 and (len(e) < 2 or abs(e[1] - 2) < 0.15 or abs(e[1] - 10) < 0.15), edges
+
+
 # ---- the API page against the README and the library ----
 
 def test_the_api_page_names_everything_the_readme_and_the_library_do(site):
