@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Playground · tsubu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="tsubu.css">
+<link rel="stylesheet" href="site.css">
+<style>
+.pg { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px 32px; align-items: start; }
+.pg > * { min-width: 0; }
+@media (max-width: 860px) { .pg { grid-template-columns: minmax(0, 1fr); } }
+.panel { display: flex; flex-direction: column; gap: 10px; }
+fieldset { border: 1px solid var(--rule); border-radius: 4px; padding: 8px 12px 10px; margin: 0; min-width: 0; }
+legend { font-size: 12px; letter-spacing: 0.06em; color: var(--gunjo); padding: 0 4px; }
+.ctl { margin: 0; }
+.frame-wrap { overflow-x: auto; padding: 2px 0; }
+.frame { max-width: 100%; outline: 1px dashed var(--gunjo); outline-offset: 6px; margin: 8px 0; }
+.stage.none { background: #fff; }
+.stage.vertical { height: 420px; }
+details { margin: 10px 0 0; }
+summary { cursor: pointer; font-weight: 500; font-size: 14px; }
+details pre { margin-top: 8px; max-height: 300px; overflow: auto; }
+.results td, .results th { padding: 4px 8px; font-family: var(--mono); font-size: 12px; }
+.results .bad td { color: #b13a00; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast"></header>
+  <h1 class="page-title"><span class="en">Playground</span><span class="zh" lang="zh-CN">试验场</span></h1>
+  <p class="page-lede en">Paste a sentence as JSON, scrub the time, and switch everything the library offers. <code>stateAt</code>, <code>checkContrast</code>, <code>htmlAt</code> and the subtitle exporters run on it live. Nothing leaves the page.</p>
+  <p class="page-lede zh" lang="zh-CN">把句子作为 JSON 贴进来，拖动时间，切换这个库提供的所有开关。<code>stateAt</code>、<code>checkContrast</code>、<code>htmlAt</code> 和字幕导出都在这上面实时运行。什么都不会离开这个页面。</p>
+
+  <div class="pg">
+    <div class="panel">
+      <textarea class="json" id="src" spellcheck="false" aria-label="Sentence as JSON" style="min-height: 300px"></textarea>
+      <p class="err" id="err" style="margin: 0"></p>
+      <fieldset><legend><span class="en">Options</span><span class="zh" lang="zh-CN">选项</span></legend>
+        <div class="ctl">
+          <label><span class="en">theme</span><span class="zh" lang="zh-CN">主题</span> <select id="theme"><option value="">none</option><option selected>light</option><option>dark</option><option>media</option></select></label>
+          <label><span class="en">speaker</span><span class="zh" lang="zh-CN">说话人</span> <select id="speaker"><option value="">none</option><option>a</option><option>b</option></select></label>
+          <label><span class="en">writing</span><span class="zh" lang="zh-CN">书写</span> <select id="writing"><option>horizontal</option><option>vertical</option></select></label>
+          <label>combineUpright <input type="number" id="combine" min="0" max="4" value="2" style="width: 4em"></label>
+        </div>
+        <div class="ctl" id="motions"><span class="en">motion</span><span class="zh" lang="zh-CN">动效</span></div>
+        <div class="ctl">
+          <label><input type="checkbox" id="ruby" checked> <span class="en">furigana</span><span class="zh" lang="zh-CN">注音</span></label>
+          <label><input type="checkbox" id="announce" checked> announceRuby</label>
+        </div>
+      </fieldset>
+      <fieldset><legend><span class="en">Container</span><span class="zh" lang="zh-CN">容器</span></legend>
+        <div class="ctl">
+          <label><input type="checkbox" id="fluid"> <code>tsubu-fluid</code></label>
+          <label><span class="en">width</span><span class="zh" lang="zh-CN">宽度</span> <input type="range" id="width" min="200" max="1000" value="620" step="10" style="width: 140px"> <output id="width-out">620px</output></label>
+          <label><span class="en">max lines</span><span class="zh" lang="zh-CN">最大行数</span> <select id="lines"><option value="">none</option><option>1</option><option>2</option><option>3</option></select></label>
+        </div>
+      </fieldset>
+    </div>
+    <div>
+      <div class="frame-wrap"><div class="frame" id="frame"><div class="stage" id="stage"></div></div></div>
+      <div class="transport">
+        <button type="button" id="play">Play</button>
+        <input type="range" id="t" aria-label="t">
+        <output id="out">0.00 s</output>
+      </div>
+      <p class="readout" id="state"></p>
+      <details open><summary><span class="en">Contrast</span><span class="zh" lang="zh-CN">对比度</span> · <code>Tsubu.checkContrast(root)</code> <span id="verdict" class="mono"></span></summary>
+        <div class="table-wrap"><table class="results"><thead><tr><th>state</th><th>layer</th><th>ratio</th><th>min</th><th>fg</th><th>bg</th></tr></thead><tbody id="contrast"></tbody></table></div>
+      </details>
+      <details><summary><code>htmlAt(t)</code></summary><pre><code class="plain" id="htmlat"></code></pre></details>
+      <details><summary>WebVTT · <code>TsubuExport.toWebVTT(input)</code></summary><pre><code class="plain" id="vtt"></code></pre></details>
+      <details><summary>ASS · <code>TsubuExport.toASSScript(input, { ruby: "inline" })</code></summary><pre><code class="plain" id="ass"></code></pre></details>
+    </div>
+  </div>
+
+  <footer class="foot"></footer>
+</div>
+<script src="tsubu.js"></script>
+<script src="tsubu-export.js"></script>
+<script src="site.js"></script>
+<script>
+"use strict";
+Site.mast("playground.html");
+const $ = (id) => document.getElementById(id);
+// 夏休みには、海の近くの小さな町で、祖母と一緒に一週間を過ごしました。
+// "In the summer holidays I spent a week with my grandmother in a small town by the sea."
+const START = { segments: [
+  { parts: [{ text: "夏休", ruby: "なつやす" }, { text: "みには" }], start: 0.0, end: 0.6 }, { parts: [{ text: "、" }], kind: "punct" },
+  { parts: [{ text: "海", ruby: "うみ" }, { text: "の" }], start: 0.75, end: 1.05 }, { parts: [{ text: "近", ruby: "ちか" }, { text: "くの" }], start: 1.05, end: 1.4 },
+  { parts: [{ text: "小", ruby: "ちい" }, { text: "さな" }], start: 1.4, end: 1.8 }, { parts: [{ text: "町", ruby: "まち" }, { text: "で" }], start: 1.8, end: 2.15 },
+  { parts: [{ text: "、" }], kind: "punct" }, { parts: [{ text: "祖母", ruby: "そぼ" }, { text: "と" }], start: 2.3, end: 2.7 },
+  { parts: [{ text: "一緒", ruby: "いっしょ" }, { text: "に" }], start: 2.7, end: 3.15 }, { parts: [{ text: "一週間", ruby: "いっしゅうかん" }, { text: "を" }], start: 3.15, end: 3.9, id: "week", tags: ["new-word"] },
+  { parts: [{ text: "過", ruby: "す" }, { text: "ごしました" }], start: 3.9, end: 4.8 }, { parts: [{ text: "。" }], kind: "punct" },
+] };
+$("src").value = JSON.stringify(START, null, 2).replace(/\{\n\s+"text"/g, '{ "text"').replace(/"text": "([^"]*)",\n\s+"ruby": "([^"]*)"\n\s+\}/g, '"text": "$1", "ruby": "$2" }').replace(/"text": "([^"]*)"\n\s+\}/g, '"text": "$1" }');
+for (const m of Tsubu.MOTIONS) $("motions").insertAdjacentHTML("beforeend", `<label><input type="checkbox" name="motion" value="${m.name}"> ${m.name}</label>`);
+
+let input = null, drawn = null, t = 1.0;
+const motion = () => [...document.querySelectorAll('input[name="motion"]:checked')].map((c) => c.value);
+function options() {
+  const o = { ruby: $("ruby").checked, announceRuby: $("announce").checked, writing: $("writing").value, combineUpright: Number($("combine").value) };
+  if ($("theme").value) o.theme = $("theme").value;
+  if ($("speaker").value) o.speaker = $("speaker").value;
+  if (motion().length) o.motion = motion();
+  return o;
+}
+const fmt = Site.fmt;
+function frame(st) {
+  const timed = drawn.s.timing !== "none";
+  $("state").textContent = !timed ? "timing: none — stateAt and apply throw; the sentence is a static preview" :
+    `stateAt(${t.toFixed(2)}) → { timing: "${st.timing}", state: "${st.state}", progress: ${st.progress === null ? "null" : fmt(st.progress)}, current: ${st.current}` +
+    (st.page !== null && st.page !== undefined ? `, page: ${st.page} of ${st.pages}` : "") + ` }`;
+  try { $("htmlat").textContent = timed ? drawn.s.htmlAt(t) : drawn.s.html; } catch (e) { $("htmlat").textContent = e.message; }
+}
+function render() {
+  if (!drawn) return;
+  try { frame(drawn.s.timing === "none" ? null : drawn.s.apply(drawn.root, t)); } catch (e) { $("state").textContent = e.message; }
+}
+function contrast() {
+  const theme = $("theme").value;
+  const r = Tsubu.checkContrast(drawn.root, theme ? {} : { backdrop: "#ffffff" });
+  $("verdict").textContent = r.ok ? `ok (${r.checks.length} checks)` : `${r.failures.length} of ${r.checks.length} checks fail`;
+  $("verdict").style.color = r.ok ? "#1a6b3a" : "#b13a00";
+  const worst = {};
+  for (const c of r.checks) { const k = c.state + "/" + c.layer; if (!worst[k] || c.ratio < worst[k].ratio) worst[k] = c; }
+  $("contrast").innerHTML = Object.values(worst).map((c) => `<tr class="${c.ok ? "" : "bad"}"><td>${c.state}</td><td>${c.layer}</td><td>${fmt(c.ratio)}</td><td>${c.minimum}</td><td>${c.foreground}</td><td>${c.background}</td></tr>`).join("");
+}
+function exports() {
+  try { $("vtt").textContent = TsubuExport.toWebVTT(input); } catch (e) { $("vtt").textContent = e.message; }
+  try { $("ass").textContent = TsubuExport.toASSScript(input, { ruby: "inline" }); } catch (e) { $("ass").textContent = e.message; }
+}
+function redraw() {
+  try {
+    input = JSON.parse($("src").value);
+    const stage = $("stage"), o = options();
+    drawn = Site.draw(stage, input, o);
+    stage.className = "stage " + (o.theme || "none") + (o.writing === "vertical" ? " vertical" : "");
+    if (o.theme) stage.setAttribute("data-tsubu-theme", o.theme); else stage.removeAttribute("data-tsubu-theme");
+    const times = input.segments.flatMap((s) => [s.start, s.end]).concat([input.start, input.end]).filter((v) => typeof v === "number");
+    const max = times.length ? Math.max(...times) + 0.5 : 1;
+    $("t").max = String(max); $("t").disabled = drawn.s.timing === "none";
+    if (t > max) t = max;
+    $("err").textContent = "";
+    container(); render(); contrast(); exports();
+  } catch (e) { $("err").textContent = e.message; }
+}
+function container() {
+  const fluid = $("fluid").checked, w = Number($("width").value), lines = $("lines").value, frame = $("frame");
+  frame.classList.toggle("tsubu-fluid", fluid);
+  frame.style.width = `${w}px`; $("width-out").textContent = `${w}px`;
+  frame.style.setProperty("--tsubu-max-lines", lines || "none");
+  if ($("writing").value === "vertical") { frame.style.height = "420px"; frame.style.width = ""; }
+  else frame.style.height = "";
+}
+const clock = Site.clock({ duration: 5.3, render: (v) => { t = v; render(); }, play: $("play"), scrub: $("t"), out: $("out"), start: 1.0, autoplay: false });
+$("src").addEventListener("input", redraw);
+for (const id of ["theme", "speaker", "writing", "combine", "ruby", "announce"]) $(id).addEventListener("change", redraw);
+document.querySelectorAll('input[name="motion"]').forEach((c) => c.addEventListener("change", redraw));
+for (const id of ["fluid", "width", "lines"]) $(id).addEventListener("input", () => { container(); render(); });
+document.fonts.ready.then(() => { redraw(); window.__ready = true; });
+</script>
+</body>
+</html>

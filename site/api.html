@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>API · tsubu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="tsubu.css">
+<link rel="stylesheet" href="site.css">
+<style>
+.toc { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 32px; padding: 0; list-style: none; font-size: 14px; }
+.toc a { color: var(--ink); }
+.api h2 { font-size: 24px; margin: 40px 0 10px; }
+.api h3 { font-size: 17px; margin: 24px 0 8px; font-family: var(--body); }
+.api table { margin: 0 0 8px; }
+.api td:first-child { white-space: nowrap; }
+.api td:first-child code { white-space: nowrap; }
+.api td { font-size: 13.5px; }
+.api .en, .api .zh { display: inline; }
+:root:not([data-lang="zh"]) .api .zh, :root[data-lang="zh"] .api .en { display: none; }
+.api ul { margin: 0 0 14px; padding-left: 20px; }
+.api li { margin: 0 0 3px; font-size: 14px; }
+.api p { max-width: 72ch; font-size: 14.5px; }
+.sig { font-family: var(--mono); font-size: 13px; color: var(--ink); background: var(--well); padding: 2px 8px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast"></header>
+  <h1 class="page-title"><span class="en">API</span><span class="zh" lang="zh-CN">API</span></h1>
+  <p class="page-lede en">The whole surface of <code>tsubu.js</code>, <code>tsubu.css</code> and <code>tsubu-export.js</code>, in the README's words. A test checks that every name and property here matches the README and the library, and the motion catalogue below is read from <code>Tsubu.MOTIONS</code> itself.</p>
+  <p class="page-lede zh" lang="zh-CN"><code>tsubu.js</code>、<code>tsubu.css</code> 和 <code>tsubu-export.js</code> 的全部接口，措辞与 README 一致。有测试检查这里的每个名字和属性都和 README 及库本身对得上；下面的动效目录直接读自 <code>Tsubu.MOTIONS</code>。</p>
+  <h2 class="label"><span class="kanji" data-ruby="てん">典</span><span class="en">Reference</span><span class="zh" lang="zh-CN">参考</span></h2>
+  <ul class="toc" id="toc"></ul>
+  <div class="api" id="api"></div>
+  <footer class="foot"></footer>
+</div>
+<script src="tsubu.js"></script>
+<script src="site.js"></script>
+<script>
+"use strict";
+Site.mast("api.html");
+const E = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+const both = (en, zh) => `<span class="en">${en}</span><span class="zh" lang="zh-CN">${zh}</span>`;
+const table = (heads, rows) => `<div class="table-wrap"><table><thead><tr>${heads.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+const c = (s) => `<code>${E(s)}</code>`;
+const sections = [];
+const section = (id, en, zh, html) => sections.push({ id, en, zh, html });
+
+section("sentence", "Tsubu.sentence(input, options)", "Tsubu.sentence(input, options)", `
+<p>${both("Takes a sentence already cut into segments and returns a frozen object (below). Every refused input throws an <code>Error</code> whose message starts with <code>tsubu:</code>.", "接收已经切好段的句子，返回一个冻结的对象（见下）。被拒绝的输入都抛出消息以 <code>tsubu:</code> 开头的 <code>Error</code>。")}</p>
+<h3>input</h3>
+${table(["", both("Meaning", "含义")], [
+  [c("lang"), both('optional, default <code>"ja"</code>; written to the root\'s <code>lang</code> attribute', '可选，默认 <code>"ja"</code>；写到根元素的 <code>lang</code> 属性上')],
+  [c("start, end"), both("optional: the whole sentence's start and end, in seconds", "可选：整句的开始和结束，单位秒")],
+  [c("segments"), both("required, in reading order; each a <b>segment</b>: one unit of reading", "必填，按朗读顺序；每一项是一个<b>段</b>，即一个朗读单位")],
+  [c("segments[].parts"), both("pieces of text, <code>{ text }</code> or <code>{ text, ruby }</code>; a part with <code>ruby</code> is drawn as <code>&lt;ruby&gt;text&lt;rt&gt;ruby&lt;/rt&gt;&lt;/ruby&gt;</code>, so a word with a reading is never split", "文字片段，<code>{ text }</code> 或 <code>{ text, ruby }</code>；带 <code>ruby</code> 的片段画成 <code>&lt;ruby&gt;text&lt;rt&gt;ruby&lt;/rt&gt;&lt;/ruby&gt;</code>，所以带读音的词不会被拆开")],
+  [c('segments[].kind: "punct"'), both("punctuation: no underline, never the segment being spoken, may not carry a time", "标点：没有下划线，永远不是正在读的段，不能带时间")],
+  [c("segments[].start, end"), both("seconds on the caller's clock; <code>t</code> uses the same clock", "调用方时钟上的秒数；<code>t</code> 用同一个时钟")],
+  [c("segments[].id"), both("a non-empty string, unique in the sentence; written as <code>data-id</code>, given no meaning by tsubu", "非空字符串，句内唯一；写成 <code>data-id</code>，tsubu 不赋予含义")],
+  [c("segments[].tags"), both('lower-case names, such as <code>["new-word"]</code>; written as <code>data-tags</code>. Style a tag with the same tokens, colours and lines only, so that nothing moves', '小写名字，比如 <code>["new-word"]</code>；写成 <code>data-tags</code>。用同样的 token 给标签上样式，只改颜色和线条，这样字不会动')],
+])}
+<h3>options</h3>
+${table(["", both("Default", "默认"), both("Meaning", "含义")], [
+  [c("ruby"), c("true"), both("whether furigana start out shown", "注音一开始是否显示")],
+  [c("announceRuby"), c("true"), both("whether screen readers read each reading; <code>false</code> puts <code>aria-hidden</code> on every <code>&lt;rt&gt;</code>", "读屏软件是否朗读注音；<code>false</code> 给每个 <code>&lt;rt&gt;</code> 加 <code>aria-hidden</code>")],
+  [c("theme"), "", both('a preset, <code>"light"</code>, <code>"dark"</code>, <code>"media"</code>, or a name of your own; written as <code>data-tsubu-theme</code>', '预设 <code>"light"</code>、<code>"dark"</code>、<code>"media"</code>，或你自己起的名字；写成 <code>data-tsubu-theme</code>')],
+  [c("speaker"), "", both('whose line this is, <code>"a"</code>, <code>"b"</code> or your own; written as <code>data-speaker</code>', '这句话是谁说的，<code>"a"</code>、<code>"b"</code> 或你自己起的名字；写成 <code>data-speaker</code>')],
+  [c("motion"), "", both("motion presets from <code>Tsubu.MOTIONS</code>: a name, a space-separated list or an array", "<code>Tsubu.MOTIONS</code> 里的动效预设：一个名字、空格分隔的列表或数组")],
+  [c("writing"), c('"horizontal"'), both('<code>"horizontal"</code> or <code>"vertical"</code>; written as <code>data-tsubu-writing</code>', '<code>"horizontal"</code> 或 <code>"vertical"</code>；写成 <code>data-tsubu-writing</code>')],
+  [c("combineUpright"), c("2"), both("in vertical text, runs of up to this many half-width characters stand upright (0 to 4)", "竖排时，不超过这么多个的半角字符直立显示（0 到 4）")],
+])}
+<p>${both("A name is lower-case: <code>a-z</code>, digits and <code>-</code>, starting with a letter.", "名字是小写的：<code>a-z</code>、数字和 <code>-</code>，以字母开头。")}</p>
+<h3>timing</h3>
+${table([c("timing"), both("When", "条件"), both("What lights up", "高亮什么")], [
+  [c('"segments"'), both("every non-punctuation segment has <code>start</code> and <code>end</code>", "每个非标点段都有 <code>start</code> 和 <code>end</code>"), both("one segment at a time. The sentence's own span is <code>input.start</code>/<code>input.end</code> if given, otherwise from the first segment's start to the last one's end", "一次一段。整句的时间段取 <code>input.start</code>/<code>input.end</code>；没给就从第一段的开始到最后一段的结束")],
+  [c('"sentence"'), both("no segment has a time, the sentence has <code>start</code> and <code>end</code>", "没有任何段带时间，整句有 <code>start</code> 和 <code>end</code>"), both("the whole sentence at once. The span is <b>not</b> divided among segments", "整句一起亮。时间段<b>不会</b>分给各段")],
+  [c('"none"'), both("no times anywhere", "哪里都没有时间"), both("nothing: the sentence can be drawn, but <code>stateAt</code> and <code>apply</code> throw", "不亮：句子可以画出来，但 <code>stateAt</code> 和 <code>apply</code> 会抛错")],
+])}
+<h3>${both("Refused input", "被拒绝的输入")}</h3>
+<ul>
+<li>${both("only some segments have times (completing them would be an estimate);", "只有一部分段带时间（补上就是估算）；")}</li>
+<li>${both("segment times that overlap or are out of order, an <code>end</code> before its <code>start</code>, a time that is not a finite number, or only one of <code>start</code>/<code>end</code>;", "段的时间重叠或顺序颠倒，<code>end</code> 早于 <code>start</code>，时间不是有限的数，或只给了 <code>start</code>/<code>end</code> 之一；")}</li>
+<li>${both("segment times outside the sentence's <code>start</code>/<code>end</code>;", "段的时间落在整句的 <code>start</code>/<code>end</code> 之外；")}</li>
+<li>${both("punctuation with a time, no segment that is not punctuation;", "标点带时间，或没有任何非标点的段；")}</li>
+<li>${both("an empty <code>segments</code>, <code>parts</code>, <code>text</code>, <code>ruby</code> or <code>lang</code>, an unknown <code>kind</code>, an <code>options.ruby</code> or <code>options.announceRuby</code> that is not a boolean, an <code>options.theme</code> or <code>options.speaker</code> that is not a lower-case name, or an <code>options.motion</code> naming a preset not in <code>Tsubu.MOTIONS</code>;", "<code>segments</code>、<code>parts</code>、<code>text</code>、<code>ruby</code> 或 <code>lang</code> 为空，<code>kind</code> 不认识，<code>options.ruby</code> 或 <code>options.announceRuby</code> 不是布尔值，<code>options.theme</code>、<code>options.speaker</code> 不是小写名字，或 <code>options.motion</code> 里有 <code>Tsubu.MOTIONS</code> 之外的预设；")}</li>
+<li>${both("an empty or non-string <code>id</code>, an <code>id</code> used twice, or <code>tags</code> that are not an array of lower-case names.", "<code>id</code> 为空或不是字符串，同一个 <code>id</code> 用了两次，或 <code>tags</code> 不是小写名字的数组。")}</li>
+</ul>`);
+
+section("output", "The sentence object", "句子对象", `
+${table(["", both("Meaning", "含义")], [
+  [c("html"), both('an HTML string: <code>&lt;span class="tsubu" lang="ja" data-timing="…" data-ruby="on"&gt;</code> holding <code>tsubu-unit</code> spans, each holding <code>tsubu-seg</code> spans with <code>data-index</code>, with a <code>&lt;wbr&gt;</code> between units. With a theme the root also carries <code>data-tsubu-theme</code>, with a speaker <code>data-speaker</code>; punctuation carries <code>data-kind="punct"</code>. All text is HTML-escaped. The fresh HTML has no state: <code>apply</code> adds it', 'HTML 字符串：<code>&lt;span class="tsubu" lang="ja" data-timing="…" data-ruby="on"&gt;</code>，里面是 <code>tsubu-unit</code>，单元里是带 <code>data-index</code> 的 <code>tsubu-seg</code>，单元之间有 <code>&lt;wbr&gt;</code>。有主题时根元素带 <code>data-tsubu-theme</code>，有说话人时带 <code>data-speaker</code>；标点带 <code>data-kind="punct"</code>。所有文字都经过转义。刚生成的 HTML 不带状态，<code>apply</code> 之后才有')],
+  [c("timing"), c('"segments" | "sentence" | "none"')],
+  [c("span(i)"), both("segment <code>i</code>'s own time, <code>{ start, end }</code>, where to seek the caller's audio when it is tapped; <code>null</code> for punctuation and for a sentence without times for its segments", "第 <code>i</code> 段自己的时间 <code>{ start, end }</code>，点中它时把音频跳到这里；标点和没有逐段时间的句子返回 <code>null</code>")],
+  [c("find(id)"), both("the index of the segment with that <code>id</code>, or <code>null</code>", "带这个 <code>id</code> 的段的下标，没有就是 <code>null</code>")],
+  [c("stateAt(t)"), both("a pure function of <code>t</code>: <code>{ timing, state, progress, current, segments: [{ state, progress }] }</code>. <code>state</code> is <code>\"future\"</code>, <code>\"current\"</code> or <code>\"past\"</code>; spans are half-open, <code>[start, end)</code>; in a gap none is current. <code>progress</code> runs 0 to 1 (<code>null</code> for punctuation, and per segment with timing <code>\"sentence\"</code>). <code>current</code> is the index being spoken, or <code>null</code>. Punctuation becomes past together with the spoken segment before it", "只取决于 <code>t</code> 的纯函数：<code>{ timing, state, progress, current, segments: [{ state, progress }] }</code>。<code>state</code> 是 <code>\"future\"</code>、<code>\"current\"</code> 或 <code>\"past\"</code>；时间段左闭右开 <code>[start, end)</code>；空隙里没有 current。<code>progress</code> 从 0 到 1（标点为 <code>null</code>，timing 为 <code>\"sentence\"</code> 时各段也为 <code>null</code>）。<code>current</code> 是正在读的段的下标，或 <code>null</code>。标点和它前面的段一起变成 past")],
+  [c("htmlAt(t, { revealed })"), both("the frame at <code>t</code> as an HTML string, without a page: <code>html</code> with the attributes <code>apply</code> (and <code>setRevealed</code>) would write. For servers, Node and renderers that take HTML. It does not page, and refuses a sentence without times", "不需要页面，把 <code>t</code> 时刻的帧作为 HTML 字符串返回：带上 <code>apply</code>（和 <code>setRevealed</code>）会写的属性的 <code>html</code>。给服务器、Node 和接受 HTML 的渲染器用。它不翻页，句子没有时间时会拒绝")],
+  [c("apply(root, t)"), both("writes <code>stateAt(t)</code> onto the <code>.tsubu</code> element made from <code>html</code> and returns it. On the root: <code>data-state</code>, <code>--tsubu-progress</code>, and <code>aria-current=\"true\"</code> while a sentence with timing <code>\"sentence\"</code> is spoken; on each segment: <code>data-state</code>, <code>--tsubu-progress</code>, and <code>aria-current=\"true\"</code> on the one being spoken; with a maximum number of lines: <code>data-page</code> and <code>data-pages</code> on the root, <code>data-off-page</code> on the segments of other pages, and <code>page</code> and <code>pages</code> in the result. It never changes text and never adds or removes nodes", "把 <code>stateAt(t)</code> 写到由 <code>html</code> 生成的 <code>.tsubu</code> 元素上并返回。根元素：<code>data-state</code>、<code>--tsubu-progress</code>，timing 为 <code>\"sentence\"</code> 的句子正在读时带 <code>aria-current=\"true\"</code>；每段：<code>data-state</code>、<code>--tsubu-progress</code>，正在读的那段带 <code>aria-current=\"true\"</code>；设了最大行数时：根元素带 <code>data-page</code>、<code>data-pages</code>，其他页的段带 <code>data-off-page</code>，返回值里有 <code>page</code> 和 <code>pages</code>。从不改文字，从不增删节点")],
+])}`);
+
+section("tsubu", "Also on Tsubu", "Tsubu 上的其他成员", `
+${table(["", both("Meaning", "含义")], [
+  [c("Tsubu.setRuby(root, on)"), both('shows or hides the furigana of a drawn sentence by setting the root\'s <code>data-ruby</code> to <code>"on"</code> or <code>"off"</code>', '把根元素的 <code>data-ruby</code> 设成 <code>"on"</code> 或 <code>"off"</code>，显示或隐藏注音')],
+  [c("Tsubu.setRevealed(root, which)"), both('reveals segments a motion preset hides while unheard: <code>which</code> is an array of indexes, <code>"all"</code> or <code>"none"</code>, and replaces the previous set. Writes <code>data-revealed</code> and returns the indexes', '揭示动效预设在未听到时隐藏的段：<code>which</code> 是下标数组、<code>"all"</code> 或 <code>"none"</code>，替换之前的集合。写入 <code>data-revealed</code> 并返回下标')],
+  [c("Tsubu.segmentOf(node)"), both("the index of the segment a node lies in (an event's target, say), or <code>null</code>", "某个节点（比如事件的 target）所在的段的下标，或 <code>null</code>")],
+  [c("Tsubu.checkContrast(root, options)"), both("measures a drawn sentence's colours in the browser, in every state (<code>static</code>, <code>future</code>, <code>current</code>, <code>past</code>): the text, the furigana and the underline against what is behind them, and the highlight against the plate and backdrop. Returns <code>{ ok, checks: [{ state, layer, foreground, background, backdrop, ratio, minimum, ok }], failures }</code>. <code>options.backdrop</code> is a colour, a list, or <code>\"any\"</code> (black and white); else the theme's <code>--tsubu-backdrop</code>; else the ancestors' backgrounds over white. <code>options.thresholds</code> overrides the minimums. Works on a hidden copy", "在浏览器里测量已画好的句子的颜色，覆盖每个状态（<code>static</code>、<code>future</code>、<code>current</code>、<code>past</code>）：文字、注音、下划线相对它们后面的颜色，高亮相对底板和背景。返回 <code>{ ok, checks: [{ state, layer, foreground, background, backdrop, ratio, minimum, ok }], failures }</code>。<code>options.backdrop</code> 是一个颜色、一组颜色或 <code>\"any\"</code>（黑和白）；否则用主题的 <code>--tsubu-backdrop</code>；再否则用各祖先的背景叠在白色上。<code>options.thresholds</code> 覆盖阈值。在隐藏副本上测量")],
+  [c("Tsubu.contrast(fg, bg, backdrop)"), both("the WCAG contrast ratio (1 to 21) of two colours (hex, <code>rgb()</code>, <code>rgba()</code>). A translucent foreground is painted over the background, a translucent background over <code>backdrop</code> (default white). Works in Node", "两个颜色（十六进制、<code>rgb()</code>、<code>rgba()</code>）的 WCAG 对比度（1 到 21）。半透明前景先叠到背景上，半透明背景先叠到 <code>backdrop</code>（默认白色）上。Node 里也能用")],
+  [c("Tsubu.CONTRAST"), c("{ text: 4.5, ruby: 4.5, underline: 3, highlight: 3 }") + " " + both("after WCAG 2.2: 1.4.3 for text and furigana, 1.4.11 for the underline and the highlight", "依据 WCAG 2.2：文字和注音按 1.4.3，下划线和高亮按 1.4.11")],
+  [c("Tsubu.MOTIONS"), both("the catalogue of motion presets (below)", "动效预设目录（见下）")],
+  [c("Tsubu.THEMES"), c('["light", "dark", "media"]')],
+  [c("Tsubu.SPEAKERS"), c('["a", "b"]')],
+  [c("Tsubu.STATES"), c('["future", "current", "past"]')],
+  [c("Tsubu.version"), c('"' + Tsubu.version + '"')],
+])}`);
+
+section("css", "CSS custom properties", "CSS 自定义属性", `
+<p>${both("Set them on <code>.tsubu</code> or on any ancestor. Font family and size are inherited from the page.", "设在 <code>.tsubu</code> 或任何祖先上。字体和字号继承页面。")}</p>
+<h3>${both("Layout and shape", "版面和形状")}</h3>
+${table([both("Property", "属性"), both("Default", "默认值"), both("Meaning", "含义")], [
+  [c("--tsubu-line-height"), c("1.75"), both("line height", "行高")],
+  [c("--tsubu-ruby-reserve"), c("0.3em"), both("room above the first line for its furigana", "第一行上方给注音留的空间")],
+  [c("--tsubu-ruby-size"), c("0.5em"), both("furigana size, relative to the text", "注音字号（相对正文）")],
+  [c("--tsubu-ruby-weight"), c("400"), both("furigana weight", "注音字重")],
+  [c("--tsubu-underline-style"), c("dotted"), both("underline style (any <code>border-style</code>)", "下划线线型（任意 <code>border-style</code>）")],
+  [c("--tsubu-underline-width"), c("0.06em"), both("underline thickness", "下划线粗细")],
+  [c("--tsubu-underline-offset"), c("0.02em"), both("distance below the bottom of the segment's box", "下划线在段的框底下方多远")],
+  [c("--tsubu-underline-inset"), c("0.12em"), both("inset from each end, so neighbouring underlines stay apart", "两端各缩进多少，让相邻的下划线分开")],
+  [c("--tsubu-current-spread"), c("0.06em"), both("how far the highlight reaches past the text (a <code>box-shadow</code>, so it takes no room)", "高亮超出文字多少（用 <code>box-shadow</code> 画，不占位置）")],
+  [c("--tsubu-current-radius"), c("0.18em"), both('highlight corner radius (0 with timing <code>"sentence"</code>)', '高亮圆角（timing 为 <code>"sentence"</code> 时为 0）')],
+  [c("--tsubu-plate-spread"), c("0px"), both("how far the plate reaches past the sentence's box", "底板超出句子的框多少")],
+  [c("--tsubu-plate-radius"), c("0"), both("plate corner radius", "底板圆角")],
+  [c("--tsubu-wrap"), c("balance"), both("<code>text-wrap</code> of the sentence: <code>balance</code>, <code>pretty</code> or <code>wrap</code>", "句子的 <code>text-wrap</code>：<code>balance</code>、<code>pretty</code> 或 <code>wrap</code>")],
+  [c("--tsubu-max-lines"), c("none"), both("more lines than this are paged by <code>t</code>", "超过这么多行就按 <code>t</code> 翻页")],
+  [c("--tsubu-blur"), c("0.15em"), both("blur radius of the <code>blur</code> preset", "<code>blur</code> 预设的模糊半径")],
+  [c("--tsubu-progress"), both("written by <code>apply</code>", "由 <code>apply</code> 写入"), both("0 to 1; read it in your own CSS, do not set it", "0 到 1；在你自己的 CSS 里读，不要自己设")],
+])}
+<h3>${both("Colour tokens, in groups", "颜色 token，按组")}</h3>
+<p>${both("The base group applies before the first <code>apply</code> and with timing <code>\"none\"</code>; each state's group falls back to the base group, so setting only the base colours recolours everything.", "基础组用在第一次 <code>apply</code> 之前和 timing 为 <code>\"none\"</code> 时；每个状态的组都回退到基础组，所以只设基础组就能全部换色。")}</p>
+${table([both("Group", "组"), both("Text", "文字"), both("Furigana", "注音"), both("Underline", "下划线"), both("Background", "背景")], [
+  [both("base", "基础"), c("--tsubu-text-color") + " " + both("(inherited)", "（继承）"), c("--tsubu-ruby-color") + " (" + c("#6b7280") + ")", c("--tsubu-underline-color") + " (" + c("#9ca3af") + ")", ""],
+  ["future", c("--tsubu-future-color"), c("--tsubu-future-ruby-color"), c("--tsubu-future-underline-color"), ""],
+  ["current", c("--tsubu-current-color"), c("--tsubu-current-ruby-color"), c("--tsubu-current-underline-color"), c("--tsubu-current-bg") + " (" + c("#e5e7eb") + "), " + both("the highlight", "即高亮")],
+  ["past", c("--tsubu-past-color"), c("--tsubu-past-ruby-color"), c("--tsubu-past-underline-color"), ""],
+  [both("speaker <i>name</i>", "说话人 <i>name</i>"), c("--tsubu-speaker-") + "<i>name</i>" + c("-color"), c("--tsubu-speaker-") + "<i>name</i>" + c("-ruby-color"), c("--tsubu-speaker-") + "<i>name</i>" + c("-underline-color"), c("--tsubu-speaker-") + "<i>name</i>" + c("-bg")],
+  [both("plate", "底板"), "", "", "", c("--tsubu-plate-bg") + " " + both("(transparent), behind the whole sentence", "（透明），在整句后面")],
+])}
+<p>${both("A speaker's group replaces the current group in a sentence whose root has that <code>data-speaker</code>. <code>tsubu.css</code> maps speakers <code>a</code> and <code>b</code>; for another name, copy its <code>.tsubu[data-speaker=\"a\"]</code> rule. <code>--tsubu-backdrop</code> is not painted: it names the colours a theme is designed to sit on, for <code>checkContrast</code>. The highlight covers the line of text, not the furigana above it.", "根元素带某个 <code>data-speaker</code> 时，那个说话人的组代替 current 组。<code>tsubu.css</code> 映射了说话人 <code>a</code> 和 <code>b</code>；别的名字照抄 <code>.tsubu[data-speaker=\"a\"]</code> 那条规则。<code>--tsubu-backdrop</code> 不会画出来：它写的是主题设计时假定的背景色，给 <code>checkContrast</code> 用。高亮盖住的是那一行文字，不包括上面的注音。")}</p>
+<h3>${both("A size that follows the container", "字号随容器变化")}</h3>
+<p>${both("Inside an element with class <code>tsubu-fluid</code> (a query container named <code>tsubu</code>), the font size is the container's width divided by a number of characters per line, bounded by <code>--tsubu-size-min</code> (<code>14px</code>) and <code>--tsubu-size-max</code> (<code>72px</code>). In vertical text the height drives the size, and the steps go by height.", "放在带 <code>tsubu-fluid</code> 类的元素里时（名为 <code>tsubu</code> 的查询容器），字号等于容器宽度除以每行字数，限制在 <code>--tsubu-size-min</code>（<code>14px</code>）和 <code>--tsubu-size-max</code>（<code>72px</code>）之间。竖排时由高度决定字号，分档也按高度。")}</p>
+${table([both("Step", "档"), both("Container width", "容器宽度"), both("Characters per line", "每行字数"), both("Maximum lines", "最大行数")], [
+  [both("narrow", "窄"), both("under 480px", "小于 480px"), c("--tsubu-narrow-chars") + " (" + c("11") + ")", c("--tsubu-narrow-max-lines") + " " + both("(else <code>--tsubu-max-lines</code>)", "（否则用 <code>--tsubu-max-lines</code>）")],
+  [both("medium", "中"), both("480px to 960px", "480px 到 960px"), c("--tsubu-chars") + " (" + c("15") + ")", c("--tsubu-max-lines")],
+  [both("wide", "宽"), both("960px and over", "960px 及以上"), c("--tsubu-wide-chars") + " (" + c("18") + ")", c("--tsubu-wide-max-lines") + " " + both("(else <code>--tsubu-max-lines</code>)", "（否则用 <code>--tsubu-max-lines</code>）")],
+])}`);
+
+section("themes", "Theme presets", "主题预设", `
+${table([c("data-tsubu-theme"), both("For", "用途"), both("Checked against (<code>--tsubu-backdrop</code>)", "检查时的背景（<code>--tsubu-backdrop</code>）")], [
+  [c("light"), both("dark text on a white or near-white page; a blue highlight with white text", "白色或近白页面上的深色文字；蓝色高亮配白字"), c("#ffffff") + ", " + c("#f1f5f9")],
+  [c("dark"), both("light text on a dark page; a light-blue highlight with dark text", "深色页面上的浅色文字；浅蓝高亮配深色字"), c("#0f172a") + ", " + c("#1e293b")],
+  [c("media"), both("text over an image or a video: a translucent black plate behind the sentence, a yellow highlight", "叠在图片或视频上：句子后面一块半透明的黑色底板，黄色高亮"), both("anything: the plate is checked over pure black and pure white", "任意：底板分别叠在纯黑和纯白上检查")],
+])}
+<p>${both("Each preset also has colours for speakers <code>a</code> (the preset's own highlight) and <code>b</code> (amber, or cyan over media). The unthemed defaults are not a preset and are not checked: their light-grey highlight and grey underline do not reach 3:1 on white.", "每套预设也给说话人 <code>a</code>（用预设自己的高亮）和 <code>b</code>（琥珀色；media 里是青色）定义了颜色。不设主题时的默认值不是预设，也不做检查：浅灰的高亮和灰色下划线在白底上达不到 3:1。")}</p>`);
+
+section("motion", "Motion presets (Tsubu.MOTIONS)", "动效预设（Tsubu.MOTIONS）", `
+<p>${both("Read from the library at load. <i>Unheard</i> means neither current nor past. Each preset is drawn by <code>tsubu.css</code> from the state <code>apply</code> writes, so every frame is still a function of <code>t</code>.", "页面加载时直接读自库。<i>未听到</i>指既不是 current 也不是 past。每个预设都由 <code>tsubu.css</code> 根据 <code>apply</code> 写的状态画出，所以每一帧仍只取决于 <code>t</code>。")}</p>
+${table(["name", "purpose", "needs", "without", "parameters", "reducedMotion", "revealable"], Tsubu.MOTIONS.map((m) => [c(m.name), E(m.purpose), c(m.needs), E(m.without), m.parameters.map((p) => `${c(p.property)} ${E(p.default)} (${E(p.min)}–${E(p.max)}): ${E(p.meaning)}`).join("<br>") || "—", E(m.reducedMotion), c(String(m.revealable))]))}`);
+
+section("export", "TsubuExport (tsubu-export.js)", "TsubuExport（tsubu-export.js）", `
+<p>${both("Optional. Load it after <code>tsubu.js</code>, or <code>require(\"./tsubu-export.js\")</code> in Node. Input is checked by <code>Tsubu.sentence()</code>, so it is refused with the same errors; a sentence without times cannot be exported.", "可选。在 <code>tsubu.js</code> 之后加载，或在 Node 里 <code>require(\"./tsubu-export.js\")</code>。输入由 <code>Tsubu.sentence()</code> 检查，以相同的错误拒绝；没有时间的句子无法导出。")}</p>
+${table(["", both("Meaning", "含义")], [
+  [c("TsubuExport.toWebVTT(input, { ruby = true, offset = 0, id })"), both("a WebVTT file with one cue spanning the sentence. Each segment is a class span, <code>&lt;c.tsubu-seg&gt;</code> (<code>&lt;c.tsubu-seg.punct&gt;</code> for punctuation), readings are <code>&lt;ruby&gt;雨&lt;rt&gt;あめ&lt;/rt&gt;&lt;/ruby&gt;</code>, and with timing <code>\"segments\"</code> a cue timestamp marks each spoken segment's start, so <code>::cue(:past)</code> follows the reading. <code>ruby: false</code> drops the readings, <code>offset</code> shifts all times in seconds, <code>id</code> names the cue", "一个 WebVTT 文件，只有一条覆盖整句的 cue。每段是一个类 span <code>&lt;c.tsubu-seg&gt;</code>（标点为 <code>&lt;c.tsubu-seg.punct&gt;</code>），读音写成 <code>&lt;ruby&gt;雨&lt;rt&gt;あめ&lt;/rt&gt;&lt;/ruby&gt;</code>，timing 为 <code>\"segments\"</code> 时每个非标点段开始处有一个 cue 时间戳，所以 <code>::cue(:past)</code> 跟着朗读走。<code>ruby: false</code> 去掉读音，<code>offset</code> 以秒平移所有时间，<code>id</code> 设置 cue 标识符")],
+  [c('TsubuExport.toASS(input, { ruby = "omit", offset = 0 })'), both("one ASS karaoke <code>Dialogue:</code> line with <code>\\k</code> durations. A gap is an empty syllable, punctuation joins the syllable before it, and boundaries are rounded to centiseconds before the durations are taken, so they add up to the line's length. <code>ruby: \"inline\"</code> writes <code>雨(あめ)</code>. <code>{</code>, <code>}</code> and <code>\\</code> are written as ｛ ｝ ＼", "一行带 <code>\\k</code> 时长的 ASS 卡拉 OK <code>Dialogue:</code>。空隙是一个空音节，标点并入前面的音节，边界先取整到百分之一秒再求差，所以各时长之和等于这一行。<code>ruby: \"inline\"</code> 写成 <code>雨(あめ)</code>。<code>{</code>、<code>}</code>、<code>\\</code> 写成 ｛ ｝ ＼")],
+  [c("TsubuExport.toASSScript(input, options)"), both("wraps the line in a minimal script with one <code>Default</code> style", "用只含一个 <code>Default</code> 样式的最小脚本把这一行包起来")],
+])}
+<p>${both("Times are rounded half up as written (to milliseconds or centiseconds), line breaks in text become spaces, and negative times are refused.", "时间按书写的十进制值四舍五入（到毫秒或百分之一秒），文本里的换行变成空格，负时间会被拒绝。")}</p>`);
+
+document.getElementById("toc").innerHTML = sections.map((s) => `<li><a href="#${s.id}">${both(s.en, s.zh)}</a></li>`).join("");
+document.getElementById("api").innerHTML = sections.map((s) => `<section id="${s.id}"><h2>${both(s.en, s.zh)}</h2>${s.html}</section>`).join("");
+window.__ready = true;
+</script>
+</body>
+</html>
