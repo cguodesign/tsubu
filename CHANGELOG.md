@@ -44,6 +44,15 @@ All notable changes to tsubu are recorded here. The format follows
   sentence is read once.
 - `htmlAt(t)` on a sentence: the frame at `t` as HTML without a page, the same as `html` after
   `apply(root, t)`, for servers and renderers that take HTML.
+- Motion presets `appear`, `mask`, `blur` and `underline-draw`, chosen with `options.motion` or
+  `data-tsubu-motion`, each drawn from the state `apply` writes, and the catalogue
+  `Tsubu.MOTIONS` (purpose, timing needed, behaviour without it, parameters, reduced motion), with
+  a guide to choosing motion for agents and template authors.
+- Revealing on the caller's events: `Tsubu.setRevealed(root, which)` shows segments a preset hides
+  while unheard, whatever `t` is, `htmlAt(t, { revealed })` renders the same, and
+  `Tsubu.segmentOf(node)` tells a click handler which segment was hit.
+- `checkContrast` counts opacity on a layer, and checks every segment revealed and with its
+  furigana on, so every colour that can be drawn is measured.
 
 ### Fixed
 

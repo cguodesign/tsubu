@@ -39,19 +39,6 @@ are left out on purpose.
   the data. tsubu will not bundle the dictionary.
 - Where the data has no entry, nothing is shown; the library never guesses an origin.
 
-## Animation presets and a guide for agents and templates
-
-- A set of **named, deterministic presets**, each a pure function of `t` with configurable
-  parameters. First candidates: segments appearing one by one, character-by-character progress
-  within a segment (needs per-character times), the underline drawing itself in, masking or
-  blurring what has not been heard yet, and dimming what has been read.
-- A **machine-readable preset catalogue**: each preset's name, purpose, parameters and their
-  ranges, which timing it needs (sentence, segment or character) and how it degrades without it.
-  Templates and agents choose from the catalogue instead of inventing motion.
-- A **guide for agents and template authors**: when to use which preset, and when not to. Motion
-  should show a change in what is being read, not decorate.
-- Every preset gets a determinism test (the same `t` twice gives the same frame) and a demo.
-
 ## Later
 
 - An npm package with three forms: the classic script, an ES module and TypeScript declarations
@@ -62,3 +49,4 @@ are left out on purpose.
 - Adapters that turn other formats into tsubu's input: kuroshiro's furigana output, Remotion
   caption data, and WebVTT cues with timestamps.
 - Examples for video renderers that capture frame by frame.
+- A character-by-character wipe within a segment, once the input can carry per-character times.

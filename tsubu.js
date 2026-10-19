@@ -38,6 +38,44 @@
   const CONTRAST = Object.freeze({ text: 4.5, ruby: 4.5, underline: 3, highlight: 3 });
   const NAME = /^[a-z][a-z0-9-]*$/;
 
+  /* The motion presets, as a catalogue that templates and agents can read and choose from. Each
+   * is drawn by tsubu.css from the state apply() writes, so every frame is still a function of t
+   * (and of which segments the caller has revealed). "Unheard" means not yet current or past: in
+   * the future, or in a sentence that has not been applied at all. */
+  const MOTIONS = deepFreeze([
+    { name: "appear", purpose: "Segments appear as they are spoken; nothing unheard is shown, not even its underline.",
+      needs: "segments", without: "With timing \"sentence\" the whole sentence appears when it starts. Without times nothing appears until the caller reveals it.",
+      parameters: [], reducedMotion: "Unchanged: it is a change of state, not movement.", revealable: true },
+    { name: "mask", purpose: "Unheard segments are blanks: their text and readings are not drawn, their underline is, so the length of what is to come shows. For listening and fill-in exercises.",
+      needs: "segments", without: "With timing \"sentence\" the whole sentence is unmasked when it starts. Without times every segment stays a blank until the caller reveals it.",
+      parameters: [], reducedMotion: "Unchanged: it is a change of state, not movement.", revealable: true },
+    { name: "blur", purpose: "Unheard segments are blurred: their shape shows, their words do not.",
+      needs: "segments", without: "With timing \"sentence\" the whole sentence sharpens when it starts. Without times every segment stays blurred until the caller reveals it.",
+      parameters: [{ property: "--tsubu-blur", default: "0.15em", min: "0.05em", max: "0.4em", meaning: "blur radius" }],
+      reducedMotion: "Unchanged: it is a change of state, not movement.", revealable: true },
+    { name: "underline-draw", purpose: "The underline of the segment being spoken draws itself in over the segment's time; unheard segments have none yet.",
+      needs: "segments", without: "With timing \"sentence\" the underlines of all segments draw in together over the sentence's time.",
+      parameters: [], reducedMotion: "The underline of the segment being spoken is drawn whole at once.", revealable: true },
+  ]);
+
+  function deepFreeze(value) {
+    if (value && typeof value === "object") {
+      Object.values(value).forEach(deepFreeze);
+      Object.freeze(value);
+    }
+    return value;
+  }
+
+  function motionNames(motion) {
+    if (motion === undefined) return [];
+    const list = typeof motion === "string" ? motion.split(/\s+/).filter(Boolean) : motion;
+    if (!Array.isArray(list)) fail("options.motion must be a name, a space-separated list of names or an array of names");
+    const known = MOTIONS.map((m) => m.name);
+    for (const name of list)
+      if (!known.includes(name)) fail(`options.motion: unknown preset ${JSON.stringify(name)}; the presets are ${known.join(", ")}`);
+    return [...new Set(list)];
+  }
+
   /* Japanese line-breaking rules (kinsoku), as in CSS `line-break: strict`: these may not begin
    * a line (closing brackets and punctuation, the long-vowel mark, small kana, iteration marks,
    * middle dots and colons, wave dashes and hyphens) ... */
@@ -126,13 +164,14 @@
 
   /* The attributes apply() writes for a state, as HTML (in the order Chromium serialises them,
    * which writes the style attribute last; the order carries no meaning). */
-  function stateAttributes(state, progress, current) {
+  function stateAttributes(state, progress, current, revealed) {
     const style = progress === null ? "" : ` style="--tsubu-progress: ${String(progress)};"`;
-    return ` data-state="${state}"${current ? ' aria-current="true"' : ""}${style}`;
+    return ` data-state="${state}"${current ? ' aria-current="true"' : ""}${revealed ? ' data-revealed=""' : ""}${style}`;
   }
 
-  /* The sentence as HTML; with `at` (a state from stateOf), as it is after apply() at that t. */
-  function renderHTML(sentence, ruby, look, at) {
+  /* The sentence as HTML; with `at` (a state from stateOf), as it is after apply() at that t, and
+   * with `revealed` (indexes) as it is after setRevealed(). */
+  function renderHTML(sentence, ruby, look, at, revealed) {
     // With announceRuby off, screen readers read the sentence once, without each reading after
     // its base.
     const rt = look.announceRuby === false ? '<rt aria-hidden="true">' : "<rt>";
@@ -141,7 +180,8 @@
         .map((p) => (p.ruby === undefined ? escapeHTML(p.text) : `<ruby>${escapeHTML(p.text)}${rt}${escapeHTML(p.ruby)}</rt></ruby>`))
         .join("");
       const kind = segment.punct ? ' data-kind="punct"' : "";
-      const state = at ? stateAttributes(at.segments[i].state, at.segments[i].progress, i === at.current) : "";
+      const shown = Boolean(revealed && revealed.includes(i));
+      const state = at ? stateAttributes(at.segments[i].state, at.segments[i].progress, i === at.current, shown) : shown ? ' data-revealed=""' : "";
       return `<span class="tsubu-seg" data-index="${i}"${kind}${state}>${inner}</span>`;
     });
     // A line may break between two segments unless the break would put a closing mark, the
@@ -160,8 +200,9 @@
     const joined = units.map((html) => `<span class="tsubu-unit">${html}</span>`).join("<wbr>");
     const theme = look.theme ? ` data-tsubu-theme="${look.theme}"` : "";
     const speaker = look.speaker ? ` data-speaker="${look.speaker}"` : "";
+    const motion = look.motion.length ? ` data-tsubu-motion="${look.motion.join(" ")}"` : "";
     const state = at ? stateAttributes(at.state, at.progress, at.timing === "sentence" && at.state === "current") : "";
-    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${ruby ? "on" : "off"}"${theme}${speaker}${state}>${joined}</span>`;
+    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${ruby ? "on" : "off"}"${theme}${speaker}${motion}${state}>${joined}</span>`;
   }
 
   /* The state of the sentence and of each segment at t (seconds, on the same clock as the
@@ -286,7 +327,7 @@
    * Tsubu.sentence(input, options) -> { html, timing, stateAt(t), htmlAt(t), apply(root, t) }
    *   input:   { lang?, start?, end?, segments: [{ parts: [{ text, ruby? }], start?, end?, kind? }] }
    *   options: { ruby: true | false (default true), announceRuby: true | false (default true),
-   *              theme?: name, speaker?: name }
+   *              theme?: name, speaker?: name, motion?: names from MOTIONS }
    */
   function sentence(input, options) {
     const opts = options || {};
@@ -297,17 +338,49 @@
         fail(`options.${key} must be a name in lower case, such as ${JSON.stringify(key === "theme" ? THEMES[0] : SPEAKERS[0])}`);
     const normalised = normalise(input);
     const ruby = opts.ruby !== false;
-    const look = { theme: opts.theme, speaker: opts.speaker, announceRuby: opts.announceRuby };
+    const look = { theme: opts.theme, speaker: opts.speaker, announceRuby: opts.announceRuby, motion: motionNames(opts.motion) };
     return Object.freeze({
       html: renderHTML(normalised, ruby, look),
       timing: normalised.timing,
       stateAt: (t) => stateOf(normalised, t),
-      // The frame at t as HTML, without a page: what `html` becomes after apply(root, t), for
-      // server-side rendering and renderers that take HTML. Paging needs the layout, so it is
-      // not done here.
-      htmlAt: (t) => renderHTML(normalised, ruby, look, stateOf(normalised, t)),
+      // The frame at t as HTML, without a page: what `html` becomes after apply(root, t) (and
+      // setRevealed(root, revealed)), for server-side rendering and renderers that take HTML.
+      // Paging needs the layout, so it is not done here.
+      htmlAt: (t, at) => renderHTML(normalised, ruby, look, stateOf(normalised, t), revealedIndexes((at || {}).revealed, normalised.segments.length)),
       apply: (root, t) => applyState(root, normalised, t),
     });
+  }
+
+  /* Which segments a caller's `which` names: "all", "none", or an array of segment indexes. */
+  function revealedIndexes(which, count) {
+    if (which === undefined || which === "none") return [];
+    if (which === "all") return Array.from({ length: count }, (_, i) => i);
+    if (!Array.isArray(which) || !which.every((i) => Number.isInteger(i) && i >= 0 && i < count))
+      fail(`revealed segments must be "all", "none" or an array of segment indexes from 0 to ${count - 1}`);
+    return [...new Set(which)].sort((a, b) => a - b);
+  }
+
+  /* Reveals segments that a motion preset hides while they are unheard (appear, mask, blur,
+   * underline-draw), whatever t is: for a word the learner got right, a tap, any event of the
+   * caller's. It replaces the previous set; "none" hides them again. Only attributes change, so
+   * nothing moves. */
+  function setRevealed(root, which) {
+    if (!root || !root.classList || !root.classList.contains("tsubu")) fail('setRevealed needs the element with class "tsubu"');
+    const elements = root.querySelectorAll(":scope > .tsubu-unit > .tsubu-seg");
+    const shown = revealedIndexes(which, elements.length);
+    elements.forEach((el, i) => {
+      if (shown.includes(i)) el.setAttribute("data-revealed", "");
+      else el.removeAttribute("data-revealed");
+    });
+    return shown;
+  }
+
+  /* The index of the segment a node (an event's target, say) lies in, or null: for click and
+   * tap handlers. */
+  function segmentOf(node) {
+    const element = node && node.nodeType === 3 ? node.parentElement : node;
+    const segment = element && typeof element.closest === "function" ? element.closest(".tsubu-seg") : null;
+    return segment ? Number(segment.getAttribute("data-index")) : null;
   }
 
   /* Shows or hides the furigana of a drawn sentence. The <rt> keeps its place in the layout
@@ -431,7 +504,19 @@
     const seen = new Map();
     try {
       const segments = [...copy.querySelectorAll(":scope > .tsubu-unit > .tsubu-seg")];
-      for (const el of segments) el.removeAttribute("data-off-page");
+      // Every segment shown, revealed and with its furigana: whatever can be drawn is checked.
+      // (What a motion preset hides while it is unheard is drawn in these colours once revealed.)
+      copy.setAttribute("data-ruby", "on");
+      for (const el of segments) {
+        el.removeAttribute("data-off-page");
+        el.setAttribute("data-revealed", "");
+      }
+      // Opacity on a layer or between it and the sentence fades it; a hidden layer is not drawn.
+      const fade = (el, own) => {
+        let alpha = own ? parseFloat(own.opacity) : 1;
+        for (let n = el; n && n !== copy.parentElement; n = n.parentElement) alpha *= parseFloat(getComputedStyle(n).opacity);
+        return alpha;
+      };
       for (const state of ["static"].concat(STATES)) {
         for (const el of [copy, ...segments]) {
           if (state === "static") el.removeAttribute("data-state");
@@ -457,24 +542,29 @@
               if (middle < from || middle > to) return [base];
               return top >= from && bottom <= to ? [behind] : [behind, base];
             };
-            const layers = [["text", style.color, behind]];
+            const layers = [];
+            if (style.visibility !== "hidden") layers.push(["text", style.color, behind, fade(el)]);
             const rt = el.querySelector("rt");
-            if (rt) {
+            const rtStyle = rt && getComputedStyle(rt);
+            if (rt && rtStyle.visibility !== "hidden") {
               const r = rt.getBoundingClientRect();
-              for (const under of backgroundsFor(r.top, r.bottom)) layers.push(["ruby", getComputedStyle(rt).color, under]);
+              for (const under of backgroundsFor(r.top, r.bottom)) layers.push(["ruby", rtStyle.color, under, fade(rt)]);
             }
             const after = getComputedStyle(el, "::after");
-            if (after.content !== "none" && after.borderBottomStyle !== "none") {
+            if (after.content !== "none" && after.borderBottomStyle !== "none" && after.visibility !== "hidden") {
               const bottom = box.bottom - parseFloat(after.bottom);
               for (const under of backgroundsFor(bottom - parseFloat(after.borderBottomWidth), bottom))
-                layers.push(["underline", after.borderBottomColor, under]);
+                layers.push(["underline", after.borderBottomColor, under, fade(el, after)]);
             }
-            if (highlight[3] > 0) layers.push(["highlight", style.backgroundColor, base]);
-            for (const [layer, colour, under] of layers) {
-              const fg = layer === "highlight" ? behind : over(parseColour(colour), under);
+            if (highlight[3] > 0 && style.visibility !== "hidden") layers.push(["highlight", style.backgroundColor, base, fade(el)]);
+            for (const [layer, colour, under, alpha] of layers) {
+              const paint = parseColour(colour);
+              paint[3] *= alpha;
+              if (paint[3] === 0) continue;
+              const fg = layer === "highlight" ? over(paint, base) : over(paint, under);
               const bg = layer === "highlight" ? base : under;
               const ratio = ratioOf(fg, bg);
-              const key = [state, layer, colour, bg.join(), backdrop].join("|");
+              const key = [state, layer, colour, alpha, bg.join(), backdrop].join("|");
               if (!seen.has(key)) {
                 const hex = (c) => "#" + c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
                 seen.set(key, { state, layer, foreground: hex(fg), background: hex(bg), backdrop: String(backdrop),
@@ -492,5 +582,5 @@
     return { ok: failures.length === 0, checks, failures };
   }
 
-  return Object.freeze({ version: VERSION, sentence, setRuby, contrast, checkContrast, STATES, THEMES, SPEAKERS, CONTRAST });
+  return Object.freeze({ version: VERSION, sentence, setRuby, setRevealed, segmentOf, contrast, checkContrast, STATES, THEMES, SPEAKERS, CONTRAST, MOTIONS });
 });

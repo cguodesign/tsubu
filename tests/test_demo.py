@@ -88,3 +88,23 @@ def test_the_demo_frame_follows_its_width_and_pages_by_t(browser):
         assert errors == []
     finally:
         page.close()
+
+
+def test_the_demo_motion_card_hides_what_is_unheard_and_reveals_a_clicked_segment(browser):
+    page = browser.new_page(viewport={"width": 1280, "height": 900})
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    masked = """() => [...document.querySelectorAll('#motion-bubble .tsubu-seg')].map((s) => getComputedStyle(s).color === 'rgba(0, 0, 0, 0)')"""
+    try:
+        page.goto(DEMO.as_uri() + "?t=0.3&motion=mask")
+        before = page.evaluate(masked)
+        assert before[0] is False and before[2] is True  # 雨の日は is being spoken; 家で is still a blank
+        page.locator("#motion-bubble .tsubu-seg[data-index='2']").click()
+        assert page.evaluate(masked)[2] is False
+        page.locator("#motion-bubble .tsubu-seg[data-index='2']").click()
+        assert page.evaluate(masked)[2] is True
+        page.locator("#reveal-all").click()
+        assert not any(page.evaluate(masked))
+        assert errors == []
+    finally:
+        page.close()

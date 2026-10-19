@@ -68,6 +68,7 @@ options = {                    // 都是可选的
   announceRuby: true,          // 读屏软件是否朗读注音（默认 true）
   theme: "light",              // 预设："light"、"dark"、"media"，或你自己起的名字
   speaker: "a",                // 这句话是谁说的，用于按说话人上色："a"、"b" 或你自己起的名字
+  motion: "mask",              // Tsubu.MOTIONS 里的动效预设：一个名字、空格分隔的列表或数组
 }
 ```
 
@@ -89,7 +90,7 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
 - 段的时间重叠或顺序颠倒，`end` 早于 `start`，时间不是有限的数，或者只给了 `start`/`end` 中的一个；
 - 段的时间落在整句的 `start`/`end` 之外；
 - 标点带时间，或者没有任何非标点的段；
-- `segments`、`parts`、`text`、`ruby` 或 `lang` 为空，`kind` 不认识，`options.ruby` 或 `options.announceRuby` 不是布尔值，或者 `options.theme`、`options.speaker` 不是小写名字（`a-z`、数字和 `-`，以字母开头）。
+- `segments`、`parts`、`text`、`ruby` 或 `lang` 为空，`kind` 不认识，`options.ruby` 或 `options.announceRuby` 不是布尔值，`options.theme`、`options.speaker` 不是小写名字（`a-z`、数字和 `-`，以字母开头），或者 `options.motion` 里有 `Tsubu.MOTIONS` 之外的预设。
 
 ## 输出
 
@@ -116,7 +117,7 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
   - `progress` 是整句或该段从 0 到 1 的进度。timing 为 `"sentence"` 时各段的 `progress` 是 `null`（不知道）；标点的永远是 `null`。
   - `current` 是正在读的那一段的下标，没有就是 `null`。timing 为 `"sentence"` 时永远是 `null`。
   - timing 为 `"segments"` 时，标点和它前面那个非标点段一起变成 past；句首的标点在第一个非标点段开始时变成 past。timing 为 `"sentence"` 时，每一段（包括标点）的状态都和整句相同。
-- **`htmlAt(t)`**：不需要页面，把第 `t` 秒那一帧作为 HTML 字符串返回：也就是带上 `apply(root, t)` 会写的那些属性的 `html`。用在服务器上、Node 里，或者接受 HTML 的渲染器里（服务端渲染、HTML 转图片、视频渲染器的逐帧画面）。测试检查它和刚生成的 `html` 在 Chromium 里经过 `apply` 之后是同样的元素树、文字和属性，在 Chromium 里连字符串都相同。它不翻页（翻页需要版面），和 `stateAt` 一样，句子没有时间时会拒绝。
+- **`htmlAt(t, { revealed })`**：不需要页面，把第 `t` 秒那一帧作为 HTML 字符串返回：也就是带上 `apply(root, t)`（以及 `setRevealed(root, revealed)`）会写的那些属性的 `html`。用在服务器上、Node 里，或者接受 HTML 的渲染器里（服务端渲染、HTML 转图片、视频渲染器的逐帧画面）。测试检查它和刚生成的 `html` 在 Chromium 里经过 `apply` 之后是同样的元素树、文字和属性，在 Chromium 里连字符串都相同。它不翻页（翻页需要版面），和 `stateAt` 一样，句子没有时间时会拒绝。
 - **`apply(root, t)`**：把 `stateAt(t)` 写到页面上并返回它。`root` 必须是由 `html` 生成的那个 `.tsubu` 元素（是别的元素或段数不对就抛错）。它只设置属性：
   - 根元素：`data-state`、`--tsubu-progress`；timing 为 `"sentence"` 的句子正在读时带 `aria-current="true"`；
   - 每一段：`data-state`、`--tsubu-progress`（只有带时间的段）；正在读的那一段带 `aria-current="true"`；
@@ -127,6 +128,9 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
 `Tsubu` 上还有：
 
 - **`Tsubu.setRuby(root, on)`**：把根元素的 `data-ruby` 设成 `"on"` 或 `"off"`，显示或隐藏已画好的句子的注音。
+- **`Tsubu.setRevealed(root, which)`**：揭示动效预设在"还没听到"时隐藏的段。`which` 是段下标的数组、`"all"` 或 `"none"`，会替换之前的集合。它写入 `data-revealed` 并返回下标。见[动效与揭示](#动效与揭示)。
+- **`Tsubu.segmentOf(node)`**：某个节点（比如事件的 target）所在的段的下标，不在任何段里就是 `null`；给点击、轻触的处理函数用。
+- **`Tsubu.MOTIONS`**：动效预设的目录。
 - **`Tsubu.checkContrast(root, options)`**：在浏览器里测量已画好的句子的颜色，见[主题与对比度](#主题与对比度)。
 - **`Tsubu.contrast(foreground, background, backdrop)`**：两个颜色（十六进制、`rgb()`、`rgba()`）的 WCAG 对比度（1 到 21）。半透明的前景先叠到背景上，半透明的背景先叠到 `backdrop` 上（默认白色）。在 Node 里也能用。
 - **`Tsubu.CONTRAST`**：阈值，`{ text: 4.5, ruby: 4.5, underline: 3, highlight: 3 }`。
@@ -244,6 +248,42 @@ Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  //
 
 没有每段时间的句子（timing 为 `"sentence"`）从不翻页，因为不知道读到了哪一部分：整句都显示。其他页的段是 `display: none`，所以在翻到那一页之前，辅助技术也读不到它们。
 
+## 动效与揭示
+
+动效预设改变句子显示"已经听到"和"还没听到"的方式。每一个都由 `tsubu.css` 根据 `apply` 写的状态画出来，所以每一帧仍然只取决于 `t`；没有定时器，也没有过渡。用 `options.motion` 或任何祖先上的 `data-tsubu-motion` 选择，可以组合几个。*还没听到*是指既不是 current 也不是 past：在未来，或者句子还没被 apply 过（timing 为 `"none"`）。
+
+| 预设 | 画出来的样子 |
+|---|---|
+| `appear` | 段在被读到时出现；还没听到的什么都不画，连下划线也不画 |
+| `mask` | 还没听到的段是空格：不画文字和读音，但画下划线，所以能看出后面还有多长；用于听力和填空练习 |
+| `blur` | 还没听到的段连同读音一起模糊（`--tsubu-blur`，`0.15em`） |
+| `underline-draw` | 正在读的那一段的下划线在这段时间里逐渐画出来；还没听到的段还没有下划线 |
+
+**由调用方的事件来揭示。** `Tsubu.setRevealed(root, [2, 3])` 让第 2、3 段像已经听到一样显示出来，不管 `t` 是多少：比如学习者说对了一个词、点了一下、按了按钮。tsubu 自己不处理任何事件。`Tsubu.segmentOf(event.target)` 告诉点击处理函数点中了哪一段。这样画出来的东西只取决于 `t` 和已揭示的集合，`htmlAt(t, { revealed })` 不需要页面就能画出同样的结果。
+
+```js
+const s = Tsubu.sentence(input, { motion: "mask" });   // 没有时间：每段一开始都是空格
+let shown = [];
+root.addEventListener("click", (event) => {
+  const i = Tsubu.segmentOf(event.target);
+  if (i !== null) shown = Tsubu.setRevealed(root, [...shown, i]);
+});
+recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); };  // 你自己的语音判断
+```
+
+`Tsubu.MOTIONS` 是同一份清单的数据形式：每个预设的 `name`、`purpose`、需要的 timing（`needs`）、没有那种 timing 时怎么办（`without`）、参数 `parameters`（自定义属性、默认值、范围、含义）、在 `prefers-reduced-motion: reduce` 下怎么办，以及能否被揭示（`revealable`）。测试检查目录和样式表一致。
+
+**怎么选动效（给 agent 和模板作者）。** 从目录里选，不要自己发明动效；动效只用来表现"读到哪儿了"的变化，不用来装饰。
+
+- 普通跟读、字幕：不用预设。高亮已经表明读到哪儿了。
+- 在视频里逐行讲解一句话：`appear`；整句要一直可读时用 `underline-draw`。
+- 听力和听写：`mask`（空格显示长度）或 `blur`（显示轮廓），按时间或按学习者的回答揭示。
+- 不要把 `appear` 和 `mask` 或 `blur` 组合：它们要藏的东西 `appear` 已经都藏了。
+- timing 为 `"sentence"` 时，预设一次作用于整句；照实告诉观看者，不要加暗示有逐段时间的动效。
+- 不要用透明度把读过的部分调暗：会低于对比度阈值。用 past 颜色组，主题已经在阈值之内设好了。
+
+没有提供：逐字擦除，因为那需要 tsubu 没有的逐字时间。在 `prefers-reduced-motion: reduce` 下，`underline-draw` 一次把下划线画完；其他几个是状态变化，不是移动。被 `mask` 藏起来的文字仍在页面里，读屏软件会读出来；用来考试时，请不要把答案放进页面，或者用 `appear`。`checkContrast` 在它的副本里揭示所有段，所以所有可能画出来的颜色都被检查，而且它会把图层上的透明度算进去。
+
 ## 无障碍
 
 - **强制颜色。** 在强制颜色模式下（Windows 的对比度主题等），浏览器会替换背景、去掉 `box-shadow`，正在读的那一段就和别的段一样了。tsubu 只给这一段保留高亮，用的是用户自己为选中文字设定的颜色（`Highlight` 和 `HighlightText`）；它的注音落在页面上，所以用 `CanvasText`。其余的都交给浏览器。
@@ -267,6 +307,7 @@ Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  //
 - **流式字号**在每个分档点和它两边检查，默认值和每一档都配置过的情况都测。
 - **翻页**：设了最大行数时，每一段被读时都在当前页上，没有一页超过允许的行数，每页从行首开始，各页没有共同的段、合起来包含全部的段，随 `t` 增大只往后翻，两段之间的空隙保持刚读完那段的页，同一个 `t` 总是显示同一页，开关注音不会让一页重排。
 - **强制颜色和读屏**（`tests/test_a11y.py`）：模拟强制颜色时，每种主题、每种 timing 下正在读的那一段都是系统高亮色，而且没有字移动；关掉 `announceRuby` 时，无障碍树里没有注音。
+- **动效预设**（`tests/test_motion.py`）：每个预设只对还没听到的段画出它说的样子，被揭示的段和不用预设时一样，任何预设和揭示都不让字移动，不管 `t` 和揭示以什么顺序来，截图逐字节相同，每种主题配上每个预设都达到阈值，目录和样式表一致。
 - **没有动效。** 每个元素都是 `transition: none` 和 `animation: none`；反复调用 `apply` 得到相同的属性、文字和节点数。
 
 状态逻辑（`tests/test_state.py`）在 Node 里运行 `tsubu.js` 本身：左闭右开的时间段、空隙、标点、进度、每一种被拒绝的输入，以及 `stateAt` 只取决于 `t`。

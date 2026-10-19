@@ -202,6 +202,42 @@
 }
 
 /*
+ * Motion presets (Tsubu.MOTIONS), selected with data-tsubu-motion on the root (options.motion) or
+ * any ancestor; several can be combined. Each is drawn from the state apply() writes, so every
+ * frame is a function of t, and from data-revealed, which setRevealed() writes, so a caller can
+ * reveal a segment on any event. "Unheard" is a segment that is neither current nor past and has
+ * not been revealed. They change visibility, colour, a filter and a transform only: nothing moves.
+ */
+[data-tsubu-motion~="appear"] .tsubu-seg:not([data-state="current"], [data-state="past"], [data-revealed]) {
+  visibility: hidden;
+}
+
+[data-tsubu-motion~="mask"] .tsubu-seg:not([data-state="current"], [data-state="past"], [data-revealed]),
+[data-tsubu-motion~="mask"] .tsubu-seg:not([data-state="current"], [data-state="past"], [data-revealed]) rt {
+  color: transparent;
+}
+
+/* The furigana are blurred on their own: Chromium's filter on the inline segment does not reach a
+ * reading drawn above the line. In em, the blur scales with the reading's own size. */
+[data-tsubu-motion~="blur"] .tsubu-seg:not([data-state="current"], [data-state="past"], [data-revealed]) {
+  filter: blur(var(--tsubu-blur, 0.15em));
+}
+[data-tsubu-motion~="blur"] .tsubu-seg:not([data-state="current"], [data-state="past"], [data-revealed]) rt {
+  filter: blur(var(--tsubu-blur, 0.15em));
+}
+
+[data-tsubu-motion~="underline-draw"] .tsubu-seg:not([data-state="current"], [data-state="past"], [data-revealed])::after {
+  visibility: hidden;
+}
+[data-tsubu-motion~="underline-draw"] .tsubu-seg[data-state="current"]:not([data-revealed])::after {
+  transform: scaleX(var(--tsubu-progress, 1));
+  transform-origin: left center;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-tsubu-motion~="underline-draw"] .tsubu-seg[data-state="current"]:not([data-revealed])::after { transform: none; }
+}
+
+/*
  * Theme presets. Set data-tsubu-theme on the sentence's root (options.theme) or on any ancestor.
  * Each one is checked in the tests with Tsubu.checkContrast() against its own --tsubu-backdrop,
  * in every state and for each speaker, at the thresholds in Tsubu.CONTRAST.

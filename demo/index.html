@@ -27,6 +27,7 @@
   /* A fluid frame: the sentence's size follows the frame's width (class tsubu-fluid). */
   .controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 13px; margin: 4px 0 12px; }
   .controls input[type=range] { width: 180px; max-width: 50vw; }
+  #motion-bubble .tsubu-seg { cursor: pointer; }
   .frame { max-width: 100%; outline: 1px dashed #9ca3af; outline-offset: 6px; margin: 8px 0; }
   /* Each card is the backdrop its theme is designed for; "media" sits on a stand-in for a
    * photograph, light at the top and dark at the bottom, so the plate has to work on both. */
@@ -48,7 +49,7 @@
     <img src="../assets/logo.svg" alt="">
     <h1>tsubu demo</h1>
   </header>
-  <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana, or pick another theme, and see that nothing moves. Under each card, <code>Tsubu.checkContrast()</code> reports the lowest contrast it measured in any state; "none" shows the unthemed defaults, which are not a preset and do not pass. The sentences were written for this page and their times are invented, not measured. The last card is a fluid frame: drag its width to see the size follow it, and set a maximum number of lines to see the sentence paged by <code>t</code>. The address accepts <code>?t=seconds&amp;ruby=off&amp;theme=dark&amp;frame=320&amp;lines=2</code>.</p>
+  <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana, or pick another theme, and see that nothing moves. Under each card, <code>Tsubu.checkContrast()</code> reports the lowest contrast it measured in any state; "none" shows the unthemed defaults, which are not a preset and do not pass. The sentences were written for this page and their times are invented, not measured. The motion card hides what has not been heard yet; click a segment to reveal it. The last card is a fluid frame: drag its width to see the size follow it, and set a maximum number of lines to see the sentence paged by <code>t</code>. The address accepts <code>?t=seconds&amp;ruby=off&amp;theme=dark&amp;frame=320&amp;lines=2&amp;motion=mask</code>.</p>
   <div id="bar">
     <label>t <input id="t" type="range" min="-0.5" max="16" step="0.01" value="0"></label>
     <output id="tv">0.00 s</output>
@@ -127,6 +128,9 @@ const EXAMPLES = [
       { parts: [{ text: "。" }], kind: "punct" },
     ] } },
 ];
+// The motion card shows the first sentence again, with a preset; click a segment to reveal it.
+EXAMPLES.push({ title: "Motion presets: unheard segments are hidden, masked or blurred until spoken, or until you click them (Tsubu.setRevealed)",
+  motion: true, input: EXAMPLES[0].input });
 // The fluid frame shows the long sentence again.
 EXAMPLES.push({ title: "A fluid frame: the size follows the frame's width, and beyond the maximum number of lines the sentence is paged by t",
   frame: true, input: EXAMPLES[2].input });
@@ -165,6 +169,14 @@ const shown = EXAMPLES.map((ex) => {
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   bubble.innerHTML = s.html;
+  if (ex.motion) {
+    const controls = document.createElement("div");
+    controls.className = "controls";
+    controls.innerHTML = `<label>motion <select id="motion">${Tsubu.MOTIONS.map((m) => `<option>${m.name}</option>`).join("")}</select></label>
+      <button type="button" id="reveal-all">reveal all</button> <button type="button" id="reveal-none">hide again</button>`;
+    parts.push(controls);
+    bubble.id = "motion-bubble";
+  }
   if (ex.frame) {
     const controls = document.createElement("div");
     controls.className = "controls";
@@ -205,6 +217,26 @@ function describe(st) {
   const page = st.pages === null || st.pages === undefined ? "" : `  page=${st.page + 1}/${st.pages}`;
   return `timing=${st.timing}  sentence=${st.state}  current=${st.current}${page}  segments=${st.segments.map((x) => marks[x.state]).join(" ")}`;
 }
+
+// The motion preset is set on the bubble, an ancestor of the sentence. Which segments are revealed
+// is the page's own state, like the furigana switch: a click toggles one.
+const motionBubble = document.getElementById("motion-bubble");
+const motionBox = document.getElementById("motion");
+const motionRoot = motionBubble.querySelector(".tsubu");
+let revealed = new Set();
+if (params.has("motion")) motionBox.value = params.get("motion");
+function setMotion() { motionBubble.dataset.tsubuMotion = motionBox.value; }
+function reveal(which) { revealed = new Set(Tsubu.setRevealed(motionRoot, which)); }
+setMotion();
+motionBox.addEventListener("change", setMotion);
+motionBubble.addEventListener("click", (event) => {
+  const i = Tsubu.segmentOf(event.target);
+  if (i === null) return;
+  if (revealed.has(i)) revealed.delete(i); else revealed.add(i);
+  reveal([...revealed]);
+});
+document.getElementById("reveal-all").addEventListener("click", () => reveal("all"));
+document.getElementById("reveal-none").addEventListener("click", () => reveal("none"));
 
 // The frame's width and its maximum number of lines are page settings like the furigana switch.
 const frame = document.getElementById("frame");

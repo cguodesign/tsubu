@@ -80,6 +80,7 @@ options = {                    // all optional
   announceRuby: true,          // whether screen readers read each reading (default true)
   theme: "light",              // a preset: "light", "dark", "media", or a name of your own
   speaker: "a",                // whose line this is, for colours per speaker: "a", "b" or your own
+  motion: "mask",              // motion presets from Tsubu.MOTIONS, a name, a list or an array
 }
 ```
 
@@ -105,8 +106,9 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
 - segment times outside the sentence's `start`/`end`;
 - punctuation with a time, no segment that is not punctuation;
 - an empty `segments`, `parts`, `text`, `ruby` or `lang`, an unknown `kind`, an `options.ruby` or
-  `options.announceRuby` that is not a boolean, or an `options.theme` or `options.speaker` that is not a lower-case name
-  (`a-z`, digits and `-`, starting with a letter).
+  `options.announceRuby` that is not a boolean, an `options.theme` or `options.speaker` that is not a lower-case name
+  (`a-z`, digits and `-`, starting with a letter), or an `options.motion` naming a preset that is
+  not in `Tsubu.MOTIONS`.
 
 ## Output
 
@@ -145,8 +147,8 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
   - With timing `"segments"`, punctuation becomes past together with the spoken segment before it;
     punctuation that opens the sentence becomes past when the first spoken segment begins. With
     timing `"sentence"` every segment, punctuation included, has the sentence's state.
-- **`htmlAt(t)`**: the frame at `t` as an HTML string, without a page: `html` with the
-  attributes `apply(root, t)` would write. Use it on a server, in Node, or with a renderer that
+- **`htmlAt(t, { revealed })`**: the frame at `t` as an HTML string, without a page: `html` with
+  the attributes `apply(root, t)` (and `setRevealed(root, revealed)`) would write. Use it on a server, in Node, or with a renderer that
   takes HTML (server-side rendering, HTML-to-image, a video renderer's frames). The tests check that
   it is the same element tree, text and attributes as a fresh `html` after `apply` in Chromium,
   and in Chromium even the same string. It does not page (paging needs the layout), and like
@@ -169,6 +171,12 @@ Also on `Tsubu`:
 
 - **`Tsubu.setRuby(root, on)`** shows or hides the furigana of a drawn sentence by setting the
   root's `data-ruby` to `"on"` or `"off"`.
+- **`Tsubu.setRevealed(root, which)`** reveals segments that a motion preset hides while they are
+  unheard: `which` is an array of segment indexes, `"all"` or `"none"`, and replaces the previous
+  set. It writes `data-revealed` and returns the indexes. See [Motion and revealing](#motion-and-revealing).
+- **`Tsubu.segmentOf(node)`**: the index of the segment a node lies in (an event's target, say),
+  or `null`; for click and tap handlers.
+- **`Tsubu.MOTIONS`**: the catalogue of motion presets.
 - **`Tsubu.checkContrast(root, options)`** measures a drawn sentence's colours in the browser;
   see [Themes and contrast](#themes-and-contrast).
 - **`Tsubu.contrast(foreground, background, backdrop)`**: the WCAG contrast ratio (1 to 21) of two
@@ -350,6 +358,63 @@ A sentence without times for its segments (timing `"sentence"`) is never paged, 
 of it is being read is not known: it is shown whole. Segments on other pages get `display: none`,
 so they are also hidden from assistive technology until their page comes.
 
+## Motion and revealing
+
+Motion presets change how a sentence shows what has and has not been heard. Each one is drawn by
+`tsubu.css` from the state `apply` writes, so every frame is still a function of `t`; there is no
+timer and no transition. Choose them with `options.motion` or `data-tsubu-motion` on any ancestor;
+several can be combined. *Unheard* means neither current nor past: in the future, or in a sentence
+that has not been applied (timing `"none"`).
+
+| Preset | What it draws |
+|---|---|
+| `appear` | segments appear as they are spoken; nothing unheard is drawn, not even its underline |
+| `mask` | unheard segments are blanks: no text and no reading, but the underline, so the length of what is to come shows; for listening and fill-in exercises |
+| `blur` | unheard segments, readings included, are blurred (`--tsubu-blur`, `0.15em`) |
+| `underline-draw` | the underline of the segment being spoken draws itself in over the segment's time; unheard segments have none yet |
+
+**Revealing on the caller's events.** `Tsubu.setRevealed(root, [2, 3])` shows segments 2 and 3 as
+if they had been heard, whatever `t` is: for a word the learner said right, a tap, a button.
+tsubu handles no events itself. `Tsubu.segmentOf(event.target)` tells a click handler which segment
+was hit. What is drawn is then a function of `t` and of the revealed set, and
+`htmlAt(t, { revealed })` renders the same thing without a page.
+
+```js
+const s = Tsubu.sentence(input, { motion: "mask" });   // no times: every segment starts as a blank
+let shown = [];
+root.addEventListener("click", (event) => {
+  const i = Tsubu.segmentOf(event.target);
+  if (i !== null) shown = Tsubu.setRevealed(root, [...shown, i]);
+});
+recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); };  // your own speech check
+```
+
+`Tsubu.MOTIONS` is the same list as data: each preset's `name`, `purpose`, the timing it `needs`,
+what it does `without` that timing, its `parameters` (custom property, default, range, meaning),
+what it does under `prefers-reduced-motion: reduce`, and whether it is `revealable`. The tests
+check that the catalogue and the stylesheet agree.
+
+**Choosing motion (for agents and template authors).** Choose from the catalogue, do not invent
+motion; and use motion only to show a change in what is being read, never to decorate.
+
+- Plain read-along, subtitles: no preset. The highlight already shows what is being read.
+- Teaching a sentence in a video, line by line: `appear`, or `underline-draw` when the whole
+  sentence should stay readable.
+- Listening and dictation: `mask` (the blanks show length) or `blur` (the shape shows), revealed
+  by time or by the learner's answers.
+- Do not combine `appear` with `mask` or `blur`: `appear` already hides everything they would.
+- With timing `"sentence"` the presets act on the whole sentence at once; say so to the viewer,
+  rather than adding motion that suggests segment timing that is not there.
+- Do not dim what has been read with opacity: it would fall below the contrast thresholds. Use the
+  past colour group, which the themes already set within them.
+
+Not offered: a character-by-character wipe, which needs per-character times tsubu does not have.
+Under `prefers-reduced-motion: reduce`, `underline-draw` draws the underline whole at once; the
+others are changes of state, not movement. Text hidden by `mask` is still in the page, so screen
+readers read it; for a test, keep the answer out of the page or use `appear`. `checkContrast`
+reveals every segment in its copy, so every colour that can be drawn is checked, and it counts
+opacity on a layer.
+
 ## Accessibility
 
 - **Forced colours.** In forced-colours mode (Windows contrast themes and the like) browsers
@@ -413,6 +478,10 @@ Each of these is checked by measuring the page in headless Chromium (see `tests/
 - **Forced colours and screen readers** (`tests/test_a11y.py`): under emulated forced colours the
   segment being spoken has the system highlight in every theme and timing, and nothing moves; with
   `announceRuby` off the accessibility tree holds no reading.
+- **Motion presets** (`tests/test_motion.py`): each draws what it says for unheard segments only,
+  a revealed segment is drawn as without the preset, nothing moves with any preset or reveal,
+  frames are byte-identical screenshots whatever order `t` and reveals come in, every theme meets
+  its thresholds with every preset, and the catalogue matches the stylesheet.
 - **No motion.** Every element has `transition: none` and `animation: none`, and repeated
   `apply` calls produce the same attributes, text and node count.
 
