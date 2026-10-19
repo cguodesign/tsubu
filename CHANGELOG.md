@@ -6,8 +6,30 @@ All notable changes to tsubu are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-19
+
+First version.
+
 ### Added
 
+- `Tsubu.sentence(input, options)` renders one sentence that the caller has already cut into
+  segments: each segment is an unbreakable span with its own dotted underline, a `<wbr>` lets
+  lines break between segments (never before punctuation), and parts with a reading are drawn
+  as `<ruby>`.
+- Strict timing contract: every spoken segment timed (`"segments"`), only the whole sentence
+  timed (`"sentence"`) or no times (`"none"`). Partly timed sentences, overlapping or reversed
+  times, timed punctuation and malformed input are refused with an error; nothing is estimated.
+- `stateAt(t)`, a pure function of `t`, and `apply(root, t)`, which writes that state as
+  `data-state`, `aria-current` and `--tsubu-progress` without touching text or nodes.
+- `Tsubu.setRuby(root, on)` shows or hides furigana without moving any character.
+- `tsubu.css` with `--tsubu-*` custom properties for line height, furigana, underline and
+  highlight; no transitions or animations.
+- `Tsubu.version` and `Tsubu.STATES`.
+- A demo page (`demo/index.html`) that works from `file://`.
+- Tests: the state in Node, the layout measured in headless Chromium through Playwright.
+- A hygiene test: no tracked file and no commit message may contain an absolute local path, or a
+  term from an optional, untracked `.leakcheck.local` list.
+- README in English and Simplified Chinese, and a roadmap.
 - Colour tokens in groups, one per state (future, current, past), each with text, furigana and
   underline colours and falling back to a base group (`--tsubu-text-color`, `--tsubu-ruby-color`,
   `--tsubu-underline-color`); the current group also has the highlight background. The existing
@@ -120,6 +142,8 @@ All notable changes to tsubu are recorded here. The format follows
 
 ### Changed
 
+Changed during development, against the design described under Added.
+
 - The highlight and the underline are drawn from the em box of the text, not from the segment's
   box, which is the font's content area: the highlight is a positioned layer behind each segment
   (its `::before`), a band 1em tall plus `--tsubu-current-spread`, and the underline sits
@@ -135,6 +159,8 @@ All notable changes to tsubu are recorded here. The format follows
   box, as they already did in Firefox.
 
 ### Fixed
+
+Fixed during development, before this first release.
 
 - In WebKit 26.0 (Playwright's build 2191) `text-wrap: balance` can put a sentence on one more
   line than greedy breaking, so a page could show more lines than `--tsubu-max-lines`. `apply`
@@ -158,27 +184,5 @@ All notable changes to tsubu are recorded here. The format follows
   the readings; a column now grows only for readings that would reach the characters of the next. Vertical text holds every guarantee in WebKit but balanced
   columns.
 
-## [0.1.0] - unreleased
-
-First version.
-
-### Added
-
-- `Tsubu.sentence(input, options)` renders one sentence that the caller has already cut into
-  segments: each segment is an unbreakable span with its own dotted underline, a `<wbr>` lets
-  lines break between segments (never before punctuation), and parts with a reading are drawn
-  as `<ruby>`.
-- Strict timing contract: every spoken segment timed (`"segments"`), only the whole sentence
-  timed (`"sentence"`) or no times (`"none"`). Partly timed sentences, overlapping or reversed
-  times, timed punctuation and malformed input are refused with an error; nothing is estimated.
-- `stateAt(t)`, a pure function of `t`, and `apply(root, t)`, which writes that state as
-  `data-state`, `aria-current` and `--tsubu-progress` without touching text or nodes.
-- `Tsubu.setRuby(root, on)` shows or hides furigana without moving any character.
-- `tsubu.css` with `--tsubu-*` custom properties for line height, furigana, underline and
-  highlight; no transitions or animations.
-- `Tsubu.version` and `Tsubu.STATES`.
-- A demo page (`demo/index.html`) that works from `file://`.
-- Tests: the state in Node, the layout measured in headless Chromium through Playwright.
-- A hygiene test: no tracked file and no commit message may contain an absolute local path, or a
-  term from an optional, untracked `.leakcheck.local` list.
-- README in English and Simplified Chinese, and a roadmap.
+[Unreleased]: https://github.com/cguodesign/tsubu/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/cguodesign/tsubu/releases/tag/v0.1.0

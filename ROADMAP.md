@@ -32,9 +32,6 @@ are left out on purpose.
 
 ## Later
 
-- An npm package with three forms: the classic script, an ES module and TypeScript declarations
-  (`.d.ts`).
-- The demo published on GitHub Pages.
 - `<rp>` fallback parentheses in the output.
 - Adapters that turn other formats into tsubu's input: kuroshiro's furigana output, Remotion
   caption data, and WebVTT cues with timestamps.
