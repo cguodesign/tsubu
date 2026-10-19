@@ -29,6 +29,9 @@
   .controls input[type=range] { width: 180px; max-width: 50vw; }
   #motion-bubble .tsubu-seg { cursor: pointer; }
   .frame { max-width: 100%; outline: 1px dashed #9ca3af; outline-offset: 6px; margin: 8px 0; }
+  /* A vertical title card: the column length is the bubble's height; the sentence sits at the
+   * right, where vertical text begins. */
+  .bubble.vertical { height: 360px; display: flex; justify-content: flex-end; }
   /* Each card is the backdrop its theme is designed for; "media" sits on a stand-in for a
    * photograph, light at the top and dark at the bottom, so the plate has to work on both. */
   #cards[data-tsubu-theme="dark"] .card { background: #0f172a; }
@@ -40,6 +43,7 @@
     main { padding: 16px 16px 48px; }
     .card { padding: 12px 16px 16px; border-radius: 16px; }
     .bubble { font-size: 26px; }
+    .bubble.vertical { height: 300px; }
   }
 </style>
 </head>
@@ -49,9 +53,9 @@
     <img src="../assets/logo.svg" alt="">
     <h1>tsubu demo</h1>
   </header>
-  <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana, or pick another theme, and see that nothing moves. Under each card, <code>Tsubu.checkContrast()</code> reports the lowest contrast it measured in any state; "none" shows the unthemed defaults, which are not a preset and do not pass. The sentences were written for this page and their times are invented, not measured. The motion card hides what has not been heard yet; click a segment to reveal it. The last card is a fluid frame: drag its width to see the size follow it, and set a maximum number of lines to see the sentence paged by <code>t</code>. The address accepts <code>?t=seconds&amp;ruby=off&amp;theme=dark&amp;frame=320&amp;lines=2&amp;motion=mask</code>.</p>
+  <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana, or pick another theme, and see that nothing moves. Under each card, <code>Tsubu.checkContrast()</code> reports the lowest contrast it measured in any state; "none" shows the unthemed defaults, which are not a preset and do not pass. The sentences were written for this page and their times are invented, not measured. The motion card hides what has not been heard yet; click a segment to reveal it. The vertical card is the same library with <code>writing: "vertical"</code>. The last card is a fluid frame: drag its width to see the size follow it, and set a maximum number of lines to see the sentence paged by <code>t</code>. The address accepts <code>?t=seconds&amp;ruby=off&amp;theme=dark&amp;frame=320&amp;lines=2&amp;motion=mask</code>.</p>
   <div id="bar">
-    <label>t <input id="t" type="range" min="-0.5" max="16" step="0.01" value="0"></label>
+    <label>t <input id="t" type="range" min="-0.5" max="21" step="0.01" value="0"></label>
     <output id="tv">0.00 s</output>
     <label><input id="ruby" type="checkbox" checked> furigana</label>
     <label>theme <select id="theme"><option>light</option><option>dark</option><option>media</option><option value="">none</option></select></label>
@@ -131,6 +135,22 @@ const EXAMPLES = [
 // The motion card shows the first sentence again, with a preset; click a segment to reveal it.
 EXAMPLES.push({ title: "Motion presets: unheard segments are hidden, masked or blurred until spoken, or until you click them (Tsubu.setRevealed)",
   motion: true, input: EXAMPLES[0].input });
+// 2025年10月1日から、駅前の図書館でAIの講座が始まります。
+//   "From 1 October 2025, a course on AI begins at the library by the station."
+EXAMPLES.push({ title: "Vertical writing: columns from right to left, furigana at the right, short runs of digits and letters upright",
+  writing: "vertical", input: {
+    segments: [
+      { parts: [{ text: "2025" }, { text: "年", ruby: "ねん" }], start: 16.2, end: 16.9 },
+      { parts: [{ text: "10" }, { text: "月", ruby: "がつ" }], start: 16.9, end: 17.3 },
+      { parts: [{ text: "1" }, { text: "日", ruby: "にち" }, { text: "から" }], start: 17.3, end: 17.8 },
+      { parts: [{ text: "、" }], kind: "punct" },
+      { parts: [{ text: "駅前", ruby: "えきまえ" }, { text: "の" }], start: 17.95, end: 18.4 },
+      { parts: [{ text: "図書館", ruby: "としょかん" }, { text: "で" }], start: 18.4, end: 18.95 },
+      { parts: [{ text: "AI" }, { text: "の" }], start: 18.95, end: 19.3 },
+      { parts: [{ text: "講座", ruby: "こうざ" }, { text: "が" }], start: 19.3, end: 19.7 },
+      { parts: [{ text: "始", ruby: "はじ" }, { text: "まります" }], start: 19.7, end: 20.4 },
+      { parts: [{ text: "。" }], kind: "punct" },
+    ] } });
 // The fluid frame shows the long sentence again.
 EXAMPLES.push({ title: "A fluid frame: the size follows the frame's width, and beyond the maximum number of lines the sentence is paged by t",
   frame: true, input: EXAMPLES[2].input });
@@ -150,7 +170,7 @@ const frameLines = params.get("lines") || "2";
 // on its own root.
 let card;
 const shown = EXAMPLES.map((ex) => {
-  const s = Tsubu.sentence(ex.input, { ruby: rubyBox.checked, speaker: ex.speaker });
+  const s = Tsubu.sentence(ex.input, { ruby: rubyBox.checked, speaker: ex.speaker, writing: ex.writing });
   if (ex.title) {
     card = document.createElement("section");
     card.className = "card";
@@ -177,6 +197,7 @@ const shown = EXAMPLES.map((ex) => {
     parts.push(controls);
     bubble.id = "motion-bubble";
   }
+  if (ex.writing === "vertical") bubble.classList.add("vertical");
   if (ex.frame) {
     const controls = document.createElement("div");
     controls.className = "controls";

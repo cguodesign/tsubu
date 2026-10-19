@@ -108,3 +108,35 @@ def test_the_demo_motion_card_hides_what_is_unheard_and_reveals_a_clicked_segmen
         assert errors == []
     finally:
         page.close()
+
+
+VERTICAL = """() => { const root = document.querySelector('.bubble.vertical .tsubu'), card = root.closest('.card');
+  const box = (e) => { const r = e.getBoundingClientRect(); return {left: r.left, right: r.right, top: r.top, bottom: r.bottom}; };
+  return {writing: getComputedStyle(root).writingMode, root: box(root), card: box(card), bubble: box(root.parentElement),
+          current: [...root.querySelectorAll('[aria-current]')].map((e) => e.dataset.index),
+          upright: [...root.querySelectorAll('.tsubu-upright')].map((e) => [e.textContent, getComputedStyle(e).textCombineUpright]),
+          rts: [...root.querySelectorAll('rt')].map((rt) => [box(rt), box(rt.parentElement)]),
+          contrast: card.querySelector('.contrast').textContent}; }"""
+
+
+def test_the_demo_page_has_a_vertical_card_that_fits_a_phone(browser):
+    for width, height in ((1280, 900), (390, 844)):
+        page = browser.new_page(viewport={"width": width, "height": height})
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        try:
+            page.goto(DEMO.as_uri() + "?t=17.0")
+            found = page.evaluate(VERTICAL)
+            assert found["writing"] == "vertical-rl"
+            assert found["current"] == ["1"]  # 10月 is being spoken at 17.0 s
+            assert found["upright"] == [["10", "all"], ["1", "all"], ["AI", "all"]]
+            assert found["contrast"].startswith("contrast ✓")
+            # the furigana are at the right of their bases, and the sentence stays inside its card,
+            # set at the right of it, where vertical text begins
+            assert found["rts"] and all(rt["left"] >= base["right"] - 1 for rt, base in found["rts"])
+            assert found["card"]["left"] <= found["root"]["left"] and found["root"]["right"] <= found["card"]["right"]
+            assert abs(found["root"]["right"] - found["bubble"]["right"]) < 1
+            assert page.evaluate("() => document.documentElement.scrollWidth") <= width
+            assert errors == []
+        finally:
+            page.close()
