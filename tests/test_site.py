@@ -136,7 +136,7 @@ def test_the_navigation_links_every_page_and_marks_the_current_one(site):
     for name in PAGES:
         page = site(name)
         hrefs = page.evaluate("() => [...document.querySelectorAll('.nav a')].map((a) => a.getAttribute('href'))")
-        assert hrefs == PAGES
+        assert hrefs[:len(PAGES)] == PAGES and all(h.startswith("https://github.com/") for h in hrefs[len(PAGES):])
         assert page.evaluate("() => document.querySelector('.nav a[aria-current=page]').getAttribute('href')") == name
 
 

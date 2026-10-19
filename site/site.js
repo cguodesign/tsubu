@@ -11,7 +11,7 @@ window.Site = (function () {
     ["api.html", "API", "API"], ["playground.html", "Playground", "试验场"], ["gallery.html", "Gallery", "画廊"],
   ];
   // The repository's address, once it is public: the masthead and the footer link to it.
-  const REPO = "";
+  const REPO = "https://github.com/cguodesign/tsubu";
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } } };
 
