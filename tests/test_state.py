@@ -149,7 +149,9 @@ def test_lang_is_written_on_the_root():
 
 
 def test_text_is_escaped():
-    html = run_library({"segments": [seg("<b>&", ("\"'", "<i>"))]})["html"]
+    # horizontal by its own option, so no run of half-width characters is marked to be set upright
+    # (escaping inside those marks is checked in tests/test_vertical.py)
+    html = run_library({"segments": [seg("<b>&", ("\"'", "<i>"))]}, options={"writing": "horizontal"})["html"]
     assert "&lt;b&gt;&amp;" in html and "&quot;&#39;<rt>&lt;i&gt;</rt>" in html and "<b>" not in html
 
 

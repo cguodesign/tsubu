@@ -17,6 +17,10 @@
  * Colours come from tsubu.css: custom properties, and theme presets selected with
  * data-tsubu-theme. checkContrast() measures them in the browser against the thresholds in
  * CONTRAST, so a theme can be verified rather than trusted.
+ *
+ * Vertical writing (data-tsubu-writing="vertical") is drawn by tsubu.css; the script marks short
+ * runs of half-width characters to be set upright, and pages and checks contrast along the axis
+ * the layout actually has.
  */
 (function (global, factory) {
   const api = factory();
@@ -82,6 +86,14 @@
   const NO_START = /^[、。，．,.)\]}）〕］｝〉》」』】〙〗〟’”｠»ー〜～゠‐–・：；:;？！?!‼⁇⁈⁉ゝゞヽヾ々〻ぁぃぅぇぉっゃゅょゎゕゖァィゥェォッャュョヮヵヶㇰ-ㇿｧ-ｯｰ]/u;
   /* ... and these may not end one (opening brackets). */
   const NO_END = /[(\[{（〔［｛〈《「『【〘〖〝‘“｟«]$/u;
+
+  const WRITING = Object.freeze(["horizontal", "vertical"]);
+  /* A run of half-width letters, digits and marks (ASCII other than space and brackets). In
+   * vertical text such a run lies on its side (text-orientation: mixed); a short one is set
+   * upright across the column instead, with text-combine-upright, as in 10月. Brackets are left
+   * out so that ASCII parentheses still turn with the column around what they enclose. */
+  const HALF_WIDTH_RUN = /([!-'*-;=?-Z\\^-z|~]+)/;
+  const UPRIGHT_MAX = 4;
 
   function fail(message) {
     throw new Error(`tsubu: ${message}`);
@@ -162,6 +174,17 @@
     return { lang: input.lang || "ja", segments, timing, start, end };
   }
 
+  /* A part's text as HTML, with each run of half-width characters no longer than `upright` in a
+   * span that vertical text sets upright (tsubu.css). In horizontal text the span has no style,
+   * so it changes nothing there. */
+  function textHTML(text, upright) {
+    if (!upright) return escapeHTML(text);
+    return text
+      .split(HALF_WIDTH_RUN)
+      .map((piece, i) => (i % 2 === 1 && piece.length <= upright ? `<span class="tsubu-upright">${escapeHTML(piece)}</span>` : escapeHTML(piece)))
+      .join("");
+  }
+
   /* The attributes apply() writes for a state, as HTML (in the order Chromium serialises them,
    * which writes the style attribute last; the order carries no meaning). */
   function stateAttributes(state, progress, current, revealed) {
@@ -175,9 +198,15 @@
     // With announceRuby off, screen readers read the sentence once, without each reading after
     // its base.
     const rt = look.announceRuby === false ? '<rt aria-hidden="true">' : "<rt>";
+    // Short runs are marked unless the sentence is horizontal by its own option: without one, a
+    // vertical ancestor can still make it vertical, as a theme set on an ancestor applies.
+    const upright = look.writing === "horizontal" ? 0 : look.combineUpright;
     const segments = sentence.segments.map((segment, i) => {
       const inner = segment.parts
-        .map((p) => (p.ruby === undefined ? escapeHTML(p.text) : `<ruby>${escapeHTML(p.text)}${rt}${escapeHTML(p.ruby)}</rt></ruby>`))
+        .map((p) => {
+          const base = textHTML(p.text, upright);
+          return p.ruby === undefined ? base : `<ruby>${base}${rt}${escapeHTML(p.ruby)}</rt></ruby>`;
+        })
         .join("");
       const kind = segment.punct ? ' data-kind="punct"' : "";
       const shown = Boolean(revealed && revealed.includes(i));
@@ -201,8 +230,9 @@
     const theme = look.theme ? ` data-tsubu-theme="${look.theme}"` : "";
     const speaker = look.speaker ? ` data-speaker="${look.speaker}"` : "";
     const motion = look.motion.length ? ` data-tsubu-motion="${look.motion.join(" ")}"` : "";
+    const writing = look.writing ? ` data-tsubu-writing="${look.writing}"` : "";
     const state = at ? stateAttributes(at.state, at.progress, at.timing === "sentence" && at.state === "current") : "";
-    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${ruby ? "on" : "off"}"${theme}${speaker}${motion}${state}>${joined}</span>`;
+    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${ruby ? "on" : "off"}"${theme}${speaker}${motion}${writing}${state}>${joined}</span>`;
   }
 
   /* The state of the sentence and of each segment at t (seconds, on the same clock as the
@@ -262,12 +292,27 @@
     return n;
   }
 
+  /* The axis along which the lines of a drawn sentence follow one another, read from the layout
+   * rather than from an attribute, so a writing mode set on an ancestor counts too: down the
+   * page in horizontal text, and from right to left in vertical-rl text, whose lines are columns
+   * (left to right in vertical-lr, which tsubu does not set but measures correctly).
+   *   start(rect)  where a box lies along that axis, growing from one line to the next;
+   *   span(rect)   the box's extent across its line, in page coordinates, as [low, high];
+   *   side         the physical side of a segment's line, its block-end side. */
+  function blockAxis(root) {
+    const mode = getComputedStyle(root).writingMode || "horizontal-tb";
+    if (mode === "horizontal-tb") return { vertical: false, start: (r) => r.top, span: (r) => [r.top, r.bottom], side: "bottom" };
+    const rl = !/-lr$/.test(mode);
+    return { vertical: true, start: (r) => (rl ? -r.right : r.left), span: (r) => [r.left, r.right], side: rl ? "left" : "right" };
+  }
+
   /* With a maximum number of lines, shows only the page that holds the segment being spoken:
    * between two segments, the page of the one just spoken; before the first, the first page.
    * The lines come from the layout itself: the sentence is laid out whole and greedily, segment
    * by segment, and every `lines` lines make a page. Which page is shown depends on t and that
    * layout alone. A sentence without times for its segments is never paged, because which part
-   * of it is being read is not known. */
+   * of it is being read is not known. In vertical text the lines are columns, read from right to
+   * left. */
   function applyPages(root, elements, s) {
     const lines = linesPerPage(root);
     for (const el of elements) el.removeAttribute("data-off-page");
@@ -276,16 +321,17 @@
     if (lines === null || s.timing !== "segments") return { page: null, pages: null };
 
     root.setAttribute("data-measuring", "");
-    const tops = Array.from(elements, (el) => el.getBoundingClientRect().top);
+    const axis = blockAxis(root);
+    const starts = Array.from(elements, (el) => axis.start(el.getBoundingClientRect()));
     root.removeAttribute("data-measuring");
-    // Segments are nowrap, so each lies on one line; a segment lower by half a line or more
-    // begins a new one.
+    // Segments are nowrap, so each lies on one line; a segment further along the block axis by
+    // half a line or more (lower, or in vertical text further left) begins a new one.
     const half = (parseFloat(getComputedStyle(root).fontSize) || 16) / 2;
-    let line = 0, lineTop = tops[0];
-    const pageOf = tops.map((top) => {
-      if (top >= lineTop + half) {
+    let line = 0, lineStart = starts[0];
+    const pageOf = starts.map((start) => {
+      if (start >= lineStart + half) {
         line++;
-        lineTop = top;
+        lineStart = start;
       }
       return Math.floor(line / lines);
     });
@@ -327,7 +373,8 @@
    * Tsubu.sentence(input, options) -> { html, timing, stateAt(t), htmlAt(t), apply(root, t) }
    *   input:   { lang?, start?, end?, segments: [{ parts: [{ text, ruby? }], start?, end?, kind? }] }
    *   options: { ruby: true | false (default true), announceRuby: true | false (default true),
-   *              theme?: name, speaker?: name, motion?: names from MOTIONS }
+   *              theme?: name, speaker?: name, motion?: names from MOTIONS,
+   *              writing?: "horizontal" | "vertical", combineUpright: 0 to 4 (default 2) }
    */
   function sentence(input, options) {
     const opts = options || {};
@@ -336,9 +383,14 @@
     for (const key of ["theme", "speaker"])
       if (opts[key] !== undefined && (typeof opts[key] !== "string" || !NAME.test(opts[key])))
         fail(`options.${key} must be a name in lower case, such as ${JSON.stringify(key === "theme" ? THEMES[0] : SPEAKERS[0])}`);
+    if (opts.writing !== undefined && !WRITING.includes(opts.writing)) fail('options.writing must be "horizontal" or "vertical"');
+    const upright = opts.combineUpright === undefined ? 2 : opts.combineUpright;
+    if (!Number.isInteger(upright) || upright < 0 || upright > UPRIGHT_MAX)
+      fail(`options.combineUpright must be a whole number of characters from 0 to ${UPRIGHT_MAX}`);
     const normalised = normalise(input);
     const ruby = opts.ruby !== false;
-    const look = { theme: opts.theme, speaker: opts.speaker, announceRuby: opts.announceRuby, motion: motionNames(opts.motion) };
+    const look = { theme: opts.theme, speaker: opts.speaker, announceRuby: opts.announceRuby, motion: motionNames(opts.motion),
+      writing: opts.writing, combineUpright: upright };
     return Object.freeze({
       html: renderHTML(normalised, ruby, look),
       timing: normalised.timing,
@@ -481,7 +533,8 @@
    * before any apply and with timing "none", then each of STATES), for each layer (text,
    * furigana, underline, and the highlight against what surrounds it), against each backdrop.
    * A layer is measured against the highlight when the highlight covers its middle: furigana sit
-   * above the highlighted line, so they are measured against the plate and the backdrop.
+   * above the highlighted line (to its right in vertical text), so they are measured against the
+   * plate and the backdrop.
    *   options: { backdrop?: colour | [colours] | "any", thresholds?: { text, ruby, underline, highlight } }
    * It works on a copy of the sentence, which it removes again: the page is left as it was.
    */
@@ -503,6 +556,10 @@
     root.after(copy);
     const seen = new Map();
     try {
+      // Across the line: vertically in horizontal text, horizontally in vertical text, where the
+      // furigana sit to the right of the highlight and the segment's line to its left.
+      const axis = blockAxis(copy);
+      const side = axis.side[0].toUpperCase() + axis.side.slice(1);
       const segments = [...copy.querySelectorAll(":scope > .tsubu-unit > .tsubu-seg")];
       // Every segment shown, revealed and with its furigana: whatever can be drawn is checked.
       // (What a motion preset hides while it is unheard is drawn in these colours once revealed.)
@@ -533,12 +590,14 @@
             // text and reaches `spread` past it. A layer is on the highlight when the band covers
             // its middle (and checked against both when the band covers only part of it); a
             // layer whose middle lies outside the band, like the furigana, whose box the spread
-            // just grazes, is on what is behind the highlight.
+            // just grazes, is on what is behind the highlight. Positions are compared across the
+            // line, which is horizontal in vertical text.
             const box = el.getBoundingClientRect();
             const spread = highlight[3] > 0 ? parseFloat((/(-?[\d.]+)px\s*$/.exec(style.boxShadow) || [])[1]) || 0 : 0;
+            const [low, high] = axis.span(box);
             const backgroundsFor = (top, bottom) => {
               if (highlight[3] === 0) return [base];
-              const from = box.top - spread, to = box.bottom + spread, middle = (top + bottom) / 2;
+              const from = low - spread, to = high + spread, middle = (top + bottom) / 2;
               if (middle < from || middle > to) return [base];
               return top >= from && bottom <= to ? [behind] : [behind, base];
             };
@@ -547,14 +606,17 @@
             const rt = el.querySelector("rt");
             const rtStyle = rt && getComputedStyle(rt);
             if (rt && rtStyle.visibility !== "hidden") {
-              const r = rt.getBoundingClientRect();
-              for (const under of backgroundsFor(r.top, r.bottom)) layers.push(["ruby", rtStyle.color, under, fade(rt)]);
+              const [a, b] = axis.span(rt.getBoundingClientRect());
+              for (const under of backgroundsFor(a, b)) layers.push(["ruby", rtStyle.color, under, fade(rt)]);
             }
+            // The underline, or in vertical text the side line: a border on the block-end side of
+            // the segment's ::after, offset from the segment's box.
             const after = getComputedStyle(el, "::after");
-            if (after.content !== "none" && after.borderBottomStyle !== "none" && after.visibility !== "hidden") {
-              const bottom = box.bottom - parseFloat(after.bottom);
-              for (const under of backgroundsFor(bottom - parseFloat(after.borderBottomWidth), bottom))
-                layers.push(["underline", after.borderBottomColor, under, fade(el, after)]);
+            if (after.content !== "none" && after[`border${side}Style`] !== "none" && after.visibility !== "hidden") {
+              const width = parseFloat(after[`border${side}Width`]);
+              const edge = axis.side === "left" ? box.left + parseFloat(after.left) : axis.side === "right" ? box.right - parseFloat(after.right) : box.bottom - parseFloat(after.bottom);
+              const [a, b] = axis.side === "left" ? [edge, edge + width] : [edge - width, edge];
+              for (const under of backgroundsFor(a, b)) layers.push(["underline", after[`border${side}Color`], under, fade(el, after)]);
             }
             if (highlight[3] > 0 && style.visibility !== "hidden") layers.push(["highlight", style.backgroundColor, base, fade(el)]);
             for (const [layer, colour, under, alpha] of layers) {

@@ -7,23 +7,27 @@
  * Layout
  *   --tsubu-line-height              1.75
  *   --tsubu-ruby-reserve             0.3em    room above the first line for its furigana
+ *                                             (at the right of the first column in vertical text)
  *   --tsubu-ruby-size                0.5em
  *   --tsubu-ruby-weight              400
  *   --tsubu-underline-style          dotted
  *   --tsubu-underline-width          0.06em
- *   --tsubu-underline-offset         0.02em   below the bottom of the segment's box
+ *   --tsubu-underline-offset         0.02em   below the bottom of the segment's box (left of it in
+ *                                             vertical text, where the underline is a side line)
  *   --tsubu-underline-inset          0.12em   in from each end, so neighbouring underlines stay apart
  *   --tsubu-current-spread           0.06em   drawn as a box-shadow, so it takes no room
  *   --tsubu-current-radius           0.18em
  *   --tsubu-plate-spread             0px      how far the plate reaches past the sentence's box
  *   --tsubu-plate-radius             0
  *   --tsubu-wrap                     balance  `text-wrap` of the sentence: balance, pretty or wrap
- *   --tsubu-max-lines                none     more lines than this are paged by t (see apply())
+ *   --tsubu-max-lines                none     more lines than this are paged by t (see apply());
+ *                                             in vertical text, more columns
  *
  * Fluid size, inside an element with class `tsubu-fluid` (a query container): the font size is
  * the container's width divided by a number of characters per line, between a minimum and a
  * maximum. Everything else is in em, so spacing, furigana and underlines scale with it. The
  * container's width is split into three steps; the breakpoints are fixed, the values are not.
+ * In vertical text the container's height takes the width's place (see below).
  *   --tsubu-size-min                 14px
  *   --tsubu-size-max                 72px
  *   --tsubu-narrow-chars             11       container narrower than 480px
@@ -53,7 +57,8 @@
 .tsubu {
   display: block;
   line-height: var(--tsubu-line-height, 1.75);
-  padding-top: var(--tsubu-ruby-reserve, 0.3em);
+  /* Logical, so in vertical text the room is at the right of the first column. */
+  padding-block-start: var(--tsubu-ruby-reserve, 0.3em);
   color: var(--tsubu-text-color);
   position: relative;
   isolation: isolate;
@@ -82,6 +87,56 @@
 }
 @container tsubu (width >= 960px) {
   .tsubu-fluid .tsubu {
+    --tsubu-chars-now: var(--tsubu-wide-chars, 18);
+    --tsubu-page-lines: var(--tsubu-wide-max-lines, var(--tsubu-max-lines, none));
+  }
+}
+
+/*
+ * Vertical writing: data-tsubu-writing="vertical" on the root (options.writing) or on any
+ * ancestor; "horizontal" on the root keeps a sentence horizontal inside a vertical ancestor.
+ * Columns run from right to left. Everything that depends on the direction is written with
+ * logical properties, so it follows on its own: the furigana (ruby-position: over) go to the
+ * right of the characters, the ruby reserve becomes room at the right of the first column, and
+ * each segment's underline becomes a side line at its left. The highlight, its spread and the
+ * plate are the same boxes turned with the text.
+ *
+ * Full-width punctuation, brackets and the long-vowel mark take their vertical forms from the
+ * font (OpenType vertical alternates, applied with text-orientation: mixed). Half-width letters
+ * and digits lie on their side, except short runs, which the script wraps in .tsubu-upright to
+ * be set upright across the column. text-combine-upright has no effect in horizontal text, so
+ * that span changes nothing there.
+ *
+ * The column length is the root's height, which a vertical block takes from its container when
+ * that has a definite height, and otherwise from its content, up to the viewport's height: give
+ * the container a height.
+ */
+.tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+.tsubu-upright { text-combine-upright: all; }
+
+/* Fluid vertical text: the column runs along the container's height, so the height drives the
+ * size, as the width does for lines. The container becomes a size container (it must then have
+ * a definite height, since size containment ignores its content), the font size is its height
+ * divided by the characters per column, and the steps go by its height. */
+.tsubu-fluid:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *, :has(.tsubu[data-tsubu-writing="vertical"])):not(:has(.tsubu[data-tsubu-writing="horizontal"])) {
+  container-type: size;
+}
+.tsubu-fluid .tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) {
+  --tsubu-chars-now: var(--tsubu-chars, 15);
+  --tsubu-page-lines: var(--tsubu-max-lines, none);
+  font-size: clamp(var(--tsubu-size-min, 14px), calc(100cqh / var(--tsubu-chars-now)), var(--tsubu-size-max, 72px));
+}
+@container tsubu (height < 480px) {
+  .tsubu-fluid .tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) {
+    --tsubu-chars-now: var(--tsubu-narrow-chars, 11);
+    --tsubu-page-lines: var(--tsubu-narrow-max-lines, var(--tsubu-max-lines, none));
+  }
+}
+@container tsubu (height >= 960px) {
+  .tsubu-fluid .tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) {
     --tsubu-chars-now: var(--tsubu-wide-chars, 18);
     --tsubu-page-lines: var(--tsubu-wide-max-lines, var(--tsubu-max-lines, none));
   }
@@ -135,10 +190,12 @@
 .tsubu-seg:not([data-kind="punct"])::after {
   content: "";
   position: absolute;
-  left: var(--tsubu-underline-inset, 0.12em);
-  right: var(--tsubu-underline-inset, 0.12em);
-  bottom: calc(-1 * var(--tsubu-underline-offset, 0.02em));
-  border-bottom: var(--tsubu-underline-width, 0.06em) var(--tsubu-underline-style, dotted) var(--tsubu-underline-color, #9ca3af);
+  /* Logical sides: below the segment in horizontal text, and in vertical text a side line at its
+   * left, the side opposite the furigana. */
+  inset-inline-start: var(--tsubu-underline-inset, 0.12em);
+  inset-inline-end: var(--tsubu-underline-inset, 0.12em);
+  inset-block-end: calc(-1 * var(--tsubu-underline-offset, 0.02em));
+  border-block-end: var(--tsubu-underline-width, 0.06em) var(--tsubu-underline-style, dotted) var(--tsubu-underline-color, #9ca3af);
   pointer-events: none;
 }
 
@@ -163,13 +220,13 @@
 .tsubu-seg[data-state="future"] { color: var(--tsubu-future-color, var(--tsubu-text-color)); }
 .tsubu-seg[data-state="future"] rt { color: var(--tsubu-future-ruby-color, var(--tsubu-ruby-color, #6b7280)); }
 .tsubu-seg[data-state="future"]::after {
-  border-bottom-color: var(--tsubu-future-underline-color, var(--tsubu-underline-color, #9ca3af));
+  border-block-end-color: var(--tsubu-future-underline-color, var(--tsubu-underline-color, #9ca3af));
 }
 
 .tsubu-seg[data-state="past"] { color: var(--tsubu-past-color, var(--tsubu-text-color)); }
 .tsubu-seg[data-state="past"] rt { color: var(--tsubu-past-ruby-color, var(--tsubu-ruby-color, #6b7280)); }
 .tsubu-seg[data-state="past"]::after {
-  border-bottom-color: var(--tsubu-past-underline-color, var(--tsubu-underline-color, #9ca3af));
+  border-block-end-color: var(--tsubu-past-underline-color, var(--tsubu-underline-color, #9ca3af));
 }
 
 .tsubu-seg[data-state="current"] {
@@ -181,7 +238,7 @@
   color: var(--tsubu-speaker-ruby-color, var(--tsubu-current-ruby-color, var(--tsubu-ruby-color, #6b7280)));
 }
 .tsubu-seg[data-state="current"]::after {
-  border-bottom-color: var(--tsubu-speaker-underline-color, var(--tsubu-current-underline-color, var(--tsubu-underline-color, #9ca3af)));
+  border-block-end-color: var(--tsubu-speaker-underline-color, var(--tsubu-current-underline-color, var(--tsubu-underline-color, #9ca3af)));
 }
 /* With only the sentence's time the whole sentence is lit: one band per line, no seams. */
 .tsubu[data-timing="sentence"] .tsubu-seg { border-radius: 0; }
@@ -198,7 +255,7 @@
     box-shadow: 0 0 0 var(--tsubu-current-spread, 0.06em) Highlight;
   }
   .tsubu-seg[data-state="current"] rt { color: CanvasText; }
-  .tsubu-seg[data-state="current"]::after { border-bottom-color: HighlightText; }
+  .tsubu-seg[data-state="current"]::after { border-block-end-color: HighlightText; }
 }
 
 /*
@@ -230,8 +287,15 @@
   visibility: hidden;
 }
 [data-tsubu-motion~="underline-draw"] .tsubu-seg[data-state="current"]:not([data-revealed])::after {
-  transform: scaleX(var(--tsubu-progress, 1));
-  transform-origin: left center;
+  transform: scale(var(--tsubu-draw-x, var(--tsubu-progress, 1)), var(--tsubu-draw-y, 1));
+  transform-origin: var(--tsubu-draw-origin, left center);
+}
+/* In vertical text the line is a side line, drawn in from the top. Declared on the ::after itself,
+ * so that --tsubu-progress is the segment's own. */
+.tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg::after {
+  --tsubu-draw-x: 1;
+  --tsubu-draw-y: var(--tsubu-progress, 1);
+  --tsubu-draw-origin: center top;
 }
 @media (prefers-reduced-motion: reduce) {
   [data-tsubu-motion~="underline-draw"] .tsubu-seg[data-state="current"]:not([data-revealed])::after { transform: none; }

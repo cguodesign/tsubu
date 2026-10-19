@@ -187,3 +187,13 @@ def test_a_faded_layer_is_measured_with_its_opacity(drawn):
     found = at.page.evaluate("() => Tsubu.checkContrast(document.querySelector('.tsubu'))")
     assert {(f["state"], f["layer"]) for f in found["failures"]} >= {("past", "text")}
     assert {f["state"] for f in found["failures"]} == {"past"}
+
+
+def test_in_vertical_text_the_side_line_draws_in_from_the_top(drawn):
+    at = drawn(TIMED, motion="underline-draw", writing="vertical")
+    at(1.2)  # halfway through 本屋で
+    found = at.page.evaluate("""() => { const s = document.querySelector('.tsubu-seg[data-state="current"]'), a = getComputedStyle(s, '::after');
+      return [a.transform, a.transformOrigin, a.borderLeftStyle]; }""")
+    transform, origin, side = found
+    assert transform == "matrix(1, 0, 0, 0.5, 0, 0)" and side == "dotted"
+    assert origin.split()[1] == "0px"  # from the top

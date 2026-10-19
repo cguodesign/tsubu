@@ -24,8 +24,9 @@ SAME = """([input, options, times]) => times.map((t) => {
 TIMES = [-1, 0, 0.25, 0.5, 1.0, 1.45, 2.2, 3.0, 3.5, 4.0, 4.9, 5.0, 6.0, 9.0]
 
 
-@pytest.mark.parametrize("options", [{}, {"ruby": False}, {"theme": "media", "speaker": "b", "announceRuby": False}],
-                         ids=["plain", "ruby-off", "themed"])
+@pytest.mark.parametrize("options", [{}, {"ruby": False}, {"theme": "media", "speaker": "b", "announceRuby": False},
+                                     {"writing": "vertical", "motion": "underline-draw mask"}],
+                         ids=["plain", "ruby-off", "themed", "vertical-motion"])
 @pytest.mark.parametrize("sentence", [TIMED, WHOLE, LONG], ids=["timed", "whole", "two-lines"])
 def test_html_at_t_is_exactly_what_apply_makes_of_the_html(drawn, sentence, options):
     page = drawn(TIMED).page  # any page that has loaded the library
@@ -48,3 +49,12 @@ def test_html_at_is_a_pure_function_of_t_and_refuses_a_sentence_without_times():
     out = json.loads(done.stdout)
     assert out["same"] and not out["fresh"]
     assert out["refused"].startswith("tsubu: this sentence has no times")
+
+
+def test_html_at_keeps_short_runs_upright_in_vertical_text(drawn):
+    sentence = {"segments": [{"parts": [{"text": "10"}, {"text": "月", "ruby": "がつ"}], "start": 0, "end": 1},
+                             {"parts": [{"text": "2025"}], "start": 1, "end": 2}]}
+    page = drawn(TIMED).page
+    for t, equal, live, rendered in page.evaluate(SAME, [sentence, {"writing": "vertical"}, [0.5, 1.5]]):
+        assert equal, (t, live, rendered)
+        assert '<span class="tsubu-upright">10</span>' in rendered and "2025</span>" in rendered and ">2025<" in rendered

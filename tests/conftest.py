@@ -23,7 +23,7 @@ MEASURE = """() => {
       const range = document.createRange();
       range.setStart(node, i); range.setEnd(node, i + 1);
       chars.push({ch: node.data[i], rt: inRt, ruby: !inRt && !!node.parentElement.closest("ruby"),
-                  hidden: !!node.parentElement.closest("[data-off-page]"),
+                  hidden: !!node.parentElement.closest("[data-off-page]"), upright: !!node.parentElement.closest(".tsubu-upright"),
                   rubyIndex: rubies.indexOf(node.parentElement.closest("ruby")),
                   box: box(range.getBoundingClientRect())});
     }
@@ -35,8 +35,14 @@ MEASURE = """() => {
             current: el.getAttribute("aria-current"), decoration: getComputedStyle(el).textDecorationLine,
             progress: el.style.getPropertyValue("--tsubu-progress") || null,
             underline: {content: after.content, style: after.borderBottomStyle, width: parseFloat(after.borderBottomWidth),
-                        left, right: left + width, bottom: r.bottom + parseFloat(after.bottom) * -1}};
+                        left, right: left + width, bottom: r.bottom + parseFloat(after.bottom) * -1},
+            // in vertical-rl text the underline is a side line: the left border of the ::after
+            side: {style: after.borderLeftStyle, width: parseFloat(after.borderLeftWidth), color: after.borderLeftColor,
+                   left: r.left + parseFloat(after.left), right: r.left + parseFloat(after.left) + parseFloat(after.borderLeftWidth),
+                   top: r.top + parseFloat(after.top), bottom: r.top + parseFloat(after.top) + parseFloat(after.height)}};
   });
+  const upright = [...root.querySelectorAll(".tsubu-upright")].map((el) => ({text: el.textContent, box: box(el.getBoundingClientRect()),
+    combine: getComputedStyle(el).textCombineUpright}));
   const rts = [...root.querySelectorAll("rt")].map((rt) => ({box: box(rt.getBoundingClientRect()), hidden: !!rt.closest("[data-off-page]"),
     visibility: getComputedStyle(rt).visibility, base: box(rt.parentElement.getBoundingClientRect())}));
   const motion = [root, ...root.querySelectorAll("*")].map((el) => {
@@ -45,7 +51,7 @@ MEASURE = """() => {
           rootCurrent: root.getAttribute("aria-current"), rootState: root.dataset.state || null,
           rootProgress: root.style.getPropertyValue("--tsubu-progress") || null,
           page: root.dataset.page ?? null, pages: root.dataset.pages ?? null,
-          fontSize: parseFloat(getComputedStyle(root).fontSize),
+          fontSize: parseFloat(getComputedStyle(root).fontSize), writing: getComputedStyle(root).writingMode, upright,
           rubyAlign: rubies.map((r) => getComputedStyle(r).rubyAlign),
           chars, segments, rts, motion, text: root.textContent, nodes: root.querySelectorAll("*").length};
 }"""
