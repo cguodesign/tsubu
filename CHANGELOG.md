@@ -163,8 +163,3 @@ First version.
 - A hygiene test: no tracked file and no commit message may contain an absolute local path, or a
   term from an optional, untracked `.leakcheck.local` list.
 - README in English and Simplified Chinese, and a roadmap.
-
-### Notes
-
-- The copyright holder in `LICENSE` is still a placeholder and must be filled in before the
-  first public release.
