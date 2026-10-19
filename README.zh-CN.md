@@ -183,7 +183,7 @@ node docs/agents/validate.mjs input.json --text sentence.txt
 - **`apply(root, t)`**：把 `stateAt(t)` 写到页面上并返回它。`root` 必须是由 `html` 生成的那个 `.tsubu` 元素（是别的元素或段数不对就抛错）。它只设置属性：
   - 根元素：`data-state`、`--tsubu-progress`；timing 为 `"sentence"` 的句子正在读时带 `aria-current="true"`；
   - 每一段：`data-state`、`--tsubu-progress`（只有带时间的段）；正在读的那一段带 `aria-current="true"`；
-  - 设了最大行数时（见[按 t 翻页](#按-t-翻页)）：根元素带 `data-page` 和 `data-pages`，不在当前页的段带 `data-off-page`。这时返回的对象还有 `page`（从 0 开始）和 `pages`；句子不翻页时两者都是 `null`。
+  - 设了最大行数时（见[按 t 翻页](#按-t-翻页)）：根元素带 `data-page` 和 `data-pages`，不在当前页的段带 `data-off-page`；均衡换行会让这一页超出每页行数时，根元素带 `data-greedy`，这一页保持贪心断行（见[浏览器支持](#浏览器支持)）。这时返回的对象还有 `page`（从 0 开始）和 `pages`；句子不翻页时两者都是 `null`。
 
   它从不改文字，也从不增删节点。
 
@@ -443,7 +443,7 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 - **Chromium**：每条保证都成立。
 - **Firefox**：除了均衡换行，每条保证都成立。断行点只在 nowrap 单元之间时（tsubu 正是这样执行禁则的），Firefox 不执行 `text-wrap: balance`，所以行和列都按贪心断行。另外实测到：Firefox 139 里竖排时一列的宽度不管字体的 ascent 和 descent 如何都是 em 框（Firefox 153 和 Chromium 一样按它们算）；Firefox 把文字框的 ascent 和 descent 各自向上取整到整像素，而 Firefox 153 按字体本身的度量放置读音，所以字号不是整数时，读音的框会伸进汉字的框最多 1.4px，字形之间的距离和 Chromium 里一样；没有注音留白时，第一列的读音会伸出句子的框几个像素（留白把它们收进来，这正是留白的用途）；`htmlAt` 给出相同的元素树，只是 style 属性的位置不同。
 - **WebKit（Safari）**：除了均衡换行和均衡分列，横排竖排的每条保证都成立。
-  - 均衡换行：内联内容里有绝对定位的框（每段的高亮和下划线）时，WebKit 不执行 `text-wrap: balance`，所以按贪心断行。
+  - 均衡换行：Playwright 的 WebKit 构建 2182 里，内联内容有绝对定位的框（每段的高亮和下划线）时不执行 `text-wrap: balance`，按贪心断行。构建 2191（Playwright 1.54 自带的，WebKit 26.0）会均衡，但可能比贪心断行多用一行（实测：贪心是 8 字和 10 字，均衡后是 8、3、7 字），而均衡本不该增加行数。这会让一页超出 `--tsubu-max-lines` 时，`apply` 给根元素加 `data-greedy`，这一页保持贪心断行。
   - 强制颜色：WebKit 没有自己的强制颜色模式。模拟这个媒体查询时 tsubu 的规则生效，正在读的那一段用系统高亮色，但 WebKit 不替换其他任何颜色。
   - 不支持 `ascent-override` 和 `descent-override`，所以给字体套上 Noto Sans JP 度量的那组测试跑不了；用系统的 Hiragino Sans 时每条保证都实测过，网站上用内容区偏高的网页字体排的竖排句子也通过对比度检查。
   - 已在 tsubu 里修正：WebKit 让比汉字宽的读音伸到后面的假名上方，但段的框长度不变，于是伸进下一段，相邻的下划线连在一起；tsubu 设了 `ruby-overhang: none`。另外 WebKit 对内联元素中绝对定位框的计算 inset 是按外面的块给出的，所以 `checkContrast` 改为在取同样几何的探针上测量高亮和下划线，而不再读回这些值。在 `vertical-rl` 文字里，WebKit 把内联元素中的定位框以块的右边缘为轴镜像放置，段在边缘左边多远，框就落在边缘右边多远（实测），所以每段的高亮和侧线都画在离段很远的地方：竖排里每段因此是一个 `inline-block`（见[竖排](#竖排)）。WebKit 还会把有读音的汉字所用字体的整个内容区算进行里，不管行高是多少，并把读音放在内容区之外；段的行有 2em 宽来容纳它，列只按读音需要的宽度变宽。

@@ -136,6 +136,10 @@ All notable changes to tsubu are recorded here. The format follows
 
 ### Fixed
 
+- In WebKit 26.0 (Playwright's build 2191) `text-wrap: balance` can put a sentence on one more
+  line than greedy breaking, so a page could show more lines than `--tsubu-max-lines`. `apply`
+  now measures the page as drawn and, where balancing added a line, marks the root
+  `data-greedy` and the page keeps its greedy lines.
 - With Noto Sans JP and other web fonts whose content area is about 1.45em (Shippori Mincho B1,
   Zen Kaku Gothic New, the rest of the Noto family), the highlight reached 0.28em above the em
   box and covered the lower half of the furigana, which `checkContrast` reported. A test draws

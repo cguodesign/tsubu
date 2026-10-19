@@ -324,12 +324,13 @@
 
   /* Which line each element lies on, from the layout: segments are nowrap, so each lies on one
    * line, and one further along the block axis by half a line or more (lower, or in vertical text
-   * further left) begins a new one. Measured as laid out greedily, the way pages are counted. */
-  function lineIndexes(root, elements) {
-    root.setAttribute("data-measuring", "");
+   * further left) begins a new one. Measured as laid out greedily, the way pages are counted,
+   * unless `asDrawn`, which takes the layout as it is. */
+  function lineIndexes(root, elements, asDrawn) {
+    if (!asDrawn) root.setAttribute("data-measuring", "");
     const axis = blockAxis(root);
     const starts = Array.from(elements, (el) => axis.start(el.getBoundingClientRect()));
-    root.removeAttribute("data-measuring");
+    if (!asDrawn) root.removeAttribute("data-measuring");
     const half = (parseFloat(getComputedStyle(root).fontSize) || 16) / 2;
     let line = 0, lineStart = starts[0];
     return starts.map((start) => {
@@ -348,12 +349,14 @@
    * by segment, and every `lines` lines make a page. Which page is shown depends on t and that
    * layout alone. A sentence without times for its segments is never paged, because which part
    * of it is being read is not known. In vertical text the lines are columns, read from right to
-   * left. */
+   * left. A page that balancing would put on more lines than a page holds (WebKit 26 can, though
+   * balancing should never add a line) is laid out greedily instead, marked data-greedy. */
   function applyPages(root, elements, s) {
     const lines = linesPerPage(root);
     for (const el of elements) el.removeAttribute("data-off-page");
     root.removeAttribute("data-page");
     root.removeAttribute("data-pages");
+    root.removeAttribute("data-greedy");
     if (lines === null || s.timing !== "segments") return { page: null, pages: null };
 
     const pageOf = lineIndexes(root, elements).map((line) => Math.floor(line / lines));
@@ -372,6 +375,9 @@
     });
     root.setAttribute("data-page", String(page));
     root.setAttribute("data-pages", String(pages));
+    const shown = Array.from(elements).filter((el, i) => pageOf[i] === page);
+    const drawn = lineIndexes(root, shown, true);
+    if (drawn[drawn.length - 1] + 1 > lines) root.setAttribute("data-greedy", "");
     return { page, pages };
   }
 
@@ -738,6 +744,7 @@
     copy.setAttribute("aria-hidden", "true");
     copy.setAttribute("data-ruby", "on");
     copy.removeAttribute("data-measuring");
+    copy.removeAttribute("data-greedy");
     // The same box as the root: its width (and in vertical text its height, the length of a
     // column), border included; placed out of sight, then measured as if it stood where the
     // root stands.

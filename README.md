@@ -238,9 +238,10 @@ node docs/agents/validate.mjs input.json --text sentence.txt
   - on each segment: `data-state`, `--tsubu-progress` (timed segments only), and
     `aria-current="true"` on the segment being spoken;
   - with a maximum number of lines (see [Paging by t](#paging-by-t)): `data-page` and
-    `data-pages` on the root, and `data-off-page` on the segments of other pages. The object it
-    returns then also has `page` (from 0) and `pages`; both are `null` when the sentence is not
-    paged.
+    `data-pages` on the root, `data-off-page` on the segments of other pages, and `data-greedy`
+    on the root when balancing would put the page on more lines than a page holds, so that page
+    keeps its greedy lines (see [Browser support](#browser-support)). The object it returns then
+    also has `page` (from 0) and `pages`; both are `null` when the sentence is not paged.
 
   It never changes text and never adds or removes nodes.
 
@@ -759,8 +760,13 @@ only measures differently, the test checks the same guarantee in that engine's t
   element tree, with the style attribute in another place.
 - **WebKit (Safari)**: every guarantee holds but balanced lines and columns, in horizontal and
   vertical text.
-  - Balanced lines: WebKit does not apply `text-wrap: balance` to inline content that holds
-    absolutely positioned boxes (each segment's highlight and underline), so lines break greedily.
+  - Balanced lines: Playwright's WebKit build 2182 does not apply `text-wrap: balance` to inline
+    content that holds absolutely positioned boxes (each segment's highlight and underline), so
+    lines break greedily. Build 2191 (Playwright 1.54's own, WebKit 26.0) does balance, and can
+    put a sentence on one more line than greedy breaking needs (measured: 8, 3 and 7 characters
+    where greedy breaking gives 8 and 10), which balancing should never do. Where that would put a
+    page on more lines than `--tsubu-max-lines`, `apply` marks the root `data-greedy` and the page
+    keeps its greedy lines.
   - Forced colours: WebKit has none of its own. With the media query emulated tsubu's rules apply
     and the segment being spoken gets the system highlight, but WebKit replaces no other colour.
   - `ascent-override` and `descent-override` are not supported, so the test that gives a face

@@ -83,8 +83,9 @@
 
 /* apply() lays the sentence out greedily to find its lines, and hides the segments that are not
  * on the page being read. A page starts at the start of a line, so on its own it breaks into the
- * same lines, which are then balanced among themselves. */
-.tsubu[data-measuring] { text-wrap: wrap !important; }
+ * same lines, which are then balanced among themselves. Where balancing would add a line (WebKit
+ * 26 can), apply() marks the page data-greedy and it keeps its greedy lines. */
+.tsubu:is([data-measuring], [data-greedy]) { text-wrap: wrap !important; }
 .tsubu-seg[data-off-page] { display: none; }
 
 .tsubu-fluid { container: tsubu / inline-size; }
