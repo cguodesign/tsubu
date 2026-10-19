@@ -87,9 +87,9 @@ so the page runs only the file it was written against:
 
 ```html
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tsubu-js@0.1.0/tsubu.css"
-      integrity="sha384-…" crossorigin="anonymous">
+      integrity="sha384-SlfIuFrZo0yor05+BcMvDiAP3WJ0dkZmH8a9JUHnmAUI9BGNU+oQ9dDy+5n1PKoG" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/tsubu-js@0.1.0/tsubu.js"
-        integrity="sha384-…" crossorigin="anonymous"></script>
+        integrity="sha384-KqOxfytJPFgoafKyYmfGSraqQPzpMAopz/++pPUH412E94z3r9qWDgy+b/aoryAE" crossorigin="anonymous"></script>
 ```
 
 `https://unpkg.com/tsubu-js@0.1.0/tsubu.js` serves the same file. The hash of a file is

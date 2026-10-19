@@ -5,7 +5,7 @@
   "keywords": ["japanese", "furigana", "ruby", "read-along", "karaoke", "subtitles", "bunsetsu", "language-learning"],
   "license": "MIT",
   "author": "cgdev",
-  "homepage": "https://cguodesign.github.io/tsubu/",
+  "homepage": "https://chong.works/tsubu/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/cguodesign/tsubu.git"

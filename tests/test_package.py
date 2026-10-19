@@ -173,3 +173,19 @@ def test_the_es_module_loads_in_the_browser(browser):
         page.close()
     assert result["same"] and result["exporter"]
     assert sorted(result["keys"]) == sorted(members(read("tsubu.d.ts"), "API"))
+
+
+def test_every_integrity_in_the_readmes_is_the_hash_of_that_release():
+    # A CDN example names a version; its hash must be that of the file at the version's tag.
+    import base64
+    import hashlib
+    pattern = re.compile(r'(?:src|href)="https://cdn\.jsdelivr\.net/npm/[\w-]+@' + VERSION + r'/([\w.-]+)"\s+integrity="([^"]+)"')
+    found = 0
+    for readme in ("README.md", "README.zh-CN.md"):
+        for version, name, integrity in pattern.findall(read(readme)):
+            shown = subprocess.run(["git", "show", f"v{version}:{name}"], cwd=ROOT, capture_output=True)
+            if shown.returncode != 0:
+                pytest.skip(f"the tag v{version} is not in this checkout")
+            assert integrity == "sha384-" + base64.b64encode(hashlib.sha384(shown.stdout).digest()).decode(), (readme, name)
+            found += 1
+    assert found >= 4

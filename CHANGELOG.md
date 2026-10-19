@@ -6,6 +6,12 @@ All notable changes to tsubu are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The package's homepage is the site's own address, https://chong.works/tsubu/.
+- The README's CDN examples carry the real Subresource Integrity hashes of 0.1.0, and a test
+  checks each against the file at its version's tag.
+
 ## [0.1.0] - 2026-10-19
 
 First version.
