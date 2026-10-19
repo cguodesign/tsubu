@@ -153,7 +153,8 @@ def test_text_is_escaped():
 
 def test_the_library_object_is_frozen_and_carries_its_version():
     found = run_library(LONG)
-    assert found["frozen"] and sorted(found["keys"]) == ["STATES", "sentence", "setRuby", "version"]
+    assert found["frozen"] and sorted(found["keys"]) == ["CONTRAST", "SPEAKERS", "STATES", "THEMES", "checkContrast", "contrast",
+                                                    "sentence", "setRuby", "version"]
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     newest = re.search(r"^## \[?(\d+\.\d+\.\d+)", changelog, re.M).group(1)
     assert found["version"] == newest

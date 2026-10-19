@@ -4,32 +4,73 @@
  * the fallback where the property is used. A colour property without a default leaves the
  * inherited text colour alone. Font family and size are inherited from the page.
  *
+ * Layout
  *   --tsubu-line-height              1.75
  *   --tsubu-ruby-reserve             0.3em    room above the first line for its furigana
  *   --tsubu-ruby-size                0.5em
- *   --tsubu-ruby-color               #6b7280
  *   --tsubu-ruby-weight              400
- *   --tsubu-underline-color          #9ca3af
  *   --tsubu-underline-style          dotted
  *   --tsubu-underline-width          0.06em
  *   --tsubu-underline-offset         0.02em   below the bottom of the segment's box
  *   --tsubu-underline-inset          0.12em   in from each end, so neighbouring underlines stay apart
- *   --tsubu-future-color             (inherited text colour)
- *   --tsubu-past-color               (inherited text colour)
- *   --tsubu-current-color            (inherited text colour)
- *   --tsubu-current-bg               #e5e7eb
  *   --tsubu-current-spread           0.06em   drawn as a box-shadow, so it takes no room
  *   --tsubu-current-radius           0.18em
- *   --tsubu-current-underline-color  (the underline colour)
+ *   --tsubu-plate-spread             0px      how far the plate reaches past the sentence's box
+ *   --tsubu-plate-radius             0
+ *
+ * Colour tokens. The base group applies before the first apply() and with timing "none"; each
+ * state's group falls back to the base group.
+ *   base     --tsubu-text-color (inherited)  --tsubu-ruby-color #6b7280  --tsubu-underline-color #9ca3af
+ *   future   --tsubu-future-color   --tsubu-future-ruby-color   --tsubu-future-underline-color
+ *   current  --tsubu-current-color  --tsubu-current-ruby-color  --tsubu-current-underline-color
+ *            --tsubu-current-bg #e5e7eb (the highlight)
+ *   past     --tsubu-past-color     --tsubu-past-ruby-color     --tsubu-past-underline-color
+ *   plate    --tsubu-plate-bg (transparent): a background behind the whole sentence
+ *   speakers --tsubu-speaker-<name>-bg, -color, -ruby-color, -underline-color: used instead of
+ *            the current group in a sentence whose root has data-speaker="<name>"
+ *   --tsubu-backdrop  the colours a theme is designed to sit on; never painted, read only by
+ *                     Tsubu.checkContrast(). A list of colours, or "any" (checked on black and white).
+ *
  *   --tsubu-progress                 written by apply(); read it, do not set it
  *
- * No box changes size with the state or the furigana switch: states change colours, a
- * background and a box-shadow only, and hidden furigana keep their place.
+ * No box changes size with the state, the furigana switch, the theme or the speaker: these
+ * change colours, a background and a box-shadow only, and hidden furigana keep their place.
  */
 .tsubu {
   display: block;
   line-height: var(--tsubu-line-height, 1.75);
   padding-top: var(--tsubu-ruby-reserve, 0.3em);
+  color: var(--tsubu-text-color);
+  position: relative;
+  isolation: isolate;
+}
+
+/* The plate: one layer behind the sentence, reaching `spread` past its box. Positioned, so it
+ * takes no room; one layer rather than a background and a box-shadow, so a translucent plate
+ * has no seam where the two would meet. */
+.tsubu::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--tsubu-plate-spread, 0px));
+  z-index: -1;
+  background-color: var(--tsubu-plate-bg, transparent);
+  border-radius: var(--tsubu-plate-radius, 0);
+  pointer-events: none;
+}
+
+/* A speaker's colours take the place of the current group. When the theme has no colours for
+ * that speaker, these are left unset and the current group applies. */
+.tsubu[data-speaker="a"] {
+  --tsubu-speaker-bg: var(--tsubu-speaker-a-bg);
+  --tsubu-speaker-color: var(--tsubu-speaker-a-color);
+  --tsubu-speaker-ruby-color: var(--tsubu-speaker-a-ruby-color);
+  --tsubu-speaker-underline-color: var(--tsubu-speaker-a-underline-color);
+}
+.tsubu[data-speaker="b"] {
+  --tsubu-speaker-bg: var(--tsubu-speaker-b-bg);
+  --tsubu-speaker-color: var(--tsubu-speaker-b-color);
+  --tsubu-speaker-ruby-color: var(--tsubu-speaker-b-ruby-color);
+  --tsubu-speaker-underline-color: var(--tsubu-speaker-b-underline-color);
 }
 
 .tsubu,
@@ -73,15 +114,122 @@
   visibility: hidden;
 }
 
-.tsubu-seg[data-state="future"] { color: var(--tsubu-future-color); }
-.tsubu-seg[data-state="past"] { color: var(--tsubu-past-color); }
+.tsubu-seg[data-state="future"] { color: var(--tsubu-future-color, var(--tsubu-text-color)); }
+.tsubu-seg[data-state="future"] rt { color: var(--tsubu-future-ruby-color, var(--tsubu-ruby-color, #6b7280)); }
+.tsubu-seg[data-state="future"]::after {
+  border-bottom-color: var(--tsubu-future-underline-color, var(--tsubu-underline-color, #9ca3af));
+}
+
+.tsubu-seg[data-state="past"] { color: var(--tsubu-past-color, var(--tsubu-text-color)); }
+.tsubu-seg[data-state="past"] rt { color: var(--tsubu-past-ruby-color, var(--tsubu-ruby-color, #6b7280)); }
+.tsubu-seg[data-state="past"]::after {
+  border-bottom-color: var(--tsubu-past-underline-color, var(--tsubu-underline-color, #9ca3af));
+}
+
 .tsubu-seg[data-state="current"] {
-  color: var(--tsubu-current-color);
-  background-color: var(--tsubu-current-bg, #e5e7eb);
-  box-shadow: 0 0 0 var(--tsubu-current-spread, 0.06em) var(--tsubu-current-bg, #e5e7eb);
+  color: var(--tsubu-speaker-color, var(--tsubu-current-color, var(--tsubu-text-color)));
+  background-color: var(--tsubu-speaker-bg, var(--tsubu-current-bg, #e5e7eb));
+  box-shadow: 0 0 0 var(--tsubu-current-spread, 0.06em) var(--tsubu-speaker-bg, var(--tsubu-current-bg, #e5e7eb));
+}
+.tsubu-seg[data-state="current"] rt {
+  color: var(--tsubu-speaker-ruby-color, var(--tsubu-current-ruby-color, var(--tsubu-ruby-color, #6b7280)));
+}
+.tsubu-seg[data-state="current"]::after {
+  border-bottom-color: var(--tsubu-speaker-underline-color, var(--tsubu-current-underline-color, var(--tsubu-underline-color, #9ca3af)));
 }
 /* With only the sentence's time the whole sentence is lit: one band per line, no seams. */
 .tsubu[data-timing="sentence"] .tsubu-seg { border-radius: 0; }
-.tsubu-seg[data-state="current"]::after {
-  border-bottom-color: var(--tsubu-current-underline-color, var(--tsubu-underline-color, #9ca3af));
+
+/*
+ * Theme presets. Set data-tsubu-theme on the sentence's root (options.theme) or on any ancestor.
+ * Each one is checked in the tests with Tsubu.checkContrast() against its own --tsubu-backdrop,
+ * in every state and for each speaker, at the thresholds in Tsubu.CONTRAST.
+ *
+ * The highlight covers the line of text, not the furigana above it: the current segment's
+ * furigana sit on the page (or the plate), so they take the highlight's hue in a shade that
+ * reads there, not the colour of the text inside the highlight.
+ */
+
+/* Dark text on a white or near-white page. */
+[data-tsubu-theme="light"] {
+  --tsubu-backdrop: #ffffff, #f1f5f9;
+  --tsubu-text-color: #111827;
+  --tsubu-ruby-color: #4b5563;
+  --tsubu-underline-color: #6b7280;
+  --tsubu-future-color: #111827;
+  --tsubu-future-ruby-color: #4b5563;
+  --tsubu-future-underline-color: #6b7280;
+  --tsubu-current-color: #ffffff;
+  --tsubu-current-ruby-color: #1d4ed8;
+  --tsubu-current-underline-color: #93c5fd;
+  --tsubu-current-bg: #1d4ed8;
+  --tsubu-past-color: #4b5563;
+  --tsubu-past-ruby-color: #4b5563;
+  --tsubu-past-underline-color: #6b7280;
+  --tsubu-plate-bg: transparent;
+  --tsubu-speaker-a-bg: #1d4ed8;
+  --tsubu-speaker-a-color: #ffffff;
+  --tsubu-speaker-a-ruby-color: #1d4ed8;
+  --tsubu-speaker-a-underline-color: #93c5fd;
+  --tsubu-speaker-b-bg: #b45309;
+  --tsubu-speaker-b-color: #ffffff;
+  --tsubu-speaker-b-ruby-color: #92400e;
+  --tsubu-speaker-b-underline-color: #fcd34d;
+}
+
+/* Light text on a dark page. */
+[data-tsubu-theme="dark"] {
+  --tsubu-backdrop: #0f172a, #1e293b;
+  --tsubu-text-color: #f8fafc;
+  --tsubu-ruby-color: #cbd5e1;
+  --tsubu-underline-color: #7c8aa0;
+  --tsubu-future-color: #f8fafc;
+  --tsubu-future-ruby-color: #cbd5e1;
+  --tsubu-future-underline-color: #7c8aa0;
+  --tsubu-current-color: #0f172a;
+  --tsubu-current-ruby-color: #93c5fd;
+  --tsubu-current-underline-color: #1d4ed8;
+  --tsubu-current-bg: #93c5fd;
+  --tsubu-past-color: #94a3b8;
+  --tsubu-past-ruby-color: #94a3b8;
+  --tsubu-past-underline-color: #7c8aa0;
+  --tsubu-plate-bg: transparent;
+  --tsubu-speaker-a-bg: #93c5fd;
+  --tsubu-speaker-a-color: #0f172a;
+  --tsubu-speaker-a-ruby-color: #93c5fd;
+  --tsubu-speaker-a-underline-color: #1d4ed8;
+  --tsubu-speaker-b-bg: #fcd34d;
+  --tsubu-speaker-b-color: #0f172a;
+  --tsubu-speaker-b-ruby-color: #fcd34d;
+  --tsubu-speaker-b-underline-color: #b45309;
+}
+
+/* Over an image or a video: a translucent plate behind the sentence keeps every colour
+ * readable whatever is underneath, from pure black to pure white. */
+[data-tsubu-theme="media"] {
+  --tsubu-backdrop: any;
+  --tsubu-plate-bg: rgba(0, 0, 0, 0.75);
+  --tsubu-plate-spread: 0.25em;
+  --tsubu-plate-radius: 0.3em;
+  --tsubu-text-color: #ffffff;
+  --tsubu-ruby-color: #e5e7eb;
+  --tsubu-underline-color: #9ca3af;
+  --tsubu-future-color: #ffffff;
+  --tsubu-future-ruby-color: #e5e7eb;
+  --tsubu-future-underline-color: #9ca3af;
+  --tsubu-current-color: #111827;
+  --tsubu-current-ruby-color: #fde047;
+  --tsubu-current-underline-color: #854d0e;
+  --tsubu-current-bg: #fde047;
+  --tsubu-past-color: #d1d5db;
+  --tsubu-past-ruby-color: #d1d5db;
+  --tsubu-past-underline-color: #9ca3af;
+  --tsubu-speaker-a-bg: #fde047;
+  --tsubu-speaker-a-color: #111827;
+  --tsubu-speaker-a-ruby-color: #fde047;
+  --tsubu-speaker-a-underline-color: #854d0e;
+  --tsubu-speaker-b-bg: #67e8f9;
+  --tsubu-speaker-b-color: #111827;
+  --tsubu-speaker-b-ruby-color: #67e8f9;
+  --tsubu-speaker-b-underline-color: #0e7490;
 }

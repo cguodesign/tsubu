@@ -61,11 +61,12 @@ def browser():
 
 @pytest.fixture
 def drawn(browser, tmp_path):
-    """Draws a sentence on a page that loads the library's own CSS and script. Returns a function
-    that applies t (and the furigana switch) and measures the page."""
+    """Draws a sentence on a page that loads the library's own CSS and script, with any other
+    options (theme, speaker) passed to Tsubu.sentence. Returns a function that applies t (and the
+    furigana switch) and measures the page."""
     pages = []
 
-    def draw(sentence, *, ruby=True, width=900):
+    def draw(sentence, *, ruby=True, width=900, **options):
         page_file = tmp_path / f"page{len(pages)}.html"
         page_file.write_text(PAGE.format(css=STYLES.as_uri(), js=SCRIPT.as_uri(), width=width), encoding="utf-8")
         page = browser.new_page(viewport={"width": 1280, "height": 900})
@@ -73,11 +74,11 @@ def drawn(browser, tmp_path):
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.goto(page_file.as_uri())
-        page.evaluate("""([input, ruby]) => {
-          window.S = Tsubu.sentence(input, {ruby});
+        page.evaluate("""([input, options]) => {
+          window.S = Tsubu.sentence(input, options);
           document.getElementById("bubble").innerHTML = S.html;
           return document.fonts.ready.then(() => true);
-        }""", [sentence, ruby])
+        }""", [sentence, {"ruby": ruby, **options}])
 
         def at(t=None, ruby_on=None):
             page.evaluate("""([t, on]) => {

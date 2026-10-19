@@ -11,6 +11,10 @@
  * transition. `apply(root, t)` only sets attributes and one custom property; it never touches
  * text or adds and removes nodes, so a change of highlight cannot move a character. The input
  * and output contract is described in README.md.
+ *
+ * Colours come from tsubu.css: custom properties, and theme presets selected with
+ * data-tsubu-theme. checkContrast() measures them in the browser against the thresholds in
+ * CONTRAST, so a theme can be verified rather than trusted.
  */
 (function (global, factory) {
   const api = factory();
@@ -21,6 +25,16 @@
 
   const VERSION = "0.1.0";
   const STATES = Object.freeze(["future", "current", "past"]);
+  const THEMES = Object.freeze(["light", "dark", "media"]);
+  const SPEAKERS = Object.freeze(["a", "b"]);
+
+  /* The smallest contrast ratio each layer must have against what is behind it, after WCAG 2.2:
+   * text and furigana as normal-size text (1.4.3, AA), the underline and the highlight as
+   * graphics needed to follow the reading (1.4.11). Furigana are small, so the large-text
+   * allowance never applies to them; it is not used for the text either, whose size tsubu does
+   * not know. */
+  const CONTRAST = Object.freeze({ text: 4.5, ruby: 4.5, underline: 3, highlight: 3 });
+  const NAME = /^[a-z][a-z0-9-]*$/;
 
   function fail(message) {
     throw new Error(`tsubu: ${message}`);
@@ -101,7 +115,7 @@
     return { lang: input.lang || "ja", segments, timing, start, end };
   }
 
-  function renderHTML(sentence, ruby) {
+  function renderHTML(sentence, ruby, look) {
     const segments = sentence.segments.map((segment, i) => {
       const inner = segment.parts
         .map((p) => (p.ruby === undefined ? escapeHTML(p.text) : `<ruby>${escapeHTML(p.text)}<rt>${escapeHTML(p.ruby)}</rt></ruby>`))
@@ -114,7 +128,9 @@
     // segment that begins with <ruby> without one). Punctuation gets none: it must not begin
     // a line.
     const joined = segments.map((html, i) => (i > 0 && !sentence.segments[i].punct ? "<wbr>" : "") + html).join("");
-    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${ruby ? "on" : "off"}">${joined}</span>`;
+    const theme = look.theme ? ` data-tsubu-theme="${look.theme}"` : "";
+    const speaker = look.speaker ? ` data-speaker="${look.speaker}"` : "";
+    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${ruby ? "on" : "off"}"${theme}${speaker}>${joined}</span>`;
   }
 
   /* The state of the sentence and of each segment at t (seconds, on the same clock as the
@@ -182,14 +198,17 @@
   /**
    * Tsubu.sentence(input, options) -> { html, timing, stateAt(t), apply(root, t) }
    *   input:   { lang?, start?, end?, segments: [{ parts: [{ text, ruby? }], start?, end?, kind? }] }
-   *   options: { ruby: true | false }  (default true)
+   *   options: { ruby: true | false (default true), theme?: name, speaker?: name }
    */
   function sentence(input, options) {
     const opts = options || {};
     if (opts.ruby !== undefined && typeof opts.ruby !== "boolean") fail("options.ruby must be true or false");
+    for (const key of ["theme", "speaker"])
+      if (opts[key] !== undefined && (typeof opts[key] !== "string" || !NAME.test(opts[key])))
+        fail(`options.${key} must be a name in lower case, such as ${JSON.stringify(key === "theme" ? THEMES[0] : SPEAKERS[0])}`);
     const normalised = normalise(input);
     return Object.freeze({
-      html: renderHTML(normalised, opts.ruby !== false),
+      html: renderHTML(normalised, opts.ruby !== false, { theme: opts.theme, speaker: opts.speaker }),
       timing: normalised.timing,
       stateAt: (t) => stateOf(normalised, t),
       apply: (root, t) => applyState(root, normalised, t),
@@ -203,5 +222,179 @@
     root.setAttribute("data-ruby", on ? "on" : "off");
   }
 
-  return Object.freeze({ version: VERSION, sentence, setRuby, STATES });
+  /* Colours as [r, g, b, a], channels 0 to 255 and alpha 0 to 1. Accepts what a browser's
+   * getComputedStyle returns for colours (rgb(), rgba(), color(srgb ...)) and hex. */
+  function parseColour(text) {
+    const value = String(text).trim().toLowerCase();
+    let m = /^#([0-9a-f]{3,8})$/.exec(value);
+    if (m && [3, 4, 6, 8].includes(m[1].length)) {
+      const h = m[1].length < 6 ? m[1].replace(/./g, "$&$&") : m[1];
+      const n = [0, 2, 4, 6].map((i) => (i < h.length ? parseInt(h.slice(i, i + 2), 16) : 255));
+      return [n[0], n[1], n[2], n[3] / 255];
+    }
+    if (value === "transparent") return [0, 0, 0, 0];
+    const channel = (part, scale) => (part.endsWith("%") ? (parseFloat(part) / 100) * scale : parseFloat(part));
+    m = /^rgba?\(([^)]*)\)$/.exec(value);
+    if (m) {
+      const parts = m[1].split(/[\s,/]+/).filter(Boolean);
+      if (parts.length === 3 || parts.length === 4) {
+        const c = [channel(parts[0], 255), channel(parts[1], 255), channel(parts[2], 255), parts[3] === undefined ? 1 : channel(parts[3], 1)];
+        if (c.every(Number.isFinite)) return c;
+      }
+    }
+    m = /^color\(srgb\s+([^)]*)\)$/.exec(value);
+    if (m) {
+      const parts = m[1].split(/[\s/]+/).filter(Boolean);
+      if (parts.length === 3 || parts.length === 4) {
+        const c = [channel(parts[0], 1) * 255, channel(parts[1], 1) * 255, channel(parts[2], 1) * 255, parts[3] === undefined ? 1 : channel(parts[3], 1)];
+        if (c.every(Number.isFinite)) return c;
+      }
+    }
+    fail(`cannot read the colour ${JSON.stringify(String(text))}: use hex, rgb() or rgba()`);
+  }
+
+  /* `top` painted over `below`, which must be opaque. */
+  function over(top, below) {
+    const a = top[3];
+    return [0, 1, 2].map((i) => top[i] * a + below[i] * (1 - a)).concat(1);
+  }
+
+  function luminance(c) {
+    const [r, g, b] = c.slice(0, 3).map((v) => {
+      const s = v / 255;
+      return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  function ratioOf(a, b) {
+    const la = luminance(a), lb = luminance(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  }
+
+  /* The WCAG contrast ratio, 1 to 21, of a foreground colour on a background colour. A
+   * translucent foreground is painted over the background first; a translucent background is
+   * painted over `backdrop` (default white). */
+  function contrast(foreground, background, backdrop) {
+    const base = over(parseColour(backdrop === undefined ? "#ffffff" : backdrop), [255, 255, 255, 1]);
+    const behind = over(parseColour(background), base);
+    return ratioOf(over(parseColour(foreground), behind), behind);
+  }
+
+  /* The colours a sentence is checked against: options.backdrop, else the theme's
+   * --tsubu-backdrop, else the background colours of the root's ancestors painted over white. */
+  function backdropsOf(root, given) {
+    const read = (value) => {
+      const list = Array.isArray(value) ? value : String(value).match(/#[0-9a-f]+|rgba?\([^)]*\)|color\([^)]*\)|\bany\b|\btransparent\b/gi) || [];
+      return list.flatMap((c) => (String(c).trim().toLowerCase() === "any" ? ["#000000", "#ffffff"] : [String(c)]));
+    };
+    if (given !== undefined) {
+      const list = read(given);
+      if (!list.length) fail("options.backdrop must be a colour, a list of colours or \"any\"");
+      return list;
+    }
+    const declared = read(getComputedStyle(root).getPropertyValue("--tsubu-backdrop"));
+    if (declared.length) return declared;
+    const layers = [];
+    for (let el = root.parentElement; el; el = el.parentElement) {
+      const colour = parseColour(getComputedStyle(el).backgroundColor);
+      layers.push(colour);
+      if (colour[3] === 1) break;
+    }
+    const painted = layers.reverse().reduce((below, top) => over(top, below), [255, 255, 255, 1]);
+    return [`rgb(${painted.slice(0, 3).map((v) => v.toFixed(3)).join(", ")})`];
+  }
+
+  const LAYERS = Object.freeze(["text", "ruby", "underline", "highlight"]);
+
+  /**
+   * Tsubu.checkContrast(root, options) -> { ok, checks, failures }
+   * Measures the colours the browser computes for a drawn sentence in every state ("static",
+   * before any apply and with timing "none", then each of STATES), for each layer (text,
+   * furigana, underline, and the highlight against what surrounds it), against each backdrop.
+   * A layer is measured against the highlight when the highlight covers its middle: furigana sit
+   * above the highlighted line, so they are measured against the plate and the backdrop.
+   *   options: { backdrop?: colour | [colours] | "any", thresholds?: { text, ruby, underline, highlight } }
+   * It works on a copy of the sentence, which it removes again: the page is left as it was.
+   */
+  function checkContrast(root, options) {
+    if (!root || !root.classList || !root.classList.contains("tsubu")) fail('checkContrast needs the element with class "tsubu"');
+    if (typeof getComputedStyle !== "function") fail("checkContrast measures a page, so it needs a browser");
+    const opts = options || {};
+    const thresholds = Object.assign({}, CONTRAST, opts.thresholds || {});
+    for (const layer of LAYERS)
+      if (!isTime(thresholds[layer]) || thresholds[layer] < 1 || thresholds[layer] > 21) fail(`thresholds.${layer} must be a ratio from 1 to 21`);
+    const backdrops = backdropsOf(root, opts.backdrop);
+
+    const copy = root.cloneNode(true);
+    copy.removeAttribute("id");
+    copy.setAttribute("aria-hidden", "true");
+    copy.style.setProperty("position", "absolute");
+    copy.style.setProperty("left", "-100000px");
+    copy.style.setProperty("top", "0");
+    root.after(copy);
+    const seen = new Map();
+    try {
+      const segments = [...copy.querySelectorAll(":scope > .tsubu-seg")];
+      for (const state of ["static"].concat(STATES)) {
+        for (const el of [copy, ...segments]) {
+          if (state === "static") el.removeAttribute("data-state");
+          else el.setAttribute("data-state", state);
+        }
+        const plate = parseColour(getComputedStyle(copy, "::before").backgroundColor);
+        for (const backdrop of backdrops) {
+          const base = over(plate, over(parseColour(backdrop), [255, 255, 255, 1]));
+          for (const el of segments) {
+            const style = getComputedStyle(el);
+            const highlight = parseColour(style.backgroundColor);
+            const behind = over(highlight, base);
+            // The highlight is the segment's background and its box-shadow: it covers the line of
+            // text and reaches `spread` past it. A layer is on the highlight when the band covers
+            // its middle (and checked against both when the band covers only part of it); a
+            // layer whose middle lies outside the band, like the furigana, whose box the spread
+            // just grazes, is on what is behind the highlight.
+            const box = el.getBoundingClientRect();
+            const spread = highlight[3] > 0 ? parseFloat((/(-?[\d.]+)px\s*$/.exec(style.boxShadow) || [])[1]) || 0 : 0;
+            const backgroundsFor = (top, bottom) => {
+              if (highlight[3] === 0) return [base];
+              const from = box.top - spread, to = box.bottom + spread, middle = (top + bottom) / 2;
+              if (middle < from || middle > to) return [base];
+              return top >= from && bottom <= to ? [behind] : [behind, base];
+            };
+            const layers = [["text", style.color, behind]];
+            const rt = el.querySelector("rt");
+            if (rt) {
+              const r = rt.getBoundingClientRect();
+              for (const under of backgroundsFor(r.top, r.bottom)) layers.push(["ruby", getComputedStyle(rt).color, under]);
+            }
+            const after = getComputedStyle(el, "::after");
+            if (after.content !== "none" && after.borderBottomStyle !== "none") {
+              const bottom = box.bottom - parseFloat(after.bottom);
+              for (const under of backgroundsFor(bottom - parseFloat(after.borderBottomWidth), bottom))
+                layers.push(["underline", after.borderBottomColor, under]);
+            }
+            if (highlight[3] > 0) layers.push(["highlight", style.backgroundColor, base]);
+            for (const [layer, colour, under] of layers) {
+              const fg = layer === "highlight" ? behind : over(parseColour(colour), under);
+              const bg = layer === "highlight" ? base : under;
+              const ratio = ratioOf(fg, bg);
+              const key = [state, layer, colour, bg.join(), backdrop].join("|");
+              if (!seen.has(key)) {
+                const hex = (c) => "#" + c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+                seen.set(key, { state, layer, foreground: hex(fg), background: hex(bg), backdrop: String(backdrop),
+                  ratio: Math.round(ratio * 100) / 100, minimum: thresholds[layer], ok: ratio >= thresholds[layer] });
+              }
+            }
+          }
+        }
+      }
+    } finally {
+      copy.remove();
+    }
+    const checks = [...seen.values()];
+    const failures = checks.filter((c) => !c.ok);
+    return { ok: failures.length === 0, checks, failures };
+  }
+
+  return Object.freeze({ version: VERSION, sentence, setRuby, contrast, checkContrast, STATES, THEMES, SPEAKERS, CONTRAST });
 });
