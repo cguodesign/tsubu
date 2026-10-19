@@ -13,9 +13,12 @@ renders exactly one sentence for read-along and language-learning use:
 - the segment being spoken, or the whole sentence, is highlighted from timestamps, as a **pure
   function of time**: `stateAt(t)` and `apply(root, t)`. There is no `requestAnimationFrame`, no
   timer and no CSS transition, so frame-by-frame video capture and live playback draw exactly the
-  same thing.
+  same thing;
+- colours are tokens, one group per state, with presets for a light page, a dark page and text
+  over an image or video, and colours per speaker for dialogue. Every preset's contrast is
+  measured against WCAG-based thresholds that are part of the library.
 
-It is one classic script (`tsubu.js`, about 10 KB) and one stylesheet (`tsubu.css`). It loads from
+It is one classic script (`tsubu.js`, about 21 KB unminified) and one stylesheet (`tsubu.css`). It loads from
 a `file://` page, from any web page, and from Node with `require()`.
 
 What tsubu does **not** do: split text into words or segments, align audio to text, estimate
@@ -69,7 +72,11 @@ input = {
     // ...
   ],
 }
-options = { ruby: true }       // optional; whether furigana start out shown (default true)
+options = {                    // all optional
+  ruby: true,                  // whether furigana start out shown (default true)
+  theme: "light",              // a preset: "light", "dark", "media", or a name of your own
+  speaker: "a",                // whose line this is, for colours per speaker: "a", "b" or your own
+}
 ```
 
 - A **segment** is one unit of reading. Its `parts` are pieces of text; a part with `ruby` is drawn
@@ -93,8 +100,9 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
   a finite number, or only one of `start`/`end`;
 - segment times outside the sentence's `start`/`end`;
 - punctuation with a time, no segment that is not punctuation;
-- an empty `segments`, `parts`, `text`, `ruby` or `lang`, an unknown `kind`, or an `options.ruby`
-  that is not a boolean.
+- an empty `segments`, `parts`, `text`, `ruby` or `lang`, an unknown `kind`, an `options.ruby`
+  that is not a boolean, or an `options.theme` or `options.speaker` that is not a lower-case name
+  (`a-z`, digits and `-`, starting with a letter).
 
 ## Output
 
@@ -108,7 +116,8 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
   </span>
   ```
 
-  (without the whitespace). Punctuation segments carry `data-kind="punct"`. Every segment is
+  (without the whitespace). With `options.theme` the root also carries `data-tsubu-theme`, and
+  with `options.speaker` it carries `data-speaker`. Punctuation segments carry `data-kind="punct"`. Every segment is
   `white-space: nowrap`, so a segment is never split across lines; a `<wbr>` before each segment
   lets the line break between segments, and there is none before punctuation, so punctuation never
   starts a line. All text is HTML-escaped. The fresh HTML has no state: `apply` adds it.
@@ -143,6 +152,13 @@ Also on `Tsubu`:
 
 - **`Tsubu.setRuby(root, on)`** shows or hides the furigana of a drawn sentence by setting the
   root's `data-ruby` to `"on"` or `"off"`.
+- **`Tsubu.checkContrast(root, options)`** measures a drawn sentence's colours in the browser;
+  see [Themes and contrast](#themes-and-contrast).
+- **`Tsubu.contrast(foreground, background, backdrop)`**: the WCAG contrast ratio (1 to 21) of two
+  colours (hex, `rgb()`, `rgba()`). A translucent foreground is painted over the background, and a
+  translucent background over `backdrop` (default white). Works in Node too.
+- **`Tsubu.CONTRAST`**: the thresholds, `{ text: 4.5, ruby: 4.5, underline: 3, highlight: 3 }`.
+- **`Tsubu.THEMES`**: `["light", "dark", "media"]`; **`Tsubu.SPEAKERS`**: `["a", "b"]`.
 - **`Tsubu.version`**: `"0.1.0"`.
 - **`Tsubu.STATES`**: `["future", "current", "past"]`.
 
@@ -157,29 +173,92 @@ with a transition.
 Set them on `.tsubu` or on any ancestor (a bubble, a card, a theme's `:root`). Font family and
 size are inherited from the page.
 
+Layout and shape:
+
 | Property | Default | Meaning |
 |---|---|---|
 | `--tsubu-line-height` | `1.75` | line height |
 | `--tsubu-ruby-reserve` | `0.3em` | room above the first line for its furigana |
 | `--tsubu-ruby-size` | `0.5em` | furigana size, relative to the text |
-| `--tsubu-ruby-color` | `#6b7280` | furigana colour |
 | `--tsubu-ruby-weight` | `400` | furigana weight |
-| `--tsubu-underline-color` | `#9ca3af` | underline colour |
 | `--tsubu-underline-style` | `dotted` | underline style (any `border-style`) |
 | `--tsubu-underline-width` | `0.06em` | underline thickness |
 | `--tsubu-underline-offset` | `0.02em` | distance below the bottom of the segment's box |
 | `--tsubu-underline-inset` | `0.12em` | inset from each end, so neighbouring underlines stay apart |
-| `--tsubu-future-color` | inherited | text colour of segments not yet spoken |
-| `--tsubu-past-color` | inherited | text colour of segments already spoken |
-| `--tsubu-current-color` | inherited | text colour of the segment being spoken |
-| `--tsubu-current-bg` | `#e5e7eb` | highlight colour |
 | `--tsubu-current-spread` | `0.06em` | how far the highlight reaches past the text (a `box-shadow`, so it takes no room) |
 | `--tsubu-current-radius` | `0.18em` | highlight corner radius (0 with timing `"sentence"`, so the sentence reads as one band per line) |
-| `--tsubu-current-underline-color` | the underline colour | underline colour of the segment being spoken |
+| `--tsubu-plate-spread` | `0px` | how far the plate reaches past the sentence's box (it takes no room) |
+| `--tsubu-plate-radius` | `0` | plate corner radius |
 | `--tsubu-progress` | written by `apply` | 0 to 1; read it in your own CSS, do not set it |
 
-States change colours, a background and a `box-shadow` only, never weight, padding or size, so a
-change of state cannot move a character.
+Colour tokens come in groups. The base group applies before the first `apply` and with timing
+`"none"`; each state's group falls back to the base group, so setting only the base colours is
+enough to recolour everything.
+
+| Group | Text | Furigana | Underline | Background |
+|---|---|---|---|---|
+| base | `--tsubu-text-color` (inherited) | `--tsubu-ruby-color` (`#6b7280`) | `--tsubu-underline-color` (`#9ca3af`) | |
+| future | `--tsubu-future-color` | `--tsubu-future-ruby-color` | `--tsubu-future-underline-color` | |
+| current | `--tsubu-current-color` | `--tsubu-current-ruby-color` | `--tsubu-current-underline-color` | `--tsubu-current-bg` (`#e5e7eb`), the highlight |
+| past | `--tsubu-past-color` | `--tsubu-past-ruby-color` | `--tsubu-past-underline-color` | |
+| speaker *name* | `--tsubu-speaker-`*name*`-color` | `--tsubu-speaker-`*name*`-ruby-color` | `--tsubu-speaker-`*name*`-underline-color` | `--tsubu-speaker-`*name*`-bg` |
+| plate | | | | `--tsubu-plate-bg` (transparent), behind the whole sentence |
+
+A speaker's group replaces the current group in a sentence whose root has that `data-speaker`;
+where the theme defines no colour for that speaker, the current group applies. `tsubu.css` maps
+speakers `a` and `b`; for another name, copy its four-line `.tsubu[data-speaker="a"]` rule.
+`--tsubu-backdrop` is not painted: it names the colours a theme is designed to sit on, for
+`checkContrast`.
+
+The highlight covers the line of text, not the furigana above it, so the current segment's
+furigana sit on the page: give them a colour that reads on the page, not on the highlight.
+
+States, themes and speakers change colours, a background and a `box-shadow` only, never weight,
+padding or size, so none of them can move a character.
+
+## Themes and contrast
+
+Set a preset with `options.theme`, or with `data-tsubu-theme` on any ancestor (one attribute on
+a page or a player themes every sentence in it):
+
+| `data-tsubu-theme` | For | Checked against (`--tsubu-backdrop`) |
+|---|---|---|
+| `light` | dark text on a white or near-white page; a blue highlight with white text | `#ffffff` and `#f1f5f9` |
+| `dark` | light text on a dark page; a light-blue highlight with dark text | `#0f172a` and `#1e293b` |
+| `media` | text over an image or a video: a translucent black plate behind the sentence, a yellow highlight | anything: the plate is checked over pure black and pure white |
+
+Each preset also has colours for speakers `a` (the preset's own highlight) and `b` (amber, or cyan
+over media). To change one colour of a preset, set it on the `.tsubu` element itself, or set the
+theme on an ancestor and the colour on anything inside it: a preset set on the root wins over
+values it inherits.
+
+The unthemed defaults are not a preset and are not checked: they inherit the page's text colour,
+and their light-grey highlight and grey underline do not reach 3:1 on white. Use a preset, or check
+your own colours, when contrast matters.
+
+**The thresholds** are `Tsubu.CONTRAST`, after WCAG 2.2: 4.5:1 for text and for furigana (1.4.3,
+normal-size text; furigana are small, and tsubu does not know your text size, so the large-text
+allowance is never used), and 3:1 for the underline and for the highlight against what surrounds
+it (1.4.11, graphics needed to follow the reading).
+
+**`Tsubu.checkContrast(root, options)`** measures what the browser computes for a drawn sentence,
+in every state: `"static"` (before any `apply`, and timing `"none"`), `"future"`, `"current"` and
+`"past"`. For each segment it checks the text, the furigana and the underline against what is
+behind them, painting translucent colours over what is beneath, and the highlight against the
+plate and backdrop around it. A layer counts as on the highlight when the highlight covers its
+middle, so the furigana above a highlighted segment are checked against the page. It works on a
+hidden copy of the sentence and removes it again, so the page is left as it was.
+
+```js
+const result = Tsubu.checkContrast(root);
+// { ok, checks: [{ state, layer, foreground, background, backdrop, ratio, minimum, ok }], failures }
+Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  // your page, AAA text
+```
+
+The backdrop is `options.backdrop` (a colour, a list, or `"any"` for black and white), else the
+theme's `--tsubu-backdrop`, else the background colours of the root's ancestors painted over white.
+It does not see background images, `text-shadow` or anti-aliasing: over an image, use the `media`
+plate or pass the image's lightest and darkest colours as backdrops.
 
 ## Layout guarantees, and how they are tested
 
@@ -191,6 +270,13 @@ Each of these is checked by measuring the page in headless Chromium (see `tests/
   character, segment and reading, then switches the furigana and moves `t` back and forth, and
   requires every box to stay exactly where it was, on one line and on two.
 - **Highlighting moves nothing.** Same test: boxes are compared across many values of `t`.
+- **Changing the theme or the speaker moves nothing** (`tests/test_theme.py`): every preset and
+  speaker, set on the root and on an ancestor, at several values of `t`, against the boxes of the
+  unthemed sentence. The `media` plate is a positioned layer behind the sentence and takes no room.
+- **Every preset meets the contrast thresholds** (`tests/test_theme.py`), in every state and for
+  each speaker, measured by `checkContrast` on the library's own CSS. The tests also check that a
+  colour below its threshold is reported, and that furigana above the highlight are measured
+  against the page, not the highlight.
 - **Furigana are not clipped and do not touch the line above.** `--tsubu-ruby-reserve` adds room
   above the first line, because browsers differ in whether the first line box grows to fit its
   ruby; with the reserve the reading stays inside the sentence's box (and so inside a container
@@ -256,7 +342,7 @@ JP); the measurements are relative, so another CJK font should give the same res
 |---|---|
 | `tsubu.js` | the library: a classic script that defines `Tsubu`, or `module.exports` in Node |
 | `tsubu.css` | the styles; everything adjustable is a custom property |
-| `demo/index.html` | a demo with a time slider and a furigana switch; accepts `?t=seconds&ruby=off` |
+| `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker and a dialogue; accepts `?t=seconds&ruby=off&theme=dark` |
 | `tests/` | the test suite (pytest; Node for the state, Playwright Chromium for the layout) |
 | `assets/` | the logo |
 

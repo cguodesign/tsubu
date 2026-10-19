@@ -15,16 +15,6 @@ are left out on purpose.
 - **No dependencies, and the script still loads from `file://`.**
 - **One sentence.** Bubbles, cameras and the arrangement of several sentences stay with the caller.
 
-## Theming presets and contrast checks
-
-- Gather the colour properties into a named token set (text, past, current, future, underline,
-  furigana, highlight background, highlight underline), one group per state.
-- Ship a few presets: light background, dark background, and text over an image or video.
-- Optional per-speaker colours for dialogue (speaker A, speaker B).
-- An automatic contrast check: every preset and every state is measured against a WCAG-based
-  threshold that is part of the library's configuration; a preset below it fails the tests.
-- A changed colour never moves a character (tested).
-
 ## Multi-line layout and responsiveness
 
 - Line breaks stay between segments; add Japanese line-breaking rules (small kana, the long-vowel
