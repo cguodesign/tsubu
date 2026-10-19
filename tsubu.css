@@ -17,6 +17,20 @@
  *   --tsubu-current-radius           0.18em
  *   --tsubu-plate-spread             0px      how far the plate reaches past the sentence's box
  *   --tsubu-plate-radius             0
+ *   --tsubu-wrap                     balance  `text-wrap` of the sentence: balance, pretty or wrap
+ *   --tsubu-max-lines                none     more lines than this are paged by t (see apply())
+ *
+ * Fluid size, inside an element with class `tsubu-fluid` (a query container): the font size is
+ * the container's width divided by a number of characters per line, between a minimum and a
+ * maximum. Everything else is in em, so spacing, furigana and underlines scale with it. The
+ * container's width is split into three steps; the breakpoints are fixed, the values are not.
+ *   --tsubu-size-min                 14px
+ *   --tsubu-size-max                 72px
+ *   --tsubu-narrow-chars             11       container narrower than 480px
+ *   --tsubu-chars                    15       480px to 960px
+ *   --tsubu-wide-chars               18       960px and wider
+ *   --tsubu-narrow-max-lines         --tsubu-max-lines in a narrow container
+ *   --tsubu-wide-max-lines           --tsubu-max-lines in a wide container
  *
  * Colour tokens. The base group applies before the first apply() and with timing "none"; each
  * state's group falls back to the base group.
@@ -43,6 +57,34 @@
   color: var(--tsubu-text-color);
   position: relative;
   isolation: isolate;
+  /* Lines of a sentence that takes several are kept close in length. */
+  text-wrap: var(--tsubu-wrap, balance);
+  /* The number of lines per page apply() reads; the fluid steps below change it. */
+  --tsubu-page-lines: var(--tsubu-max-lines, none);
+}
+
+/* apply() lays the sentence out greedily to find its lines, and hides the segments that are not
+ * on the page being read. A page starts at the start of a line, so on its own it breaks into the
+ * same lines, which are then balanced among themselves. */
+.tsubu[data-measuring] { text-wrap: wrap !important; }
+.tsubu-seg[data-off-page] { display: none; }
+
+.tsubu-fluid { container: tsubu / inline-size; }
+.tsubu-fluid .tsubu {
+  --tsubu-chars-now: var(--tsubu-chars, 15);
+  font-size: clamp(var(--tsubu-size-min, 14px), calc(100cqi / var(--tsubu-chars-now)), var(--tsubu-size-max, 72px));
+}
+@container tsubu (width < 480px) {
+  .tsubu-fluid .tsubu {
+    --tsubu-chars-now: var(--tsubu-narrow-chars, 11);
+    --tsubu-page-lines: var(--tsubu-narrow-max-lines, var(--tsubu-max-lines, none));
+  }
+}
+@container tsubu (width >= 960px) {
+  .tsubu-fluid .tsubu {
+    --tsubu-chars-now: var(--tsubu-wide-chars, 18);
+    --tsubu-page-lines: var(--tsubu-wide-max-lines, var(--tsubu-max-lines, none));
+  }
 }
 
 /* The plate: one layer behind the sentence, reaching `spread` past its box. Positioned, so it
@@ -78,6 +120,10 @@
   transition: none !important;
   animation: none !important;
 }
+
+/* Segments that may not be parted at a line break (Japanese line-breaking rules) share a unit;
+ * a line breaks only between units. */
+.tsubu-unit { white-space: nowrap; }
 
 .tsubu-seg {
   position: relative;

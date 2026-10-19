@@ -9,7 +9,9 @@
  *
  * What is drawn depends on t alone: there is no requestAnimationFrame, no timer and no CSS
  * transition. `apply(root, t)` only sets attributes and one custom property; it never touches
- * text or adds and removes nodes, so a change of highlight cannot move a character. The input
+ * text or adds and removes nodes, so a change of highlight cannot move a character. With a
+ * maximum number of lines it also hides the segments that are not on the page being read; which
+ * page that is depends on t and the sentence's own layout, never on earlier calls. The input
  * and output contract is described in README.md.
  *
  * Colours come from tsubu.css: custom properties, and theme presets selected with
@@ -35,6 +37,13 @@
    * not know. */
   const CONTRAST = Object.freeze({ text: 4.5, ruby: 4.5, underline: 3, highlight: 3 });
   const NAME = /^[a-z][a-z0-9-]*$/;
+
+  /* Japanese line-breaking rules (kinsoku), as in CSS `line-break: strict`: these may not begin
+   * a line (closing brackets and punctuation, the long-vowel mark, small kana, iteration marks,
+   * middle dots and colons, wave dashes and hyphens) ... */
+  const NO_START = /^[、。，．,.)\]}）〕］｝〉》」』】〙〗〟’”｠»ー〜～゠‐–・：；:;？！?!‼⁇⁈⁉ゝゞヽヾ々〻ぁぃぅぇぉっゃゅょゎゕゖァィゥェォッャュョヮヵヶㇰ-ㇿｧ-ｯｰ]/u;
+  /* ... and these may not end one (opening brackets). */
+  const NO_END = /[(\[{（〔［｛〈《「『【〘〖〝‘“｟«]$/u;
 
   function fail(message) {
     throw new Error(`tsubu: ${message}`);
@@ -123,11 +132,20 @@
       const kind = segment.punct ? ' data-kind="punct"' : "";
       return `<span class="tsubu-seg" data-index="${i}"${kind}>${inner}</span>`;
     });
-    // Segments are nowrap, so a segment is never split across two lines. A <wbr> before each
-    // segment gives the line an explicit place to break (Chromium will not break before a
-    // segment that begins with <ruby> without one). Punctuation gets none: it must not begin
-    // a line.
-    const joined = segments.map((html, i) => (i > 0 && !sentence.segments[i].punct ? "<wbr>" : "") + html).join("");
+    // A line may break between two segments unless the break would put a closing mark, the
+    // long-vowel mark or a small kana at the start of a line, or an opening bracket at the end of
+    // one. Segments that may not be parted are put in one nowrap unit, and a <wbr> between units
+    // gives the line its place to break (Chromium will not break before a <ruby> without one).
+    // tsubu applies these rules itself rather than leaving them to the browser's own: Chromium
+    // treats the underline, an absolutely positioned box at the end of each segment, as a place
+    // to break, and does not apply its line-breaking rules there.
+    const texts = sentence.segments.map((segment) => segment.parts.map((p) => p.text).join(""));
+    const units = [];
+    segments.forEach((html, i) => {
+      if (i > 0 && (NO_START.test(texts[i]) || NO_END.test(texts[i - 1]))) units[units.length - 1] += html;
+      else units.push(html);
+    });
+    const joined = units.map((html) => `<span class="tsubu-unit">${html}</span>`).join("<wbr>");
     const theme = look.theme ? ` data-tsubu-theme="${look.theme}"` : "";
     const speaker = look.speaker ? ` data-speaker="${look.speaker}"` : "";
     return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${ruby ? "on" : "off"}"${theme}${speaker}>${joined}</span>`;
@@ -163,7 +181,7 @@
   function segmentElements(root, sentence) {
     if (!root || typeof root.querySelectorAll !== "function") fail("apply needs the sentence's root element");
     if (!root.classList.contains("tsubu")) fail('apply needs the element with class "tsubu" made from `html`, not a container');
-    const elements = root.querySelectorAll(":scope > .tsubu-seg");
+    const elements = root.querySelectorAll(":scope > .tsubu-unit > .tsubu-seg");
     if (elements.length !== sentence.segments.length)
       fail(`the element has ${elements.length} segments, this sentence has ${sentence.segments.length}`);
     return elements;
@@ -179,6 +197,62 @@
     else element.removeAttribute("aria-current");
   }
 
+  /* The lines per page from the root's --tsubu-page-lines (set from --tsubu-max-lines, and by
+   * the fluid steps), or null for no limit. */
+  function linesPerPage(root) {
+    if (typeof getComputedStyle !== "function") return null;
+    const raw = getComputedStyle(root).getPropertyValue("--tsubu-page-lines").trim();
+    if (raw === "" || raw === "none") return null;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1) fail(`--tsubu-max-lines must be a whole number of lines or none, not ${JSON.stringify(raw)}`);
+    return n;
+  }
+
+  /* With a maximum number of lines, shows only the page that holds the segment being spoken:
+   * between two segments, the page of the one just spoken; before the first, the first page.
+   * The lines come from the layout itself: the sentence is laid out whole and greedily, segment
+   * by segment, and every `lines` lines make a page. Which page is shown depends on t and that
+   * layout alone. A sentence without times for its segments is never paged, because which part
+   * of it is being read is not known. */
+  function applyPages(root, elements, s) {
+    const lines = linesPerPage(root);
+    for (const el of elements) el.removeAttribute("data-off-page");
+    root.removeAttribute("data-page");
+    root.removeAttribute("data-pages");
+    if (lines === null || s.timing !== "segments") return { page: null, pages: null };
+
+    root.setAttribute("data-measuring", "");
+    const tops = Array.from(elements, (el) => el.getBoundingClientRect().top);
+    root.removeAttribute("data-measuring");
+    // Segments are nowrap, so each lies on one line; a segment lower by half a line or more
+    // begins a new one.
+    const half = (parseFloat(getComputedStyle(root).fontSize) || 16) / 2;
+    let line = 0, lineTop = tops[0];
+    const pageOf = tops.map((top) => {
+      if (top >= lineTop + half) {
+        line++;
+        lineTop = top;
+      }
+      return Math.floor(line / lines);
+    });
+    const pages = pageOf[pageOf.length - 1] + 1;
+
+    let at = s.current;
+    if (at === null) {
+      at = 0;
+      s.segments.forEach((entry, i) => {
+        if (entry.state === "past") at = i;
+      });
+    }
+    const page = pageOf[at];
+    elements.forEach((el, i) => {
+      if (pageOf[i] !== page) el.setAttribute("data-off-page", "");
+    });
+    root.setAttribute("data-page", String(page));
+    root.setAttribute("data-pages", String(pages));
+    return { page, pages };
+  }
+
   function applyState(root, sentence, t) {
     const elements = segmentElements(root, sentence);
     const s = stateOf(sentence, t);
@@ -192,7 +266,7 @@
       setProgress(elements[i], entry.progress);
       setCurrent(elements[i], i === s.current);
     });
-    return s;
+    return Object.assign(s, applyPages(root, elements, s));
   }
 
   /**
@@ -335,7 +409,8 @@
     root.after(copy);
     const seen = new Map();
     try {
-      const segments = [...copy.querySelectorAll(":scope > .tsubu-seg")];
+      const segments = [...copy.querySelectorAll(":scope > .tsubu-unit > .tsubu-seg")];
+      for (const el of segments) el.removeAttribute("data-off-page");
       for (const state of ["static"].concat(STATES)) {
         for (const el of [copy, ...segments]) {
           if (state === "static") el.removeAttribute("data-state");

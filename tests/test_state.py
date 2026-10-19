@@ -133,10 +133,12 @@ def test_the_html_keeps_the_furigana_in_the_page_whether_they_are_shown_or_not()
     assert shown.count("<rt>") == hidden.count("<rt>") == 5
     assert 'lang="ja"' in shown and shown.count('class="tsubu-seg"') == len(TIMED["segments"])
     assert shown.startswith('<span class="tsubu" lang="ja" data-timing="segments" data-ruby="on">')
-    # a line may break between segments, never before punctuation
-    assert '<wbr><span class="tsubu-seg" data-index="2">' in shown
-    assert '<wbr><span class="tsubu-seg" data-index="1"' not in shown
+    # a line may break between segments, never before punctuation: a segment and the punctuation
+    # after it share a unit
+    assert '<wbr><span class="tsubu-unit"><span class="tsubu-seg" data-index="2">' in shown
+    assert '<span class="tsubu-seg" data-index="0">けさ</span><span class="tsubu-seg" data-index="1" data-kind="punct">' in shown
     assert shown.count("<wbr>") == len(TIMED["segments"]) - 2 - 1  # not before the first segment or the two punctuation marks
+    assert shown.count('class="tsubu-unit"') == shown.count("<wbr>") + 1
     # the fresh HTML carries no state: apply() adds it
     assert "aria-current" not in shown and "data-state" not in shown
 
