@@ -21,19 +21,16 @@
   .card { background: #fff; border-radius: 20px; padding: 16px 24px 20px; margin: 0 0 16px; }
   .card h2 { font-size: 13px; font-weight: 600; color: #6b7280; margin: 0 0 4px; letter-spacing: .02em; }
   .bubble { font-size: 40px; font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "Yu Gothic", sans-serif; }
-  .state { margin: 8px 0 0; font: 12px/1.4 ui-monospace, Menlo, monospace; color: #374151; white-space: pre-wrap; overflow-wrap: anywhere; }
-  /* The same library with another set of custom properties: a dark card. */
-  .card.dark { background: #0f172a; }
-  .card.dark h2, .card.dark .state { color: #94a3b8; }
-  .card.dark .bubble {
-    color: #f8fafc;
-    --tsubu-ruby-color: #94a3b8;
-    --tsubu-underline-color: #475569;
-    --tsubu-past-color: #94a3b8;
-    --tsubu-current-color: #ffffff;
-    --tsubu-current-bg: #1d4ed8;
-    --tsubu-current-underline-color: #93c5fd;
-  }
+  .state, .contrast { margin: 8px 0 0; font: 12px/1.4 ui-monospace, Menlo, monospace; color: #374151; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .contrast { margin-top: 2px; }
+  .speaker { font-size: 12px; font-weight: 600; color: #6b7280; margin: 10px 0 0; }
+  /* Each card is the backdrop its theme is designed for; "media" sits on a stand-in for a
+   * photograph, light at the top and dark at the bottom, so the plate has to work on both. */
+  #cards[data-tsubu-theme="dark"] .card { background: #0f172a; }
+  #cards[data-tsubu-theme="dark"] :is(h2, .state, .contrast, .speaker) { color: #94a3b8; }
+  #cards[data-tsubu-theme="media"] .card { background: linear-gradient(165deg, #fffbeb 0%, #fcd34d 30%, #ea580c 55%, #1e3a8a 80%, #020617 100%); }
+  #cards[data-tsubu-theme="media"] .bubble { margin: 14px 10px; } /* room for the plate's spread */
+  #cards[data-tsubu-theme="media"] :is(h2, .state, .contrast, .speaker) { color: #f8fafc; background: rgba(0, 0, 0, .55); width: fit-content; padding: 1px 6px; border-radius: 4px; }
   @media (max-width: 600px) {
     main { padding: 16px 16px 48px; }
     .card { padding: 12px 16px 16px; border-radius: 16px; }
@@ -47,11 +44,12 @@
     <img src="../assets/logo.svg" alt="">
     <h1>tsubu demo</h1>
   </header>
-  <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana and see that nothing moves. The sentences were written for this page and their times are invented, not measured. The address accepts <code>?t=seconds&amp;ruby=off</code>.</p>
+  <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana, or pick another theme, and see that nothing moves. Under each card, <code>Tsubu.checkContrast()</code> reports the lowest contrast it measured in any state; "none" shows the unthemed defaults, which are not a preset and do not pass. The sentences were written for this page and their times are invented, not measured. The address accepts <code>?t=seconds&amp;ruby=off&amp;theme=dark</code>.</p>
   <div id="bar">
-    <label>t <input id="t" type="range" min="-0.5" max="12.5" step="0.01" value="0"></label>
+    <label>t <input id="t" type="range" min="-0.5" max="16" step="0.01" value="0"></label>
     <output id="tv">0.00 s</output>
     <label><input id="ruby" type="checkbox" checked> furigana</label>
+    <label>theme <select id="theme"><option>light</option><option>dark</option><option>media</option><option value="">none</option></select></label>
   </div>
   <div id="cards"></div>
 </main>
@@ -63,6 +61,8 @@
 // 夏休みには、海の近くの小さな町で、祖母と一緒に一週間を過ごしました。
 //   "In the summer holidays I spent a week with my grandmother in a small town by the sea."
 // ありがとうございます。  "Thank you."
+// すみません、駅はどこですか。 / まっすぐ行って、右です。
+//   "Excuse me, where is the station?" / "Go straight on, and it is on the right."
 const EXAMPLES = [
   { title: "Every segment timed (timing: segments)", input: {
     segments: [
@@ -85,7 +85,7 @@ const EXAMPLES = [
       { parts: [{ text: "います" }] },
       { parts: [{ text: "。" }], kind: "punct" },
     ] } },
-  { title: "Every segment timed, several lines, dark custom properties", cls: "dark", input: {
+  { title: "Every segment timed, several lines", input: {
     segments: [
       { parts: [{ text: "夏休", ruby: "なつやす" }, { text: "みには" }], start: 7.0, end: 7.6 },
       { parts: [{ text: "、" }], kind: "punct" },
@@ -100,6 +100,22 @@ const EXAMPLES = [
       { parts: [{ text: "過", ruby: "す" }, { text: "ごしました" }], start: 10.9, end: 11.8 },
       { parts: [{ text: "。" }], kind: "punct" },
     ] } },
+  { title: "A dialogue: speaker A, then speaker B", speaker: "a", input: {
+    segments: [
+      { parts: [{ text: "すみません" }], start: 12.2, end: 12.9 },
+      { parts: [{ text: "、" }], kind: "punct" },
+      { parts: [{ text: "駅", ruby: "えき" }, { text: "は" }], start: 13.0, end: 13.4 },
+      { parts: [{ text: "どこですか" }], start: 13.4, end: 14.0 },
+      { parts: [{ text: "。" }], kind: "punct" },
+    ] } },
+  { speaker: "b", input: {
+    segments: [
+      { parts: [{ text: "まっすぐ" }], start: 14.4, end: 14.9 },
+      { parts: [{ text: "行", ruby: "い" }, { text: "って" }], start: 14.9, end: 15.3 },
+      { parts: [{ text: "、" }], kind: "punct" },
+      { parts: [{ text: "右", ruby: "みぎ" }, { text: "です" }], start: 15.4, end: 15.9 },
+      { parts: [{ text: "。" }], kind: "punct" },
+    ] } },
   { title: "No times at all (timing: none): drawn, never highlighted", input: {
     segments: [
       { parts: [{ text: "ありがとう" }] },
@@ -111,24 +127,59 @@ const EXAMPLES = [
 const params = new URLSearchParams(location.search);
 const slider = document.getElementById("t");
 const rubyBox = document.getElementById("ruby");
+const themeBox = document.getElementById("theme");
+const cards = document.getElementById("cards");
 if (params.has("t")) slider.value = params.get("t");
 if (params.get("ruby") === "off") rubyBox.checked = false;
+if (params.has("theme")) themeBox.value = params.get("theme");
 
+// The theme is set once, on the container of every card; a sentence with a speaker carries it
+// on its own root.
+let card;
 const shown = EXAMPLES.map((ex) => {
-  const s = Tsubu.sentence(ex.input, { ruby: rubyBox.checked });
-  const card = document.createElement("section");
-  card.className = "card " + (ex.cls || "");
-  const title = document.createElement("h2");
-  title.textContent = ex.title;
+  const s = Tsubu.sentence(ex.input, { ruby: rubyBox.checked, speaker: ex.speaker });
+  if (ex.title) {
+    card = document.createElement("section");
+    card.className = "card";
+    const title = document.createElement("h2");
+    title.textContent = ex.title;
+    card.append(title);
+    cards.append(card);
+  }
+  const parts = [];
+  if (ex.speaker) {
+    const who = document.createElement("p");
+    who.className = "speaker";
+    who.textContent = `speaker ${ex.speaker.toUpperCase()}`;
+    parts.push(who);
+  }
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   bubble.innerHTML = s.html;
   const out = document.createElement("p");
   out.className = "state";
-  card.append(title, bubble, out);
-  document.getElementById("cards").append(card);
-  return { s, root: bubble.querySelector(".tsubu"), out };
+  const contrast = document.createElement("p");
+  contrast.className = "contrast";
+  card.append(...parts, bubble, out, contrast);
+  return { s, root: bubble.querySelector(".tsubu"), out, contrast };
 });
+
+function describeContrast(found) {
+  const lowest = found.checks.reduce((a, b) => (b.ratio / b.minimum < a.ratio / a.minimum ? b : a));
+  const worst = `lowest ${lowest.ratio}:1 for ${lowest.layer} (${lowest.state}), needs ${lowest.minimum}:1`;
+  if (found.ok) return `contrast ✓ ${found.checks.length} checks pass; ${worst}`;
+  const failed = [...new Set(found.failures.map((f) => `${f.layer} (${f.state})`))].join(", ");
+  return `contrast ✗ ${found.failures.length} of ${found.checks.length} checks below the threshold: ${failed}`;
+}
+
+function setTheme(name) {
+  if (name) cards.dataset.tsubuTheme = name;
+  else delete cards.dataset.tsubuTheme;
+  // Colours do not depend on t, so the check runs when the theme changes, not on every frame.
+  for (const x of shown) x.contrast.textContent = describeContrast(Tsubu.checkContrast(x.root));
+}
+themeBox.addEventListener("change", () => setTheme(themeBox.value));
+setTheme(themeBox.value);
 
 function describe(st) {
   const marks = { future: "·", current: "▶", past: "✓" };

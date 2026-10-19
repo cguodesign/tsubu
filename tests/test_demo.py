@@ -41,3 +41,26 @@ def test_the_demo_page_reads_ruby_off_from_its_address(browser):
         assert page.evaluate("() => document.documentElement.scrollWidth") <= 390
     finally:
         page.close()
+
+
+def test_the_demo_page_switches_the_theme_and_reports_the_contrast(browser):
+    page = browser.new_page(viewport={"width": 1280, "height": 900})
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    contrast = "() => [...document.querySelectorAll('.contrast')].map((e) => e.textContent)"
+    try:
+        page.goto(DEMO.as_uri() + "?t=14.6&theme=media")
+        assert page.evaluate("() => document.getElementById('cards').dataset.tsubuTheme") == "media"
+        speakers = page.evaluate("() => [...document.querySelectorAll('.tsubu[data-speaker]')].map((r) => r.dataset.speaker)")
+        assert speakers == ["a", "b"]
+        for theme in ("media", "dark", "light"):
+            page.locator("#theme").select_option(theme)
+            lines = page.evaluate(contrast)
+            assert len(lines) == page.locator(".tsubu").count() and all(line.startswith("contrast ✓") for line in lines), lines
+        # the unthemed defaults are not a preset, and the page says so
+        page.locator("#theme").select_option("")
+        assert page.evaluate("() => 'tsubuTheme' in document.getElementById('cards').dataset") is False
+        assert all(line.startswith("contrast ✗") for line in page.evaluate(contrast))
+        assert errors == []
+    finally:
+        page.close()
