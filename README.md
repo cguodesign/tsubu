@@ -415,6 +415,32 @@ readers read it; for a test, keep the answer out of the page or use `appear`. `c
 reveals every segment in its copy, so every colour that can be drawn is checked, and it counts
 opacity on a layer.
 
+## Exporting subtitles
+
+An optional script, `tsubu-export.js`, turns the same input into subtitles. Load it after
+`tsubu.js` (it defines `TsubuExport`), or `require("./tsubu-export.js")` in Node. Input is checked
+by `Tsubu.sentence()`, so it is refused with the same errors. A sentence without times cannot be
+exported, and nothing is estimated.
+
+- **`TsubuExport.toWebVTT(input, { ruby = true, offset = 0, id })`** returns a WebVTT file with
+  one cue spanning the sentence. Each segment is a class span, `<c.tsubu-seg>`
+  (`<c.tsubu-seg.punct>` for punctuation), and readings are `<ruby>雨<rt>あめ</rt></ruby>`. With
+  timing `"segments"`, a cue timestamp marks each spoken segment's start, so `::cue(:past)` follows
+  the reading. Timestamps are strictly increasing and inside the cue. `ruby: false` drops the
+  readings, `offset` shifts all times in seconds, and `id` names the cue. `&`, `<` and `>` are
+  escaped.
+- **`TsubuExport.toASS(input, { ruby = "omit", offset = 0 })`** returns one ASS karaoke
+  `Dialogue:` line with `\k` durations. A gap is an empty syllable, and punctuation joins the
+  syllable before it. Boundaries are rounded to centiseconds before the durations are taken, so the
+  durations always add up to the line's length. ASS has no ruby: `ruby: "inline"` writes
+  `雨(あめ)`. ASS cannot escape `{`, `}` or `\`, so they are written as ｛ ｝ ＼.
+  **`toASSScript`** wraps the line in a minimal script with one `Default` style.
+
+Times are rounded half up as written (to milliseconds or centiseconds), line breaks in text become
+spaces, and negative times are refused. The tests (`tests/test_export.py`) check exact output in
+Node, that Chromium parses the WebVTT as one cue with its spans, ruby and timestamps, and, where
+ffmpeg with libass is installed, that the ASS karaoke lights up at each syllable's start.
+
 ## Accessibility
 
 - **Forced colours.** In forced-colours mode (Windows contrast themes and the like) browsers
@@ -536,6 +562,7 @@ JP); the measurements are relative, so another CJK font should give the same res
 |---|---|
 | `tsubu.js` | the library: a classic script that defines `Tsubu`, or `module.exports` in Node |
 | `tsubu.css` | the styles; everything adjustable is a custom property |
+| `tsubu-export.js` | optional: WebVTT and ASS karaoke subtitles from the same input |
 | `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker, a dialogue and a fluid, paged frame; accepts `?t=seconds&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | the test suite (pytest; Node for the state, Playwright Chromium for the layout) |
 | `assets/` | the logo |

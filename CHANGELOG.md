@@ -51,6 +51,11 @@ All notable changes to tsubu are recorded here. The format follows
 - Revealing on the caller's events: `Tsubu.setRevealed(root, which)` shows segments a preset hides
   while unheard, whatever `t` is, `htmlAt(t, { revealed })` renders the same, and
   `Tsubu.segmentOf(node)` tells a click handler which segment was hit.
+- `tsubu-export.js`: `TsubuExport.toWebVTT` (one cue with `<c.tsubu-seg>` class spans, `<ruby>`
+  readings and strictly increasing cue timestamps), and `toASS` / `toASSScript` (`\k` karaoke with
+  drift-free centisecond rounding, readings inline or omitted, and override braces and backslashes
+  written in full-width). Input is checked by `Tsubu.sentence()`, and a sentence without times is
+  refused.
 - `checkContrast` counts opacity on a layer, and checks every segment revealed and with its
   furigana on, so every colour that can be drawn is measured.
 

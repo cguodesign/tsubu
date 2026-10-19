@@ -284,6 +284,15 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 
 没有提供：逐字擦除，因为那需要 tsubu 没有的逐字时间。在 `prefers-reduced-motion: reduce` 下，`underline-draw` 一次把下划线画完；其他几个是状态变化，不是移动。被 `mask` 藏起来的文字仍在页面里，读屏软件会读出来；用来考试时，请不要把答案放进页面，或者用 `appear`。`checkContrast` 在它的副本里揭示所有段，所以所有可能画出来的颜色都被检查，而且它会把图层上的透明度算进去。
 
+## 导出字幕
+
+可选脚本 `tsubu-export.js` 把同样的输入转成字幕。在 `tsubu.js` 之后加载（它定义 `TsubuExport`），或在 Node 里 `require("./tsubu-export.js")`。输入由 `Tsubu.sentence()` 检查，因此会以相同的错误拒绝。没有时间的句子无法导出，任何时间都不做估算。
+
+- **`TsubuExport.toWebVTT(input, { ruby = true, offset = 0, id })`** 返回一个 WebVTT 文件，只有一条覆盖整句的 cue。每一段是一个类 span：`<c.tsubu-seg>`（标点为 `<c.tsubu-seg.punct>`）；读音写成 `<ruby>雨<rt>あめ</rt></ruby>`。timing 为 `"segments"` 时，每个非标点段的开始处有一个 cue 时间戳，所以 `::cue(:past)` 会跟着朗读走。时间戳严格递增，都在 cue 之内。`ruby: false` 去掉读音，`offset` 以秒平移所有时间，`id` 设置 cue 标识符。`&`、`<`、`>` 会被转义。
+- **`TsubuExport.toASS(input, { ruby = "omit", offset = 0 })`** 返回一行 ASS 卡拉 OK `Dialogue:`，使用 `\k` 时长。段与段之间的空隙是一个空音节，标点并入它前面的音节。先把每个边界取整到百分之一秒再求差，所以各时长之和总是等于这一行的长度。ASS 没有 ruby：`ruby: "inline"` 写成 `雨(あめ)`。ASS 无法转义 `{`、`}` 和 `\`，所以写成全角的 ｛ ｝ ＼。**`toASSScript`** 用只含一个 `Default` 样式的最小脚本把这一行包起来。
+
+时间按书写的十进制值四舍五入（到毫秒或百分之一秒），文本里的换行变成空格，负时间会被拒绝。测试（`tests/test_export.py`）在 Node 里检查精确输出，检查 Chromium 把 WebVTT 解析成一条带 span、ruby 和时间戳的 cue；装了带 libass 的 ffmpeg 时，还检查 ASS 卡拉 OK 在每个音节开始时亮起。
+
 ## 无障碍
 
 - **强制颜色。** 在强制颜色模式下（Windows 的对比度主题等），浏览器会替换背景、去掉 `box-shadow`，正在读的那一段就和别的段一样了。tsubu 只给这一段保留高亮，用的是用户自己为选中文字设定的颜色（`Highlight` 和 `HighlightText`）；它的注音落在页面上，所以用 `CanvasText`。其余的都交给浏览器。
@@ -350,6 +359,7 @@ python -m pytest -q
 |---|---|
 | `tsubu.js` | 库本身：一个普通脚本，在页面里定义 `Tsubu`，在 Node 里是 `module.exports` |
 | `tsubu.css` | 样式；可调的都是自定义属性 |
+| `tsubu-export.js` | 可选：用同样的输入生成 WebVTT 和 ASS 卡拉 OK 字幕 |
 | `demo/index.html` | 演示页：拖动时间、开关注音、选主题，有一段对话和一个流式、会翻页的框；地址可带 `?t=秒数&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | 测试（pytest；状态用 Node，版面用 Playwright 的 Chromium） |
 | `assets/` | logo |
