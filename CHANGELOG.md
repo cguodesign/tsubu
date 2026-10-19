@@ -58,6 +58,18 @@ All notable changes to tsubu are recorded here. The format follows
   refused.
 - Examples for recording video: `examples/capture-frames.py` (PNG frames through Playwright, the
   same pixels in any frame order) and `examples/frames-from-node.mjs` (HTML frames with `htmlAt`).
+- Vertical writing: `options.writing: "horizontal" | "vertical"` (`data-tsubu-writing`, also on
+  an ancestor). Columns run right to left, furigana sit at the right, each segment has a side line
+  at its left, and the ruby reserve sits at the right of the first column. `underline-draw` draws
+  the side line from the top, and `htmlAt` marks the same upright runs.
+- Short runs of half-width digits and letters are set upright with `text-combine-upright`
+  (`options.combineUpright`, 0–4, default 2); longer runs are rotated.
+- Paging by `t` counts columns in vertical text; `checkContrast` measures across the column.
+- Fluid vertical text is sized by the container's height (`container-type: size`, `cqh`, steps by
+  height).
+- `tsubu.css` uses logical properties for the ruby reserve and the underline (no change in
+  horizontal text).
+- A vertical card in the demo, and `tests/test_vertical.py`.
 - `checkContrast` counts opacity on a layer, and checks every segment revealed and with its
   furigana on, so every colour that can be drawn is measured.
 

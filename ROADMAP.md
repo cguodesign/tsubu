@@ -15,15 +15,6 @@ are left out on purpose.
 - **No dependencies, and the script still loads from `file://`.**
 - **One sentence.** Bubbles, cameras and the arrangement of several sentences stay with the caller.
 
-## Vertical writing
-
-- Segments, furigana (to the right of the characters), side lines in place of underlines, and the
-  highlight under `writing-mode: vertical-rl`, for uses such as vertical title cards and signs.
-- Digits and Latin letters: short runs upright with `text-combine-upright`, longer runs rotated.
-- The shape and position of punctuation, brackets and the long-vowel mark in vertical text.
-- The same guarantees as horizontal text: switching furigana does not reflow, every frame is a
-  function of `t`. Chromium first; differences in Firefox and Safari recorded.
-
 ## Loanword-origin gloss layer
 
 - An optional second annotation layer for loanwords: the source word, its language code and

@@ -81,6 +81,8 @@ options = {                    // all optional
   theme: "light",              // a preset: "light", "dark", "media", or a name of your own
   speaker: "a",                // whose line this is, for colours per speaker: "a", "b" or your own
   motion: "mask",              // motion presets from Tsubu.MOTIONS, a name, a list or an array
+  writing: "vertical",         // "horizontal" (default) or "vertical"
+  combineUpright: 2,           // in vertical text, runs of up to this many half-width characters stand upright (0-4)
 }
 ```
 
@@ -358,6 +360,47 @@ A sentence without times for its segments (timing `"sentence"`) is never paged, 
 of it is being read is not known: it is shown whole. Segments on other pages get `display: none`,
 so they are also hidden from assistive technology until their page comes.
 
+## Vertical writing
+
+```js
+Tsubu.sentence(input, { writing: "vertical" })   // or data-tsubu-writing="vertical" on any ancestor
+```
+
+`options.writing` (`"horizontal"` or `"vertical"`) writes `data-tsubu-writing` on the root. The
+attribute also works on an ancestor, as `data-tsubu-theme` does, and `"horizontal"` on the root
+keeps a sentence horizontal inside a vertical ancestor. Vertical text is `writing-mode:
+vertical-rl`: columns run from right to left, the furigana sit at the right of the characters, and
+each segment's underline becomes a dotted **side line at its left**, inset at both ends. The ruby
+reserve becomes room at the right of the first column. The highlight, its spread and the `media`
+plate are the same boxes turned with the text; `underline-draw` draws the side line in from the
+top. The column length is the sentence's height, so give the container a height; without one, the
+sentence is as tall as its content, up to the viewport.
+
+**Digits and Latin letters.** A run of half-width characters (ASCII other than spaces and
+brackets) of at most `options.combineUpright` characters (0 to 4, default 2) is set upright across
+the column with `text-combine-upright` (10月, AI, !?). Longer runs lie on their side
+(`text-orientation: mixed`), as in 2025年. Chromium squeezes any upright run into one em, so four
+characters is the limit. The runs are wrapped in `<span class="tsubu-upright">` unless the
+sentence is horizontal by its own option, since an ancestor can make it vertical after it is
+drawn; the span has no effect in horizontal text (boxes measured the same to within 1/64 px).
+
+**Punctuation, brackets and ー** take their vertical forms from the font's vertical alternates.
+With Hiragino Sans or Noto Sans CJK, Chromium draws 、。 at the upper right, ー as a vertical
+stroke, and brackets turned (measured from screenshots). A font without vertical alternates leaves
+some marks in their horizontal form.
+
+**Guarantees.** All the horizontal ones hold with columns in place of lines, tested in
+`tests/test_vertical.py`: switching furigana, highlight, theme or speaker moves nothing; every
+frame is a function of `t`; columns break only between units and by the line-breaking rules;
+`checkContrast` measures across the column (the readings against the page, the side line inside
+the highlight's spread); forced colours keep the highlight. **Paging** counts columns:
+`--tsubu-max-lines` is the number of columns per page, counted from the right.
+
+**Fluid size.** In vertical text the column runs along the container's height, so the height
+drives the size: the `.tsubu-fluid` container becomes a size container (it must have a definite
+height), the font size is its height divided by the characters per column, and the steps (480px,
+960px) and their properties go by its height. This uses `:has()` and `cqh`.
+
 ## Motion and revealing
 
 Motion presets change how a sentence shows what has and has not been heard. Each one is drawn by
@@ -403,6 +446,8 @@ motion; and use motion only to show a change in what is being read, never to dec
 - Listening and dictation: `mask` (the blanks show length) or `blur` (the shape shows), revealed
   by time or by the learner's answers.
 - Do not combine `appear` with `mask` or `blur`: `appear` already hides everything they would.
+  Nor `mask` with `underline-draw`, which leaves unheard segments without a line, so the blanks
+  lose the line that shows their length.
 - With timing `"sentence"` the presets act on the whole sentence at once; say so to the viewer,
   rather than adding motion that suggests segment timing that is not there.
 - Do not dim what has been read with opacity: it would fall below the contrast thresholds. Use the
@@ -547,6 +592,8 @@ punctuation, progress, every refused input, and that `stateAt` depends on `t` al
 
 Stated honestly:
 
+- Vertical writing has been measured in Chromium only: Firefox's and Safari's vertical
+  alternates, `text-combine-upright`, and the fluid vertical size (`:has()`, `cqh`) are unchecked.
 - **Tested in Chromium only** so far (the build bundled with Playwright, Chromium 139 at the time
   of writing). Firefox and WebKit have not been run through the layout tests yet.
 - `ruby-align` is needed for the "wide reading does not spread its base" guarantee. Per MDN it is

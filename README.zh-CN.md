@@ -69,6 +69,8 @@ options = {                    // 都是可选的
   theme: "light",              // 预设："light"、"dark"、"media"，或你自己起的名字
   speaker: "a",                // 这句话是谁说的，用于按说话人上色："a"、"b" 或你自己起的名字
   motion: "mask",              // Tsubu.MOTIONS 里的动效预设：一个名字、空格分隔的列表或数组
+  writing: "vertical",         // "horizontal"（默认）或 "vertical"
+  combineUpright: 2,           // 竖排时，不超过这么多个的半角字符直立显示（0-4）
 }
 ```
 
@@ -248,6 +250,22 @@ Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  //
 
 没有每段时间的句子（timing 为 `"sentence"`）从不翻页，因为不知道读到了哪一部分：整句都显示。其他页的段是 `display: none`，所以在翻到那一页之前，辅助技术也读不到它们。
 
+## 竖排
+
+```js
+Tsubu.sentence(input, { writing: "vertical" })   // 或在任一祖先元素上写 data-tsubu-writing="vertical"
+```
+
+`options.writing`（`"horizontal"` 或 `"vertical"`）会在根元素上写入 `data-tsubu-writing`。和 `data-tsubu-theme` 一样，这个属性写在祖先元素上也有效；根元素上的 `"horizontal"` 可以让句子在竖排的祖先里保持横排。竖排就是 `writing-mode: vertical-rl`：列从右向左排，注音在字的右侧，每段的下划线变成它**左侧的点状边线**，两端内缩。注音预留空间变成第一列右侧的空白。高亮、它的外扩和 `media` 底板是随文字一起转过来的同一组盒子；`underline-draw` 从上往下画出边线。列长就是句子的高度，所以请给容器设定高度；不设时，句子高度取决于内容，最高到视口高度。
+
+**数字和拉丁字母。** 不超过 `options.combineUpright` 个字符（0 到 4，默认 2）的半角字符串（空格和括号以外的 ASCII）会用 `text-combine-upright` 在列中横向直立显示（10月、AI、!?）；更长的字符串侧躺（`text-orientation: mixed`），比如 2025年。Chromium 会把任何直立字符串压进一个 em，所以上限是四个字符。除非句子用自己的选项指定为横排，这些字符串都会包在 `<span class="tsubu-upright">` 里，因为画好之后祖先还可能把它变成竖排；这个 span 在横排里不起作用（实测各个框相差不超过 1/64 px）。
+
+**标点、括号和长音符 ー** 用字体的竖排替代字形。用 Hiragino Sans 或 Noto Sans CJK 时，Chromium 把 、。 画在右上方，ー 画成竖线，括号转过来（从截图实测）。没有竖排替代字形的字体会让部分符号保持横排的形状。
+
+**保证。** 横排的所有保证在竖排里以"列"代替"行"同样成立，由 `tests/test_vertical.py` 测试：开关注音、高亮、换主题或说话人都不移动任何字；每一帧只取决于 `t`；只在单元之间并按禁则换列；`checkContrast` 沿列的横向测量（注音对着页面，边线在高亮的外扩之内）；强制颜色下仍保留高亮。**翻页**按列计数：`--tsubu-max-lines` 就是每页的列数，从右边数起。
+
+**随容器缩放。** 竖排里列沿容器的高度延伸，所以由高度决定字号：`.tsubu-fluid` 容器成为尺寸容器（必须有确定的高度），字号等于它的高度除以每列字数，三个档（480px、960px）和它们的属性也按高度划分。这用到了 `:has()` 和 `cqh`。
+
 ## 动效与揭示
 
 动效预设改变句子显示"已经听到"和"还没听到"的方式。每一个都由 `tsubu.css` 根据 `apply` 写的状态画出来，所以每一帧仍然只取决于 `t`；没有定时器，也没有过渡。用 `options.motion` 或任何祖先上的 `data-tsubu-motion` 选择，可以组合几个。*还没听到*是指既不是 current 也不是 past：在未来，或者句子还没被 apply 过（timing 为 `"none"`）。
@@ -278,7 +296,7 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 - 普通跟读、字幕：不用预设。高亮已经表明读到哪儿了。
 - 在视频里逐行讲解一句话：`appear`；整句要一直可读时用 `underline-draw`。
 - 听力和听写：`mask`（空格显示长度）或 `blur`（显示轮廓），按时间或按学习者的回答揭示。
-- 不要把 `appear` 和 `mask` 或 `blur` 组合：它们要藏的东西 `appear` 已经都藏了。
+- 不要把 `appear` 和 `mask` 或 `blur` 组合：它们要藏的东西 `appear` 已经都藏了。也不要把 `mask` 和 `underline-draw` 组合：后者让还没听到的段没有线，填空就失去了表示长度的那条线。
 - timing 为 `"sentence"` 时，预设一次作用于整句；照实告诉观看者，不要加暗示有逐段时间的动效。
 - 不要用透明度把读过的部分调暗：会低于对比度阈值。用 past 颜色组，主题已经在阈值之内设好了。
 
@@ -343,6 +361,7 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 
 如实说明：
 
+- 竖排只在 Chromium 里实测过：Firefox 和 Safari 的竖排替代字形、`text-combine-upright`，以及竖排的流式字号（`:has()`、`cqh`）都没有检查。
 - 目前**只在 Chromium 里测过**（Playwright 自带的版本，写这份说明时是 Chromium 139）。Firefox 和 WebKit 还没有跑过版面测试。
 - "宽读音不拉开汉字"这条保证需要 `ruby-align`。据 MDN，**Chrome 128** 和 **Safari 18.2** 起支持。在更旧的浏览器里，注音开关仍然不会重排，但读音比汉字宽时汉字会被拉开。
 - 均衡换行用 `text-wrap: balance`（Chrome 114、Firefox 121、Safari 17.5）；不支持时按贪心断行。流式字号用容器查询和 `cqi` 单位（Chrome 105、Firefox 110、Safari 16）。
