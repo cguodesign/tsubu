@@ -75,6 +75,7 @@ details pre { margin-top: 8px; max-height: 300px; overflow: auto; }
       <details><summary><code>htmlAt(t)</code></summary><pre><code class="plain" id="htmlat"></code></pre></details>
       <details><summary>WebVTT · <code>TsubuExport.toWebVTT(input)</code></summary><pre><code class="plain" id="vtt"></code></pre></details>
       <details><summary>ASS · <code>TsubuExport.toASSScript(input, { ruby: "inline" })</code></summary><pre><code class="plain" id="ass"></code></pre></details>
+      <details><summary>SRT · <code>TsubuExport.toSRT(input, { mode: "segments" })</code></summary><pre><code class="plain" id="srt"></code></pre></details>
     </div>
   </div>
 
@@ -133,6 +134,7 @@ function contrast() {
 function exports() {
   try { $("vtt").textContent = TsubuExport.toWebVTT(input); } catch (e) { $("vtt").textContent = e.message; }
   try { $("ass").textContent = TsubuExport.toASSScript(input, { ruby: "inline" }); } catch (e) { $("ass").textContent = e.message; }
+  try { $("srt").textContent = TsubuExport.toSRT(input, { mode: "segments" }); } catch (e) { $("srt").textContent = e.message; }
 }
 function redraw() {
   try {

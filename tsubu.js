@@ -310,14 +310,16 @@
    * rather than from an attribute, so a writing mode set on an ancestor counts too: down the
    * page in horizontal text, and from right to left in vertical-rl text, whose lines are columns
    * (left to right in vertical-lr, which tsubu does not set but measures correctly).
-   *   start(rect)  where a box lies along that axis, growing from one line to the next;
+   *   start(rect)  where a box lies along that axis, growing from one line to the next; in
+   *                vertical text its left edge, the side away from the furigana, which a vertical
+   *                segment's box takes in (see the stylesheet);
    *   span(rect)   the box's extent across its line, in page coordinates, as [low, high];
    *   side         the physical side of a segment's line, its block-end side. */
   function blockAxis(root) {
     const mode = getComputedStyle(root).writingMode || "horizontal-tb";
     if (mode === "horizontal-tb") return { vertical: false, start: (r) => r.top, span: (r) => [r.top, r.bottom], side: "bottom" };
     const rl = !/-lr$/.test(mode);
-    return { vertical: true, start: (r) => (rl ? -r.right : r.left), span: (r) => [r.left, r.right], side: rl ? "left" : "right" };
+    return { vertical: true, start: (r) => (rl ? -r.left : r.left), span: (r) => [r.left, r.right], side: rl ? "left" : "right" };
   }
 
   /* Which line each element lies on, from the layout: segments are nowrap, so each lies on one
@@ -755,6 +757,20 @@
       const past = (r) => Math.max(box.left - r.left, r.right - box.right, box.top - r.top, r.bottom - box.bottom, 0);
       // a segment's text without its readings, for the messages
       const name = (el) => { const r = el.cloneNode(true); r.querySelectorAll("rt").forEach((rt) => rt.remove()); return r.textContent; };
+      // Where a segment's text lies: its box, but in vertical text the box of its text without the
+      // readings, since a vertical segment's line reaches past its text (see the stylesheet).
+      const textBox = (el) => {
+        if (!vertical) return el.getBoundingClientRect();
+        const range = document.createRange(), walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        let b = null;
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          if (node.parentElement.closest("rt")) continue;
+          range.selectNodeContents(node);
+          const r = range.getBoundingClientRect();
+          b = b ? { left: Math.min(b.left, r.left), right: Math.max(b.right, r.right), top: Math.min(b.top, r.top), bottom: Math.max(b.bottom, r.bottom) } : r;
+        }
+        return b || el.getBoundingClientRect();
+      };
 
       // A unit longer than the line it has: measured along the line, against the root's content box
       // or the container's, whichever is shorter (a vertical sentence without a height of its own
@@ -787,7 +803,7 @@
         elements.forEach((el, i) => (pageOf[i] === page ? el.removeAttribute("data-off-page") : el.setAttribute("data-off-page", "")));
         elements.forEach((el, i) => {
           if (pageOf[i] !== page) return;
-          const r = shift(el.getBoundingClientRect()), by = past(r);
+          const r = shift(textBox(el)), by = past(r);
           if (by > 0.5) issues.push({ kind: "overflow", segment: i, page: paged ? page : null, by: round(by),
             message: `segment ${i}, ${JSON.stringify(name(el))}, reaches ${round(by)}px past its container` });
           el.querySelectorAll("rt").forEach((rt) => {

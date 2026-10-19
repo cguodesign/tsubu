@@ -35,9 +35,6 @@ are left out on purpose.
 - An npm package with three forms: the classic script, an ES module and TypeScript declarations
   (`.d.ts`).
 - The demo published on GitHub Pages.
-- Vertical text in WebKit: draw each segment's highlight and side line where WebKit places them
-  right (it mirrors a box positioned inside an inline in vertical text; see Browser support in the
-  README).
 - `<rp>` fallback parentheses in the output.
 - Adapters that turn other formats into tsubu's input: kuroshiro's furigana output, Remotion
   caption data, and WebVTT cues with timestamps.

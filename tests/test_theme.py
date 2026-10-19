@@ -10,7 +10,7 @@ import subprocess
 
 import pytest
 
-from support import BAND_COLOUR, LONG, SCRIPT, TIMED, VERTICAL_MIRROR, WHOLE
+from support import BAND_COLOUR, LONG, SCRIPT, TIMED, WHOLE
 from test_layout import png_rows
 
 THEMES = ["light", "dark", "media"]
@@ -314,20 +314,31 @@ def test_the_highlight_and_the_underline_are_drawn_from_the_em_box_whatever_the_
     assert reading[-1] <= band[0] + 1, (css, reading[-1], band[0])  # one row for anti-aliasing
 
 
-@pytest.mark.limitation("webkit", reason=VERTICAL_MIRROR)
-def test_in_vertical_text_the_highlight_is_drawn_from_the_em_box_too(drawn, engine):
+def columns_with(page, clip, colour, tolerance=40):
+    """The pixel columns of a screenshot of the clip that hold a pixel within `tolerance` of the colour, in page coordinates."""
+    width, bpp, rows = png_rows(page.screenshot(clip=clip))
+    return [clip["x"] + x for x in range(width)
+            if any(all(abs(row[x * bpp + i] - colour[i]) <= tolerance for i in range(3)) for row in rows)]
+
+
+def test_in_vertical_text_the_highlight_is_drawn_from_the_em_box_too(drawn, engine, engine_version):
     at = drawn(TIMED, css=TALL_FACE, style="height: 700px", theme="light", writing="vertical")
     at(1.2)
+    # The text's own box (a range over its plain kana) is the font's content area: the segment's box
+    # is the em box and the furigana (see the stylesheet).
     found = at.page.evaluate("""() => { const seg = document.querySelector('.tsubu-seg[data-state="current"]');
-      const box = seg.getBoundingClientRect(), {band, line} = (PROBES)(seg);
+      const range = document.createRange(); range.selectNodeContents([...seg.childNodes].find((n) => n.nodeType === 3));
+      const text = range.getBoundingClientRect(), box = seg.getBoundingClientRect(), {band, line} = (PROBES)(seg);
       const rt = seg.querySelector("rt").getBoundingClientRect(), em = parseFloat(getComputedStyle(seg).fontSize);
-      return {em, content: box.width / em, centre: (box.left + box.right) / 2, rtMiddle: (rt.left + rt.right) / 2,
+      return {em, content: text.width / em, centre: (text.left + text.right) / 2, rtMiddle: (rt.left + rt.right) / 2,
+              box: {left: box.left, right: box.right, top: box.top, bottom: box.bottom},
               band: {left: band.left, right: band.right}, sideLine: line.left}; }""".replace("PROBES", PROBES))
-    if engine == "chromium":
+    if engine == "chromium" or (engine == "firefox" and engine_version >= 153):
         tall(found)
     else:
-        # Firefox makes a column of upright text as wide as the em box, whatever the font's ascent
-        # and descent; WebKit ignores the overrides (both measured). The content area is the em box.
+        # Firefox 139 makes a column of upright text as wide as the em box, whatever the font's
+        # ascent and descent (153 takes the overrides, as Chromium does); WebKit ignores the
+        # overrides (all measured). The content area is the em box.
         assert found["content"] == pytest.approx(1, abs=1 / found["em"])
     em, spread = found["em"], 0.06 * found["em"]
     # across the column the em box is centred in the content area; the band is that and the spread
@@ -336,6 +347,17 @@ def test_in_vertical_text_the_highlight_is_drawn_from_the_em_box_too(drawn, engi
     assert found["sideLine"] == pytest.approx(found["centre"] - 0.5 * em - 0.02 * em, abs=0.25)
     assert found["band"]["right"] < found["rtMiddle"]  # the reading at the right is clear of it
     assert at.page.evaluate(CHECK)["ok"]
+    # and in a screenshot, where the band is painted: the text's ink lies inside it, the reading's
+    # ink at its right
+    at.page.evaluate("""() => { const root = document.querySelector(".tsubu");
+      root.style.setProperty("--tsubu-current-color", "#00ff00"); root.style.setProperty("--tsubu-current-ruby-color", "#ff0000"); }""")
+    box = found["box"]
+    clip = {"x": box["left"] - em, "y": box["top"] + 2, "width": box["right"] - box["left"] + 2 * em, "height": box["bottom"] - box["top"] - 4}
+    text, reading, band = (columns_with(at.page, clip, c) for c in ((0, 255, 0), (255, 0, 0), (29, 78, 216)))
+    assert text and reading and band
+    assert band[0] == pytest.approx(found["band"]["left"], abs=1) and band[-1] + 1 == pytest.approx(found["band"]["right"], abs=1)
+    assert band[0] <= text[0] and text[-1] <= band[-1], (band[0], band[-1], text[0], text[-1])
+    assert reading[0] >= band[-1] - 1, (reading[0], band[-1])  # one column for anti-aliasing
 
 
 def test_nothing_moves_in_a_font_with_a_tall_content_area(drawn):

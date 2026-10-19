@@ -338,8 +338,7 @@ into the furigana, whose ink sits just above the base's em box. So the highlight
 are not drawn from that box but from the em box: a band 1em tall, `--tsubu-current-spread` past
 it, and a line `--tsubu-underline-offset` below it. CSS cannot read a font's ascent, so the em box
 is placed within the content area by a fixed split of the extra height (62% above it and 38%
-below in horizontal text, half and half in vertical text, where Chromium centres the em box),
-which is exact for Hiragino Sans, whose content area is its em box, and for the whole Noto family,
+below; vertical text needs none, since each segment's line is centred on the em box), which is exact for Hiragino Sans, whose content area is its em box, and for the whole Noto family,
 and within a few hundredths of an em for the rest. The current segment's furigana therefore sit
 on the page in every font, and `checkContrast` measures the highlight where it is drawn.
 
@@ -427,7 +426,12 @@ vertical-rl`: columns run from right to left, the furigana sit at the right of t
 each segment's underline becomes a dotted **side line at its left**, inset at both ends. The ruby
 reserve becomes room at the right of the first column. The highlight, its spread and the `media`
 plate are the same boxes turned with the text; `underline-draw` draws the side line in from the
-top. The column length is the sentence's height, so give the container a height; without one, the
+top. Each segment is an `inline-block` here, a line 2em across centred on the em box of its text,
+and the highlight and the side line are drawn from its left edge: WebKit misplaces a box
+positioned inside an inline in vertical text. Negative margins give the room back, so a column is
+as wide as the line height and grows only for readings that would reach the characters of the
+next; a segment's box takes in its reading. Without the ruby reserve the first column's readings
+stick out of the sentence's box. The column length is the sentence's height, so give the container a height; without one, the
 sentence is as tall as its content, up to the viewport.
 
 **Digits and Latin letters.** A run of half-width characters (ASCII other than spaces and
@@ -689,7 +693,8 @@ punctuation, progress, every refused input, and that `stateAt` depends on `t` al
 
 The browser tests run in Chromium, Firefox and WebKit (`--engine`, see
 [Running the tests](#running-the-tests)). Measured with Playwright 1.54 on Chromium 139.0.7258.5,
-Firefox 139.0 and WebKit 26.0 (the engine of Safari 26). The suite passes in all three. Where an
+Firefox 139.0 and WebKit 26.0 (the engine of Safari 26), and on Firefox 153.0. The suite passes in
+all of them. Where an
 engine cannot do something tsubu relies on, the test is marked as an expected failure in that
 engine alone, with the reason (the `limitation` mark in `tests/conftest.py`); where the engine
 only measures differently, the test checks the same guarantee in that engine's terms.
@@ -697,29 +702,36 @@ only measures differently, the test checks the same guarantee in that engine's t
 - **Chromium**: every guarantee holds.
 - **Firefox**: every guarantee holds but balanced lines. Firefox does not apply
   `text-wrap: balance` when the only break opportunities are between nowrap units, which is how
-  tsubu keeps the line-breaking rules, so lines and columns break greedily. Also measured: a
-  column of upright text is as wide as the em box whatever the font's ascent and descent; without
-  the ruby reserve the first column's readings stick out of the sentence's box by a few pixels
-  (the reserve holds them, as intended); `htmlAt` gives the same element tree, with the style
-  attribute in another place.
-- **WebKit (Safari)**: horizontal text holds every guarantee but balanced lines. **Vertical text
-  does not: do not use it in Safari yet.**
-  - Vertical text: WebKit places an absolutely positioned box inside an inline in `vertical-rl`
-    text mirrored across the block's right edge, as far right of it as the segment lies left of
-    it (measured). Each segment's highlight and side line are drawn away from the segment, and the
-    segment being spoken can be left as light text on the page. Characters, readings, upright
-    runs and column breaks are right, and `checkContrast` reports the failure.
+  tsubu keeps the line-breaking rules, so lines and columns break greedily. Also measured: in
+  Firefox 139 a column of upright text is as wide as the em box whatever the font's ascent and
+  descent (Firefox 153 takes them, as Chromium does); Firefox rounds the ascent and the descent of
+  a text box up to whole pixels, and Firefox 153 sets a reading by the font's own metrics, so at a
+  fractional font size the reading's box reaches up to 1.4px into its base's, with the glyphs as
+  far apart as in Chromium; without the ruby reserve the first column's readings stick out of the
+  sentence's box by a few pixels (the reserve holds them, as intended); `htmlAt` gives the same
+  element tree, with the style attribute in another place.
+- **WebKit (Safari)**: every guarantee holds but balanced lines and columns, in horizontal and
+  vertical text.
   - Balanced lines: WebKit does not apply `text-wrap: balance` to inline content that holds
     absolutely positioned boxes (each segment's highlight and underline), so lines break greedily.
   - Forced colours: WebKit has none of its own. With the media query emulated tsubu's rules apply
     and the segment being spoken gets the system highlight, but WebKit replaces no other colour.
   - `ascent-override` and `descent-override` are not supported, so the test that gives a face
-    Noto Sans JP's metrics cannot run; with the system's Hiragino Sans every guarantee is measured.
+    Noto Sans JP's metrics cannot run; with the system's Hiragino Sans every guarantee is measured,
+    and the site's pages, set in web fonts with a tall content area, pass their contrast checks in
+    vertical text too.
   - Fixed in tsubu: WebKit lets a reading wider than its base overhang the next kana but keeps
     the segment's box as long as before, so neighbouring underlines met; tsubu sets
     `ruby-overhang: none`. And WebKit reports the computed insets of a box positioned inside an
     inline against the block around it, so `checkContrast` measures the highlight and the
-    underline on probes that take the same geometry instead of reading them back.
+    underline on probes that take the same geometry instead of reading them back. In
+    `vertical-rl` text WebKit places a box positioned inside an inline mirrored across the
+    block's right edge, as far right of it as the segment lies left of it (measured), so each
+    highlight and side line was drawn away from its segment: there each segment is an
+    `inline-block` (see [Vertical writing](#vertical-writing)). WebKit also takes the font's whole
+    content area into the line of a base that has a reading, whatever the line height, and sets
+    the reading past it; the segment's line is 2em across to hold it, and the column grows only
+    as far as the reading needs.
 - `ruby-align` is needed for the "wide reading does not spread its base" guarantee. Per MDN it is
   supported from **Chrome 128** and **Safari 18.2**. In older browsers the furigana still switch
   without reflow, but a reading wider than its base spreads the base characters apart.

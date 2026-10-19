@@ -105,20 +105,17 @@ PAIRS = """() => {
 
 SENTENCES = """() => [...document.querySelectorAll('.tsubu')].filter((r) => !r.closest('[data-unchecked]')).map((r) => {
   const res = Tsubu.checkContrast(r, r.closest('[data-tsubu-theme]') ? {} : { backdrop: getComputedStyle(document.body).backgroundColor });
-  return { text: r.textContent.slice(0, 12), ok: res.ok, failures: res.failures.slice(0, 3),
-           vertical: getComputedStyle(r).writingMode !== 'horizontal-tb' }; })"""
+  return { text: r.textContent.slice(0, 12), ok: res.ok, failures: res.failures.slice(0, 3) }; })"""
 
 
 @pytest.mark.parametrize("name", PAGES)
 @pytest.mark.parametrize("lang", ["en", "zh", "ja"])
-def test_every_colour_pair_on_the_page_meets_the_thresholds(site, engine, name, lang):
+def test_every_colour_pair_on_the_page_meets_the_thresholds(site, name, lang):
     page = site(name)
     page.evaluate(f"() => Site.setLang('{lang}')")
     low = [p for p in page.evaluate(PAIRS) if p["ratio"] < 4.5]
     assert low == [], low
-    # (in WebKit a vertical sentence's highlight is drawn off its segment, a limitation recorded in
-    # the vertical tests; those sentences are left out there)
-    bad = [s for s in page.evaluate(SENTENCES) if not s["ok"] and not (engine == "webkit" and s["vertical"])]
+    bad = [s for s in page.evaluate(SENTENCES) if not s["ok"]]
     assert bad == [], bad
 
 
@@ -201,7 +198,7 @@ def test_the_api_page_names_everything_the_readme_and_the_library_do(site):
     for key in found["keys"]:
         assert f"Tsubu.{key}" in text, key
     assert f'"{found["version"]}"' in text and f'`"{found["version"]}"`' in readme
-    for name in ("toWebVTT", "toASS", "toASSScript"):
+    for name in ("toWebVTT", "toASS", "toASSScript", "toSRT"):
         assert f"TsubuExport.{name}" in text and f"`TsubuExport.{name}" in readme or f"**`{name}`**" in readme
     for motion in ("appear", "mask", "blur", "underline-draw"):
         assert motion in text and f"`{motion}`" in readme
@@ -322,10 +319,11 @@ def test_the_playground_switches_everything_and_checks_the_contrast(site):
     assert "current: 9" in page.locator("#state").text_content()
     assert page.locator("#vtt").text_content().startswith("WEBVTT")
     assert "Dialogue:" in page.locator("#ass").text_content()
+    assert page.locator("#srt").text_content().startswith("1\n00:00:")
     assert page.errors == []
 
 
-def test_the_gallery_shows_every_theme_speaker_motion_and_writing_mode(site, engine):
+def test_the_gallery_shows_every_theme_speaker_motion_and_writing_mode(site):
     page = site("gallery.html")
     found = run_library({"segments": [{"parts": [{"text": "a"}]}]})
     themes = page.evaluate("() => [...document.querySelectorAll('#theme-grid .tsubu')].map((r) => [r.dataset.tsubuTheme || null, r.dataset.speaker || null])")
@@ -334,11 +332,8 @@ def test_the_gallery_shows_every_theme_speaker_motion_and_writing_mode(site, eng
     assert motions == ["appear", "mask", "blur", "underline-draw"]
     writing = page.evaluate("() => [...document.querySelectorAll('#writing-grid .tsubu')].map((r) => getComputedStyle(r).writingMode)")
     assert writing == ["horizontal-tb", "vertical-rl", "vertical-rl"]
-    metas = page.evaluate("""() => [...document.querySelectorAll('.card .meta')].map((m) => [m.textContent,
-      getComputedStyle(m.closest('.card').querySelector('.tsubu')).writingMode !== 'horizontal-tb'])""")
-    # (WebKit reports the vertical cards, whose highlight it draws off the segment: see above)
-    assert all("✕" not in m for i, (m, vertical) in enumerate(metas) if i != 6 and not (engine == "webkit" and vertical))
-    assert "✕" in metas[6][0]
+    metas = page.evaluate("() => [...document.querySelectorAll('.card .meta')].map((m) => m.textContent)")
+    assert all("✕" not in m for i, m in enumerate(metas) if i != 6) and "✕" in metas[6]
     assert "keys" in found
 
 

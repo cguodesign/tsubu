@@ -14,10 +14,14 @@ SCRIPT = ROOT / "tsubu.js"
 STYLES = ROOT / "tsubu.css"
 DEMO = ROOT / "demo" / "index.html"
 
-# Why WebKit fails the tests of the highlight and the side line in vertical text (measured there:
-# the boxes land as far right of the block's right edge as the segment lies left of it).
-VERTICAL_MIRROR = ("an absolutely positioned box inside an inline in vertical-rl text is placed mirrored across the "
-                   "block's right edge, so each segment's highlight and side line are drawn off the segment")
+# How far two text boxes may reach into each other across the lines (or columns) before they
+# overlap. Firefox rounds the ascent and the descent of a text box up to whole pixels (measured:
+# 20px for Hiragino Sans at 18.18px, where Chromium gives 18px), and from Firefox 153 it sets a
+# reading by the font's own metrics rather than on its base's rounded box. At a fractional font
+# size a reading's box then reaches up to 1.4px into its base's (measured), with the glyphs as far
+# apart as in Chromium.
+def block_slack(engine):
+    return 2 if engine == "firefox" else 1
 
 
 def seg(*parts, start=None, end=None, punct=False):

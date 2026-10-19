@@ -233,7 +233,7 @@ Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  //
 
 背景依次取 `options.backdrop`（一个颜色、一组颜色，或表示黑和白的 `"any"`）、主题的 `--tsubu-backdrop`、根元素各祖先的背景色叠在白色上的结果。它看不到背景图片、`text-shadow` 和抗锯齿：叠在图片上时，请用 `media` 底板，或者把图片最亮和最暗的颜色作为背景传进去。
 
-**内容区偏高的字体。** 一段自己的框是字体的内容区（content area）；许多网页字体（Noto Sans JP 以及整个 Noto / 思源家族、Shippori Mincho、Zen Kaku Gothic）的内容区约有 1.45em 高，比文字的 em 框高出 0.28em，伸进了上方的注音里，而注音的墨迹就贴在汉字 em 框的上沿。所以高亮和下划线不是按这个框画的，而是按 em 框画：一条 1em 高的带子，再向外伸 `--tsubu-current-spread`；下划线在 em 框下方 `--tsubu-underline-offset` 处。CSS 读不到字体的 ascent，所以 em 框在内容区里的位置按多出高度的固定比例来定（横排时上方 62%、下方 38%；竖排时各一半，Chromium 在竖排里把 em 框居中），这对内容区就是 em 框的 Hiragino Sans 和整个 Noto 家族都是精确的，对其余字体误差在百分之几 em 以内。因此不管什么字体，正在读的那一段的注音都落在页面上，`checkContrast` 也在高亮实际画出的位置上测量。
+**内容区偏高的字体。** 一段自己的框是字体的内容区（content area）；许多网页字体（Noto Sans JP 以及整个 Noto / 思源家族、Shippori Mincho、Zen Kaku Gothic）的内容区约有 1.45em 高，比文字的 em 框高出 0.28em，伸进了上方的注音里，而注音的墨迹就贴在汉字 em 框的上沿。所以高亮和下划线不是按这个框画的，而是按 em 框画：一条 1em 高的带子，再向外伸 `--tsubu-current-spread`；下划线在 em 框下方 `--tsubu-underline-offset` 处。CSS 读不到字体的 ascent，所以 em 框在内容区里的位置按多出高度的固定比例来定（上方 62%、下方 38%；竖排不需要，因为每段的行以 em 框为中心），这对内容区就是 em 框的 Hiragino Sans 和整个 Noto 家族都是精确的，对其余字体误差在百分之几 em 以内。因此不管什么字体，正在读的那一段的注音都落在页面上，`checkContrast` 也在高亮实际画出的位置上测量。
 
 ## 多行
 
@@ -282,7 +282,7 @@ Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  //
 Tsubu.sentence(input, { writing: "vertical" })   // 或在任一祖先元素上写 data-tsubu-writing="vertical"
 ```
 
-`options.writing`（`"horizontal"` 或 `"vertical"`）会在根元素上写入 `data-tsubu-writing`。和 `data-tsubu-theme` 一样，这个属性写在祖先元素上也有效；根元素上的 `"horizontal"` 可以让句子在竖排的祖先里保持横排。竖排就是 `writing-mode: vertical-rl`：列从右向左排，注音在字的右侧，每段的下划线变成它**左侧的点状边线**，两端内缩。注音预留空间变成第一列右侧的空白。高亮、它的外扩和 `media` 底板是随文字一起转过来的同一组盒子；`underline-draw` 从上往下画出边线。列长就是句子的高度，所以请给容器设定高度；不设时，句子高度取决于内容，最高到视口高度。
+`options.writing`（`"horizontal"` 或 `"vertical"`）会在根元素上写入 `data-tsubu-writing`。和 `data-tsubu-theme` 一样，这个属性写在祖先元素上也有效；根元素上的 `"horizontal"` 可以让句子在竖排的祖先里保持横排。竖排就是 `writing-mode: vertical-rl`：列从右向左排，注音在字的右侧，每段的下划线变成它**左侧的点状边线**，两端内缩。注音预留空间变成第一列右侧的空白。高亮、它的外扩和 `media` 底板是随文字一起转过来的同一组盒子；`underline-draw` 从上往下画出边线。竖排里每段是一个 `inline-block`：一行 2em 宽、以文字的 em 框为中心，高亮和侧线从它的左边缘画起，因为 WebKit 会把竖排里内联元素中的定位框放错位置。负外边距把多出的空间还回去，所以一列和行高一样宽，只有读音会碰到下一列的字时才变宽；段的框包含它的读音。没有注音留白时，第一列的读音会伸出句子的框。列长就是句子的高度，所以请给容器设定高度；不设时，句子高度取决于内容，最高到视口高度。
 
 **数字和拉丁字母。** 不超过 `options.combineUpright` 个字符（0 到 4，默认 2）的半角字符串（空格和括号以外的 ASCII）会用 `text-combine-upright` 在列中横向直立显示（10月、AI、!?）；更长的字符串侧躺（`text-orientation: mixed`），比如 2025年。Chromium 会把任何直立字符串压进一个 em，所以上限是四个字符。除非句子用自己的选项指定为横排，这些字符串都会包在 `<span class="tsubu-upright">` 里，因为画好之后祖先还可能把它变成竖排；这个 span 在横排里不起作用（实测各个框相差不超过 1/64 px）。
 
@@ -395,16 +395,15 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 
 ## 浏览器支持
 
-浏览器测试在 Chromium、Firefox 和 WebKit 里都能跑（`--engine`，见[运行测试](#运行测试)）。用 Playwright 1.54 在 Chromium 139.0.7258.5、Firefox 139.0 和 WebKit 26.0（Safari 26 的引擎）上实测，三个引擎都通过整套测试。某个引擎做不到 tsubu 依赖的东西时，测试只在那个引擎里标为预期失败，并写明原因（`tests/conftest.py` 里的 `limitation` 标记）；只是测量方式不同时，测试按那个引擎的方式检查同一条保证。
+浏览器测试在 Chromium、Firefox 和 WebKit 里都能跑（`--engine`，见[运行测试](#运行测试)）。用 Playwright 1.54 在 Chromium 139.0.7258.5、Firefox 139.0 和 WebKit 26.0（Safari 26 的引擎）上实测，也在 Firefox 153.0 上实测，都通过整套测试。某个引擎做不到 tsubu 依赖的东西时，测试只在那个引擎里标为预期失败，并写明原因（`tests/conftest.py` 里的 `limitation` 标记）；只是测量方式不同时，测试按那个引擎的方式检查同一条保证。
 
 - **Chromium**：每条保证都成立。
-- **Firefox**：除了均衡换行，每条保证都成立。断行点只在 nowrap 单元之间时（tsubu 正是这样执行禁则的），Firefox 不执行 `text-wrap: balance`，所以行和列都按贪心断行。另外实测到：竖排时一列的宽度不管字体的 ascent 和 descent 如何都是 em 框；没有注音留白时，第一列的读音会伸出句子的框几个像素（留白把它们收进来，这正是留白的用途）；`htmlAt` 给出相同的元素树，只是 style 属性的位置不同。
-- **WebKit（Safari）**：横排除了均衡换行，每条保证都成立。**竖排不成立：暂时不要在 Safari 里用竖排。**
-  - 竖排：WebKit 把 `vertical-rl` 文字里一个内联元素中的绝对定位框，以块的右边缘为轴镜像放置，段在边缘左边多远，框就落在边缘右边多远（实测）。每段的高亮和侧线都画在离段很远的地方，正在读的那一段可能变成页面上的浅色文字。字、读音、直立的字符串和分列都是对的，`checkContrast` 也会报告这个失败。
+- **Firefox**：除了均衡换行，每条保证都成立。断行点只在 nowrap 单元之间时（tsubu 正是这样执行禁则的），Firefox 不执行 `text-wrap: balance`，所以行和列都按贪心断行。另外实测到：Firefox 139 里竖排时一列的宽度不管字体的 ascent 和 descent 如何都是 em 框（Firefox 153 和 Chromium 一样按它们算）；Firefox 把文字框的 ascent 和 descent 各自向上取整到整像素，而 Firefox 153 按字体本身的度量放置读音，所以字号不是整数时，读音的框会伸进汉字的框最多 1.4px，字形之间的距离和 Chromium 里一样；没有注音留白时，第一列的读音会伸出句子的框几个像素（留白把它们收进来，这正是留白的用途）；`htmlAt` 给出相同的元素树，只是 style 属性的位置不同。
+- **WebKit（Safari）**：除了均衡换行和均衡分列，横排竖排的每条保证都成立。
   - 均衡换行：内联内容里有绝对定位的框（每段的高亮和下划线）时，WebKit 不执行 `text-wrap: balance`，所以按贪心断行。
   - 强制颜色：WebKit 没有自己的强制颜色模式。模拟这个媒体查询时 tsubu 的规则生效，正在读的那一段用系统高亮色，但 WebKit 不替换其他任何颜色。
-  - 不支持 `ascent-override` 和 `descent-override`，所以给字体套上 Noto Sans JP 度量的那组测试跑不了；用系统的 Hiragino Sans 时每条保证都实测过。
-  - 已在 tsubu 里修正：WebKit 让比汉字宽的读音伸到后面的假名上方，但段的框长度不变，于是伸进下一段，相邻的下划线连在一起；tsubu 设了 `ruby-overhang: none`。另外 WebKit 对内联元素中绝对定位框的计算 inset 是按外面的块给出的，所以 `checkContrast` 改为在取同样几何的探针上测量高亮和下划线，而不再读回这些值。
+  - 不支持 `ascent-override` 和 `descent-override`，所以给字体套上 Noto Sans JP 度量的那组测试跑不了；用系统的 Hiragino Sans 时每条保证都实测过，网站上用内容区偏高的网页字体排的竖排句子也通过对比度检查。
+  - 已在 tsubu 里修正：WebKit 让比汉字宽的读音伸到后面的假名上方，但段的框长度不变，于是伸进下一段，相邻的下划线连在一起；tsubu 设了 `ruby-overhang: none`。另外 WebKit 对内联元素中绝对定位框的计算 inset 是按外面的块给出的，所以 `checkContrast` 改为在取同样几何的探针上测量高亮和下划线，而不再读回这些值。在 `vertical-rl` 文字里，WebKit 把内联元素中的定位框以块的右边缘为轴镜像放置，段在边缘左边多远，框就落在边缘右边多远（实测），所以每段的高亮和侧线都画在离段很远的地方：竖排里每段因此是一个 `inline-block`（见[竖排](#竖排)）。WebKit 还会把有读音的汉字所用字体的整个内容区算进行里，不管行高是多少，并把读音放在内容区之外；段的行有 2em 宽来容纳它，列只按读音需要的宽度变宽。
 - "宽读音不拉开汉字"这条保证需要 `ruby-align`。据 MDN，**Chrome 128** 和 **Safari 18.2** 起支持。在更旧的浏览器里，注音开关仍然不会重排，但读音比汉字宽时汉字会被拉开。
 - 均衡换行用 `text-wrap: balance`（Chrome 114、Firefox 121、Safari 17.5）；不支持时按贪心断行。流式字号用容器查询和 `cqi` 单位（Chrome 105、Firefox 110、Safari 16）。
 - 脚本用了 ES2015 以上的语法（`const`、箭头函数、模板字符串）和 `:scope` 选择器。

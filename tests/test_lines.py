@@ -7,7 +7,7 @@ import re
 
 import pytest
 
-from support import LONG, TIMED, WHOLE, run_library, seg
+from support import LONG, TIMED, WHOLE, block_slack, run_library, seg
 
 # 昨日の夜、駅前の新しいラーメン屋で、大学時代の友達と久しぶりに会って、遅くまでいろいろな話をしました。
 # ("Last night I met a friend from university for the first time in a while, at the new ramen shop by
@@ -61,9 +61,10 @@ def lines_of(found):
     return [sorted(rows[top], key=lambda c: c["box"]["left"]) for top in sorted(rows)]
 
 
-def overlaps(a, b, slack=1):
+def overlaps(a, b, slack=1, across=1):
+    """Whether two boxes overlap by more than `slack` along the line and `across` it."""
     return min(a["right"], b["right"]) - max(a["left"], b["left"]) > slack and \
-        min(a["bottom"], b["bottom"]) - max(a["top"], b["top"]) > slack
+        min(a["bottom"], b["bottom"]) - max(a["top"], b["top"]) > across
 
 
 def check_layout(found):
@@ -81,7 +82,7 @@ def check_layout(found):
     boxes = [(c["ch"], c["box"]) for c in chars if not c["rt"] and not c["ruby"]]
     boxes += [("ruby", r["base"]) for r in rts] + [("rt", r["box"]) for r in rts]
     for (x, a), (y, b) in itertools.combinations(boxes, 2):
-        assert not overlaps(a, b), (x, a, y, b)
+        assert not overlaps(a, b, across=block_slack(found["engine"])), (x, a, y, b)
     # the Japanese line-breaking rules hold at every line break
     lines = lines_of(found)
     for line in lines[1:]:

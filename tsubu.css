@@ -62,10 +62,10 @@
  * sits just above the base's em box. So the highlight and the underline are not drawn from that
  * box but from the em box, as a 1em band and a line under it. CSS cannot read the font's
  * ascent, so the em box is placed within the content area by a fixed split of the extra height,
- * --tsubu-em-lead before it and --tsubu-em-trail after it: 0.62 / 0.38 in horizontal text, which
- * is exact for Hiragino Sans (no extra height) and for the whole Noto family, and 0.5 / 0.5 in
- * vertical text, where Chromium centres the em box. A font whose metrics split differently can
- * set the two on the sentence.
+ * --tsubu-em-lead before it and --tsubu-em-trail after it: 0.62 / 0.38, which is exact for
+ * Hiragino Sans (no extra height) and for the whole Noto family. A font whose metrics split
+ * differently can set the two on the sentence. Vertical text needs no split: there each segment
+ * is an inline-block whose line is centred on the em box (see after the underline's rules).
  */
 .tsubu {
   display: block;
@@ -112,7 +112,8 @@
  * logical properties, so it follows on its own: the furigana (ruby-position: over) go to the
  * right of the characters, the ruby reserve becomes room at the right of the first column, and
  * each segment's underline becomes a side line at its left. The highlight, its spread and the
- * plate are the same boxes turned with the text.
+ * plate are the same boxes turned with the text. Each segment is an inline-block there, and its
+ * highlight and side line are drawn from its left edge (see the rules after the underline's).
  *
  * Full-width punctuation, brackets and the long-vowel mark take their vertical forms from the
  * font (OpenType vertical alternates, applied with text-orientation: mixed). Half-width letters
@@ -234,10 +235,32 @@
   border-block-end: var(--tsubu-underline-width, 0.06em) var(--tsubu-underline-style, dotted) var(--tsubu-underline-color, #9ca3af);
   pointer-events: none;
 }
-/* In vertical text Chromium centres the em box in the content area. */
-.tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg {
-  --tsubu-em-lead: 0.5;
-  --tsubu-em-trail: 0.5;
+/* In vertical text each segment is an inline-block, not an inline: WebKit places a box positioned
+ * inside an inline in vertical-rl text mirrored across the block's right edge, as far right of it
+ * as the segment lies left of it (measured). Its line is 2em across, centred on the em box of the
+ * text like every line, and so reaches 0.5em past it on the left: the highlight and the side line
+ * are drawn from there. The line is that wide so it holds the font's content area too, which
+ * WebKit takes into the line of a base that has a reading whatever the line height (measured
+ * with Shippori Mincho B1, whose content area is 1.45em); the furigana reach past it at the
+ * right. The negative margins give that room back: at the left all of it, and at the right all
+ * but the column's half-leading, which the furigana may reach into as they do into an inline's,
+ * so a column grows only for furigana that would reach the em box of the next. The columns are
+ * as wide as with inline segments and no character moves (measured in Chromium and Firefox);
+ * WebKit, which sets the furigana past the content area, widens a column only as far as they need.
+ * A segment that is off the page keeps display: none. */
+.tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg:not([data-off-page]) {
+  display: inline-block;
+  line-height: 2;
+  margin-block: calc((1 - var(--tsubu-line-height, 1.75)) * 0.5em) -0.5em;
+}
+.tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg::before,
+.tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg > .tsubu-band-probe {
+  inset-block-start: auto;
+  inset-block-end: calc(0.5em - var(--tsubu-current-spread, 0.06em));
+}
+.tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg:not([data-kind="punct"])::after,
+.tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg:not([data-kind="punct"]) > .tsubu-line-probe {
+  inset-block-end: calc(0.5em - var(--tsubu-underline-offset, 0.02em));
 }
 
 /* No overhang: WebKit lets a wide reading overhang the kana next to it, but leaves the segment's
@@ -331,6 +354,11 @@
 }
 [data-tsubu-motion~="blur"] .tsubu-seg:not([data-state="current"], [data-state="past"], [data-revealed]) rt {
   filter: blur(var(--tsubu-blur, 0.15em));
+}
+/* A vertical segment is an inline-block, whose filter does reach its furigana: they are not
+ * blurred twice. */
+.tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg rt {
+  filter: none;
 }
 
 [data-tsubu-motion~="underline-draw"] .tsubu-seg:not([data-state="current"], [data-state="past"], [data-revealed])::after {

@@ -16,7 +16,7 @@ PAGE = """<!doctype html><html lang="ja"><head><meta charset="utf-8">
 MEASURE = """() => {
   const root = document.querySelector(".tsubu");
   const box = (r) => ({left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height});
-  const rubies = [...root.querySelectorAll("ruby")];
+  const rubies = [...root.querySelectorAll("ruby")], segs = [...root.querySelectorAll(".tsubu-seg")];
   const chars = [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -26,7 +26,7 @@ MEASURE = """() => {
       range.setStart(node, i); range.setEnd(node, i + 1);
       chars.push({ch: node.data[i], rt: inRt, ruby: !inRt && !!node.parentElement.closest("ruby"),
                   hidden: !!node.parentElement.closest("[data-off-page]"), upright: !!node.parentElement.closest(".tsubu-upright"),
-                  rubyIndex: rubies.indexOf(node.parentElement.closest("ruby")),
+                  rubyIndex: rubies.indexOf(node.parentElement.closest("ruby")), seg: segs.indexOf(node.parentElement.closest(".tsubu-seg")),
                   box: box(range.getBoundingClientRect())});
     }
   }
@@ -126,8 +126,14 @@ def browser(engine, request):
             launched.close()
 
 
+@pytest.fixture(scope="session")
+def engine_version(browser):
+    """The major version of the browser the tests run in, such as 153."""
+    return int(browser.version.split(".")[0])
+
+
 @pytest.fixture
-def drawn(browser, tmp_path):
+def drawn(browser, engine, tmp_path):
     """Draws a sentence on a page that loads the library's own CSS and script, in a bubble of the
     given width (a fluid container if asked, with extra inline style, and with extra CSS such as a
     font face), with any other options (theme, speaker) passed to Tsubu.sentence. Returns a
@@ -156,7 +162,7 @@ def drawn(browser, tmp_path):
               if (t !== null) S.apply(root, t);
             }""", [t, ruby_on])
             assert errors == []
-            return page.evaluate(MEASURE)
+            return {**page.evaluate(MEASURE), "engine": engine}
 
         at.page = page
         return at

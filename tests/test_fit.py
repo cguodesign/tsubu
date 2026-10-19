@@ -76,6 +76,15 @@ def test_vertical_text_is_checked_along_its_columns(drawn):
     assert "too-wide" in kinds(found)
 
 
+@pytest.mark.parametrize("sentence", [TIMED, LONG], ids=["one-column", "columns"])
+def test_a_vertical_sentence_in_a_container_just_as_wide_fits(drawn, sentence):
+    # A vertical segment's line reaches past its text into the room between the columns (see the
+    # stylesheet), so the last column's segments are measured by their text.
+    at = drawn(sentence, writing="vertical", style="height: 300px; width: max-content")
+    found = at.page.evaluate(CHECK)
+    assert found["ok"], found["issues"]
+
+
 def test_another_container_can_be_named(drawn):
     at = drawn(TIMED, width=900)
     at.page.evaluate("() => { const box = document.createElement('div'); box.id = 'small'; box.style.cssText = 'position:absolute;left:40px;top:40px;width:100px;height:40px'; document.body.append(box); }")

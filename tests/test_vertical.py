@@ -11,7 +11,7 @@ import json
 
 import pytest
 
-from support import BAND_COLOUR, LONG, TIMED, VERTICAL_MIRROR, WHOLE, run_library, seg
+from support import BAND_COLOUR, LONG, TIMED, WHOLE, block_slack, run_library, seg
 from test_layout import png_rows
 from test_lines import KINSOKU, NO_END, NO_START, VERY_LONG, segment_times
 
@@ -58,8 +58,21 @@ def columns_of(found):
     return [sorted(cs, key=lambda c: c["box"]["top"]) for _, cs in columns]
 
 
-def overlaps(a, b, slack=1):
-    return min(a["right"], b["right"]) - max(a["left"], b["left"]) > slack and \
+def segment_columns(found):
+    """The column of each segment on the page, counted from the right, from its left edge: the side
+    away from its reading, which a segment's box takes in (see the stylesheet). A segment whose
+    left edge lies half a character or more to the left of the column's begins the next one."""
+    half = found["fontSize"] / 2
+    starts = []
+    for left in sorted((s["box"]["left"] for s in found["segments"] if not s["offPage"]), reverse=True):
+        if not starts or starts[-1] - left >= half:
+            starts.append(left)
+    return [None if s["offPage"] else sum(1 for x in starts if x - s["box"]["left"] >= half) for s in found["segments"]]
+
+
+def overlaps(a, b, slack=1, across=1):
+    """Whether two boxes overlap by more than `slack` along the column and `across` it."""
+    return min(a["right"], b["right"]) - max(a["left"], b["left"]) > across and \
         min(a["bottom"], b["bottom"]) - max(a["top"], b["top"]) > slack
 
 
@@ -82,16 +95,17 @@ def check_columns(found):
     boxes += [(u["text"], u["box"]) for u in found["upright"]]
     boxes += [("ruby", r["base"]) for r in rts] + [("rt", r["box"]) for r in rts]
     for (x, a), (y, b) in itertools.combinations(boxes, 2):
-        assert not overlaps(a, b), (x, a, y, b)
+        assert not overlaps(a, b, across=block_slack(found["engine"])), (x, a, y, b)
     columns = columns_of(found)
     for column in columns[1:]:
         assert column[0]["ch"] not in NO_START, "".join(c["ch"] for c in column)
     for column in columns[:-1]:
         assert column[-1]["ch"] not in NO_END, "".join(c["ch"] for c in column)
-    # a segment is never split: it lies in one column
+    # a segment is never split: it lies in one column. Its box is a line 2em across and its reading
+    # at the right (see the stylesheet); across two columns, 1.75em apart, it would be 3.75em or more.
     for s in found["segments"]:
         if not s["offPage"]:
-            assert s["box"]["width"] < found["fontSize"] * 1.5, s
+            assert s["box"]["width"] < found["fontSize"] * 3, s
     return columns
 
 
@@ -174,7 +188,7 @@ def test_furigana_sit_at_the_right_unclipped_and_clear_of_the_column_to_the_righ
                 assert line["left"] >= box["right"], (line, box)
 
 
-def test_the_ruby_reserve_is_room_at_the_right_of_the_first_column(drawn, engine):
+def test_the_ruby_reserve_is_room_at_the_right_of_the_first_column(drawn):
     at = drawn(TIMED, style=TALL, **V)
     found = at()
     padding = at.page.evaluate("""() => { const s = getComputedStyle(document.querySelector('.tsubu'));
@@ -182,17 +196,14 @@ def test_the_ruby_reserve_is_room_at_the_right_of_the_first_column(drawn, engine
     assert padding == [0, 0.3 * 40, 0, 0]
     assert found["root"]["top"] == min(c["box"]["top"] for c in found["chars"] if not c["rt"])
     assert max(r["box"]["right"] for r in found["rts"]) <= found["root"]["right"] - 1
-    # Without it, Chromium and WebKit grow the first column to hold its readings (by 5px and 6px
-    # here), so they stay inside; with it, the readings reach into the reserve instead. Firefox
-    # does not grow the column, so without the reserve the readings stick out of the sentence's
-    # box (by 5px here, measured), which is why the reserve is there. Either way no character
-    # moves: only the sentence's box reaches further right.
+    # A column is as wide as the line height whatever its readings (each segment gives back the
+    # room its readings take, see the stylesheet), so without the reserve the first column's
+    # readings stick out of the sentence's box (by 5px here, measured in every engine), which is
+    # why the reserve is there. Either way no character moves: only the sentence's box reaches
+    # further right.
     bare = drawn(TIMED, style=TALL + "; --tsubu-ruby-reserve: 0", **V)()
     reach = max(r["box"]["right"] for r in bare["rts"]) - bare["root"]["right"]
-    if engine == "firefox":
-        assert 0 < reach <= 0.3 * 40
-    else:
-        assert reach <= 0
+    assert 0 < reach <= 0.3 * 40
     assert base_chars(found) == base_chars(bare) and [r["box"] for r in found["rts"]] == [r["box"] for r in bare["rts"]]
     assert found["root"]["left"] == bare["root"]["left"] and 0 < found["root"]["right"] - bare["root"]["right"] <= 0.3 * 40
 
@@ -237,7 +248,6 @@ def test_no_character_moves_when_the_theme_or_the_speaker_changes(drawn):
                     assert boxes(at(t)) == boxes(first), (where, theme, speaker, t)
 
 
-@pytest.mark.limitation("webkit", reason=VERTICAL_MIRROR)
 def test_every_segment_has_its_own_side_line_at_the_left_apart_from_its_neighbours(drawn):
     for sentence in (TIMED, WHOLE, LONG):
         found = drawn(sentence, style=TALL, **V)()
@@ -245,13 +255,17 @@ def test_every_segment_has_its_own_side_line_at_the_left_apart_from_its_neighbou
         assert all(s["side"]["style"] == "dotted" and s["side"]["width"] > 0 for s in spoken)
         assert {s["underline"]["style"] for s in spoken} == {"none"}, "no line below the segment"
         assert {s["decoration"] for s in found["segments"]} == {"none"}
-        for s in spoken:
+        for i, s in enumerate(found["segments"]):
+            if s["punct"]:
+                continue
             line, box = s["side"], s["box"]
-            # at the left, the side opposite the furigana, inset at both ends
-            assert line["right"] <= box["left"] + line["width"] and line["left"] < box["left"]
+            text = min(c["box"]["left"] for c in found["chars"] if c["seg"] == i and not c["rt"])
+            # at the left of the text, the side opposite the furigana, inset at both ends
+            assert line["right"] <= text + line["width"] and line["left"] < text
             assert box["top"] < line["top"] < line["bottom"] < box["bottom"]
+        column = dict(zip(map(id, found["segments"]), segment_columns(found)))
         for above, below in zip(spoken, spoken[1:]):
-            if round(above["box"]["right"]) == round(below["box"]["right"]):  # in the same column
+            if column[id(above)] == column[id(below)]:
                 assert below["side"]["top"] - above["side"]["bottom"] >= 4, (above, below)
 
 
@@ -282,9 +296,9 @@ def test_in_a_fluid_container_nothing_overflows_or_overlaps_and_the_furigana_do_
 def test_columns_are_balanced(drawn):
     def spoken_per_column(found):
         rows = {}
-        for s in found["segments"]:
+        for s, column in zip(found["segments"], segment_columns(found)):
             if not s["punct"]:
-                rows.setdefault(-round(s["box"]["right"]), []).append(s)
+                rows.setdefault(column, []).append(s)
         return [rows[k] for k in sorted(rows)]
 
     lonely = 0
@@ -306,10 +320,14 @@ def test_short_runs_stand_upright_and_long_runs_lie_on_their_side(drawn):
     size = found["fontSize"]
     upright = {u["text"]: u for u in found["upright"]}
     assert set(upright) == {"10", "AI", "!?"}
+    # a character's box across the column: Firefox 153 gives it the font's ascent and descent, each
+    # rounded up to whole pixels (measured: 41px at 40px)
+    across = next(c for c in found["chars"] if c["ch"] == "の")["box"]["width"]
+    assert across == pytest.approx(size, abs=1)
     for u in upright.values():
-        # set across the column in one em square: no taller than one character
+        # set across the column in one em square: no taller than one character, and no wider
         assert u["combine"] == "all"
-        assert u["box"]["height"] == pytest.approx(size, abs=1) and u["box"]["width"] <= size + 0.5, u
+        assert u["box"]["height"] == pytest.approx(size, abs=1) and u["box"]["width"] <= across + 0.5, u
     # 2025 lies on its side: its digits follow one another down the column, each narrower than an em
     digits = [c for c in found["chars"] if c["ch"] in "2025" and not c["upright"] and not c["rt"]][:4]
     assert "".join(c["ch"] for c in digits) == "2025"
@@ -431,8 +449,7 @@ def test_beyond_the_maximum_number_of_columns_the_page_with_the_current_segment_
 
     # The pages are the columns of the whole sentence laid out greedily, two by two from the right.
     whole = drawn(VERY_LONG, fluid=True, style="height: 280px; --tsubu-wrap: wrap", **V)()
-    rights = sorted({round(s["box"]["right"]) for s in whole["segments"]}, reverse=True)
-    column = [rights.index(round(s["box"]["right"])) for s in whole["segments"]]
+    column = segment_columns(whole)
     for page, indexes in shown_with.items():
         assert {column[k] // 2 for k in indexes} == {page}, (page, sorted(indexes))
 
@@ -492,7 +509,6 @@ def test_the_writing_mode_can_come_from_an_ancestor_and_the_root_can_refuse_it(d
 CHECK = "(options) => Tsubu.checkContrast(document.querySelector('.tsubu'), options || undefined)"
 
 
-@pytest.mark.limitation("webkit", reason=VERTICAL_MIRROR)
 @pytest.mark.parametrize("theme", THEMES)
 @pytest.mark.parametrize("sentence", [TIMED, WHOLE], ids=["timed", "whole"])
 def test_every_preset_meets_the_thresholds_in_vertical_text(drawn, theme, sentence):
@@ -504,7 +520,6 @@ def test_every_preset_meets_the_thresholds_in_vertical_text(drawn, theme, senten
     assert {("current", "ruby"), ("current", "underline"), ("current", "highlight")} <= layers
 
 
-@pytest.mark.limitation("webkit", reason=VERTICAL_MIRROR)
 def test_furigana_at_the_right_of_the_highlight_are_measured_against_the_page(drawn):
     # The geometry runs across the column, which is horizontal here: the readings sit at the right
     # of the highlight, on the page, and the side line at its left, inside the highlight's spread.

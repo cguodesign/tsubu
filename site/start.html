@@ -118,7 +118,7 @@ const TsubuExport = require("./tsubu-export.js");</code></pre>
 - Lines: breaks only between segments and by Japanese rules, balanced. Fluid size: wrap in class "tsubu-fluid"
   with a definite width. Paging: --tsubu-max-lines; call apply after document.fonts.ready and after resizes.
 - Vertical: options.writing "vertical"; give the container a height.
-- Subtitles: TsubuExport.toWebVTT(input) / toASS(input) from the same input (times required).
+- Subtitles: TsubuExport.toWebVTT(input) / toASS(input) / toSRT(input) from the same input (times required).
 - Tags: segment id and tags are written as data-id / data-tags for the caller to style; colours and lines only.</code></pre>
     <div class="transport" style="padding-top: 0"><button type="button" class="btn quiet" id="copy-brief"><span class="en">Copy</span><span class="zh" lang="zh-CN">复制</span><span class="ja" lang="ja">コピー</span></button><output id="copied" class="small muted"></output></div>
 

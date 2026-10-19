@@ -94,7 +94,8 @@ All notable changes to tsubu are recorded here. The format follows
 - The browser tests run in Firefox and WebKit as well as Chromium: `--engine firefox|webkit`
   (default `chromium`) and `--engine-executable` for another build; `capture-frames.py` takes
   `--engine` too. Each limitation of an engine is an expected failure there alone, with its
-  reason; the README's Browser support says what holds where.
+  reason; the README's Browser support says what holds where. Measured in Firefox 139 and 153
+  (the `engine_version` fixture gives a test the browser's major version).
 - A versioned guide for agents, `docs/agents/segmenting.md` (guide 1.0.0, verified 2026-10-19):
   bunsetsu from GiNZA or KNP/KWJA (or merged from SudachiPy, MeCab with UniDic, kuromoji.js),
   readings from the analyser on the kanji only, times from WhisperX, the Montreal Forced Aligner
@@ -109,6 +110,14 @@ All notable changes to tsubu are recorded here. The format follows
   (its `::before`), a band 1em tall plus `--tsubu-current-spread`, and the underline sits
   `--tsubu-underline-offset` below the em box. With Hiragino Sans, whose content area is its em
   box, both are drawn where they were. `checkContrast` measures the layer.
+- In vertical text each segment is an `inline-block`, a line 2em across centred on the em box of
+  its text, and its highlight and side line are drawn from its left edge; negative margins give
+  the room back. In Chromium and Firefox every character, reading, highlight and side line is
+  where it was (measured). A segment's box now takes in its reading; `apply` finds the columns
+  by the segments' left edges, `checkFit` measures a vertical segment by its text, and the `blur`
+  preset blurs a vertical segment's furigana once, with the segment. Without the ruby reserve,
+  Chromium's first column no longer grows to hold its readings: they stick out of the sentence's
+  box, as they already did in Firefox.
 
 ### Fixed
 
@@ -123,6 +132,12 @@ All notable changes to tsubu are recorded here. The format follows
 - In WebKit `checkContrast` read the highlight and the underline from computed insets that WebKit
   gives against the wrong box; it now measures them on probes that take the same geometry, and it
   checks the text against the page where the highlight does not cover it.
+- Vertical text in WebKit: each segment's highlight and side line were drawn mirrored across the
+  block's right edge, away from the segment, because WebKit misplaces a box positioned inside an
+  inline in `vertical-rl` text. And in a font whose content area is taller than its em box
+  (Shippori Mincho B1), WebKit widened every column that holds readings by the content area and
+  the readings; a column now grows only for readings that would reach the characters of the next. Vertical text holds every guarantee in WebKit but balanced
+  columns.
 
 ## [0.1.0] - unreleased
 
