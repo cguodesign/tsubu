@@ -72,6 +72,13 @@ LONG = {"segments": [
 ]}
 
 
+# The colour of the highlight's band behind a segment, which the stylesheet paints as a one-colour
+# gradient on the segment's ::before; the band's background colour (none) when the segment is not
+# current. A JavaScript function, to be put into a page's own script.
+BAND_COLOUR = """((el) => { const s = getComputedStyle(el, "::before"), image = s.backgroundImage;
+  return image === "none" ? s.backgroundColor : image.slice(image.indexOf("(") + 1, image.indexOf("),") + 1); })"""
+
+
 NODE_RUNNER = r"""
 const lib = require(process.argv[1]);
 const job = JSON.parse(require("fs").readFileSync(0, "utf8"));

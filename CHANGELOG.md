@@ -80,8 +80,20 @@ All notable changes to tsubu are recorded here. The format follows
   gallery of every theme, motion preset and writing mode, in English and 简体中文. Every page is
   tested for errors, horizontal scroll at phone width and colour contrast.
 
+### Changed
+
+- The highlight and the underline are drawn from the em box of the text, not from the segment's
+  box, which is the font's content area: the highlight is a positioned layer behind each segment
+  (its `::before`), a band 1em tall plus `--tsubu-current-spread`, and the underline sits
+  `--tsubu-underline-offset` below the em box. With Hiragino Sans, whose content area is its em
+  box, both are drawn where they were. `checkContrast` measures the layer.
+
 ### Fixed
 
+- With Noto Sans JP and other web fonts whose content area is about 1.45em (Shippori Mincho B1,
+  Zen Kaku Gothic New, the rest of the Noto family), the highlight reached 0.28em above the em
+  box and covered the lower half of the furigana, which `checkContrast` reported. A test draws
+  every preset in a face given those metrics, horizontally and vertically.
 - A line could begin with punctuation or another mark that may not start a line: Chromium breaks
   at the underline's positioned box between two segments without applying its own rules.
 

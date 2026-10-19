@@ -160,9 +160,9 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
 | `--tsubu-ruby-weight` | `400` | 注音字重 |
 | `--tsubu-underline-style` | `dotted` | 下划线线型（任意 `border-style`） |
 | `--tsubu-underline-width` | `0.06em` | 下划线粗细 |
-| `--tsubu-underline-offset` | `0.02em` | 下划线在段的框底下方多远 |
+| `--tsubu-underline-offset` | `0.02em` | 下划线在文字的 em 框下方多远 |
 | `--tsubu-underline-inset` | `0.12em` | 下划线两端各缩进多少，让相邻的下划线分开 |
-| `--tsubu-current-spread` | `0.06em` | 高亮超出文字多少（用 `box-shadow` 画，不占位置） |
+| `--tsubu-current-spread` | `0.06em` | 高亮超出文字的 em 框多少（画在一个定位的图层上，不占位置） |
 | `--tsubu-current-radius` | `0.18em` | 高亮圆角（timing 为 `"sentence"` 时为 0，整句每行是一整条） |
 | `--tsubu-plate-spread` | `0px` | 底板超出句子的框多少（不占位置） |
 | `--tsubu-plate-radius` | `0` | 底板圆角 |
@@ -183,9 +183,9 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
 
 根元素带某个 `data-speaker` 时，那个说话人的组代替 current 组；主题没给这个说话人定义的颜色，就用 current 组。`tsubu.css` 只映射了说话人 `a` 和 `b`；别的名字照抄那条四行的 `.tsubu[data-speaker="a"]` 规则即可。`--tsubu-backdrop` 不会画出来：它写的是主题设计时假定的背景色，给 `checkContrast` 用。
 
-高亮盖住的是那一行文字，不包括上面的注音，所以正在读的那一段的注音是落在页面上的：它的颜色要在页面上看得清，而不是在高亮上。
+高亮盖住的是文字的 em 框，不包括上面的注音，所以正在读的那一段的注音是落在页面上的：它的颜色要在页面上看得清，而不是在高亮上。
 
-状态、主题和说话人只改变颜色、背景和 `box-shadow`，从不改字重、内边距或尺寸，所以它们都不会让任何字移动。
+状态、主题和说话人只改变颜色和一个定位图层的背景，从不改字重、内边距或尺寸，所以它们都不会让任何字移动。
 
 ## 主题与对比度
 
@@ -212,6 +212,8 @@ Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  //
 ```
 
 背景依次取 `options.backdrop`（一个颜色、一组颜色，或表示黑和白的 `"any"`）、主题的 `--tsubu-backdrop`、根元素各祖先的背景色叠在白色上的结果。它看不到背景图片、`text-shadow` 和抗锯齿：叠在图片上时，请用 `media` 底板，或者把图片最亮和最暗的颜色作为背景传进去。
+
+**内容区偏高的字体。** 一段自己的框是字体的内容区（content area）；许多网页字体（Noto Sans JP 以及整个 Noto / 思源家族、Shippori Mincho、Zen Kaku Gothic）的内容区约有 1.45em 高，比文字的 em 框高出 0.28em，伸进了上方的注音里，而注音的墨迹就贴在汉字 em 框的上沿。所以高亮和下划线不是按这个框画的，而是按 em 框画：一条 1em 高的带子，再向外伸 `--tsubu-current-spread`；下划线在 em 框下方 `--tsubu-underline-offset` 处。CSS 读不到字体的 ascent，所以 em 框在内容区里的位置按多出高度的固定比例来定（横排时上方 62%、下方 38%；竖排时各一半，Chromium 在竖排里把 em 框居中），这对内容区就是 em 框的 Hiragino Sans 和整个 Noto 家族都是精确的，对其余字体误差在百分之几 em 以内。因此不管什么字体，正在读的那一段的注音都落在页面上，`checkContrast` 也在高亮实际画出的位置上测量。
 
 ## 多行
 
@@ -335,7 +337,7 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 
 ## 无障碍
 
-- **强制颜色。** 在强制颜色模式下（Windows 的对比度主题等），浏览器会替换背景、去掉 `box-shadow`，正在读的那一段就和别的段一样了。tsubu 只给这一段保留高亮，用的是用户自己为选中文字设定的颜色（`Highlight` 和 `HighlightText`）；它的注音落在页面上，所以用 `CanvasText`。其余的都交给浏览器。
+- **强制颜色。** 在强制颜色模式下（Windows 的对比度主题等），浏览器会替换背景，正在读的那一段就和别的段一样了。tsubu 只给这一段保留高亮，用的是用户自己为选中文字设定的颜色（`Highlight` 和 `HighlightText`）；它的注音落在页面上，所以用 `CanvasText`。其余的都交给浏览器。
 - **读屏软件。** 默认会在汉字后面读出注音（Chromium 暴露的是「雨 あめ が 降る」）。设 `options.announceRuby: false` 时，每个 `<rt>` 都带 `aria-hidden="true"`，整句只读一遍；注音照样显示、照样能开关。隐藏的注音是 `visibility: hidden`，本来就不会被读出。
 - 正在读的那一段带 `aria-current="true"`；其他页的段和那一页一起对辅助技术隐藏（见[按 t 翻页](#按-t-翻页)）。
 
@@ -347,6 +349,7 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 - **高亮什么都不动。** 同一个测试：在许多 `t` 值之间比较这些框。
 - **换主题或说话人什么都不动**（`tests/test_theme.py`）：每套预设和每个说话人，设在根元素上和祖先上，在几个 `t` 值下，都和不设主题时的框比较。`media` 的底板是句子后面一个定位的图层，不占位置。
 - **每套预设都达到对比度阈值**（`tests/test_theme.py`），每个状态、每个说话人都测，用 `checkContrast` 在库自己的 CSS 上测量。测试也确认低于阈值的颜色会被报告出来，以及高亮上方的注音是对着页面而不是对着高亮测量的。
+- **不管字体的度量如何，高亮都不碰注音**（`tests/test_theme.py`）。用 `ascent-override` 和 `descent-override` 给系统字体套上 Noto Sans JP 的度量（内容区 1.45em，其中 0.28em 在 em 框上方），每套预设在每个状态下仍然达到阈值，横排竖排都测。高亮的带子和下划线在这个字体和系统自己的字体里都对着文字的基线测量；截图里文字的墨迹在带子之内、读音的墨迹在带子之上；在这个字体里也没有字移动。
 - **注音不被裁掉，也不碰到上一行。** `--tsubu-ruby-reserve` 在第一行上方留出空间，因为各浏览器对"第一行的行框是否撑高来放注音"做法不同；有了这个留白，读音就留在句子的框里（因此也在 `overflow: hidden` 的容器里）。测试检查每个读音都在根元素之内，并且避开上一行的字和下划线。如果调大注音字号或调小行高，要一起调大这个留白。
 - **读音比汉字宽时不会把汉字拉开。** tsubu 设了 `ruby-align: center`；默认的 `space-around` 会在汉字之间插入空隙。测试在截图里比较带注音和不带注音时汉字的墨迹宽度，并确认 `space-around` 的情况会被测出来。
 - **每段有自己的下划线。** 下划线是每段自己的 `::after`，两端缩进，段上没有 `text-decoration`，所以相邻的下划线不会连在一起。测试检查同一行相邻两段下划线之间的间隙。

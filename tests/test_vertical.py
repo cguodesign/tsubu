@@ -11,7 +11,7 @@ import json
 
 import pytest
 
-from support import LONG, TIMED, WHOLE, run_library, seg
+from support import BAND_COLOUR, LONG, TIMED, WHOLE, run_library, seg
 from test_layout import png_rows
 from test_lines import KINSOKU, NO_END, NO_START, VERY_LONG, segment_times
 
@@ -501,13 +501,14 @@ def test_the_highlight_and_the_plate_are_drawn_around_the_columns(drawn):
     at = drawn(TIMED, style=TALL, theme="media", **V)
     found = at(1.2)
     look = at.page.evaluate("""() => { const root = document.querySelector('.tsubu'), plate = getComputedStyle(root, '::before');
-      const seg = root.querySelector('[data-state="current"]'), st = getComputedStyle(seg);
+      const seg = root.querySelector('[data-state="current"]'), band = getComputedStyle(seg, '::before');
       return {plate: [plate.left, plate.top, plate.right, plate.bottom].map(parseFloat), bg: plate.backgroundColor,
-              shadow: st.boxShadow, current: st.backgroundColor}; }""")
-    # the plate reaches 0.25em past the sentence's box on every side, and the highlight 0.06em past the segment's
+              band: [band.top, band.bottom, band.width].map(parseFloat), current: BAND_COLOUR(seg)}; }""".replace("BAND_COLOUR", BAND_COLOUR))
+    # the plate reaches 0.25em past the sentence's box on every side, and the highlight (the segment's
+    # ::before, turned with the text) 0.06em past the segment's em box along the column and across it
     assert look["plate"] == pytest.approx([-10, -10, -10, -10])
     assert look["bg"] == "rgba(0, 0, 0, 0.75)" and look["current"] == "rgb(253, 224, 71)"
-    assert look["shadow"].endswith("0px 0px 0px 2.4px")
+    assert look["band"] == pytest.approx([-2.4, -2.4, 40 + 2 * 2.4], abs=0.02)
     assert found["root"] == drawn(TIMED, style=TALL, **V)(1.2)["root"]  # the plate takes no room
 
 
@@ -519,8 +520,8 @@ def test_in_forced_colours_the_segment_being_spoken_keeps_its_highlight_and_noth
     system = at.page.evaluate("""() => { const d = document.createElement('div'); document.body.append(d); const out = {};
       for (const c of ['Highlight', 'HighlightText', 'CanvasText']) { d.style.color = c; out[c] = getComputedStyle(d).color; } d.remove(); return out; }""")
     current = at.page.evaluate("""() => { const s = document.querySelector('.tsubu-seg[data-state="current"]'), st = getComputedStyle(s);
-      return {bg: st.backgroundColor, color: st.color, rt: getComputedStyle(s.querySelector('rt')).color,
-              side: getComputedStyle(s, '::after').borderLeftColor}; }""")
+      return {bg: BAND_COLOUR(s), color: st.color, rt: getComputedStyle(s.querySelector('rt')).color,
+              side: getComputedStyle(s, '::after').borderLeftColor}; }""".replace("BAND_COLOUR", BAND_COLOUR))
     assert current == {"bg": system["Highlight"], "color": system["HighlightText"], "rt": system["CanvasText"], "side": system["HighlightText"]}
     assert base_chars(forced) == base_chars(normal) and forced["root"] == normal["root"]
     assert json.dumps([s["box"] for s in forced["segments"]]) == json.dumps([s["box"] for s in normal["segments"]])

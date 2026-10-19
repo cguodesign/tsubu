@@ -7,7 +7,8 @@ from support import SCRIPT, STYLES
 PAGE = """<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <link rel="stylesheet" href="{css}">
 <style>body {{ margin: 0; font-family: "Hiragino Sans", "Noto Sans JP", "Noto Sans CJK JP", sans-serif; }}
-.bubble {{ width: {width}px; margin: 40px; font-size: 40px; overflow: hidden; }}</style>
+.bubble {{ width: {width}px; margin: 40px; font-size: 40px; overflow: hidden; }}
+{extra}</style>
 </head><body><div class="bubble{cls}" id="bubble" style="{style}"></div>
 <script src="{js}"></script></body></html>"""
 
@@ -71,15 +72,15 @@ def browser():
 @pytest.fixture
 def drawn(browser, tmp_path):
     """Draws a sentence on a page that loads the library's own CSS and script, in a bubble of the
-    given width (a fluid container if asked, with extra inline style), with any other options
-    (theme, speaker) passed to Tsubu.sentence. Returns a function that applies t (and the
-    furigana switch) and measures the page."""
+    given width (a fluid container if asked, with extra inline style, and with extra CSS such as a
+    font face), with any other options (theme, speaker) passed to Tsubu.sentence. Returns a
+    function that applies t (and the furigana switch) and measures the page."""
     pages = []
 
-    def draw(sentence, *, ruby=True, width=900, fluid=False, style="", **options):
+    def draw(sentence, *, ruby=True, width=900, fluid=False, style="", css="", **options):
         page_file = tmp_path / f"page{len(pages)}.html"
         page_file.write_text(PAGE.format(css=STYLES.as_uri(), js=SCRIPT.as_uri(), width=width,
-                                         cls=" tsubu-fluid" if fluid else "", style=style), encoding="utf-8")
+                                         cls=" tsubu-fluid" if fluid else "", style=style, extra=css), encoding="utf-8")
         page = browser.new_page(viewport={"width": 1280, "height": 900})
         pages.append(page)
         errors = []

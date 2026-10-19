@@ -10,7 +10,8 @@ import subprocess
 
 import pytest
 
-from support import LONG, SCRIPT, TIMED, WHOLE
+from support import BAND_COLOUR, LONG, SCRIPT, TIMED, WHOLE
+from test_layout import png_rows
 
 THEMES = ["light", "dark", "media"]
 SPEAKERS = [None, "a", "b"]
@@ -90,10 +91,10 @@ CHECK = "(options) => Tsubu.checkContrast(document.querySelector('.tsubu'), opti
 
 CURRENT_COLOURS = """() => { const root = document.querySelector(".tsubu"), seg = root.querySelector("rt").closest(".tsubu-seg");
   const old = seg.dataset.state; seg.dataset.state = "current";
-  const s = getComputedStyle(seg), found = {text: s.color, bg: s.backgroundColor, ruby: getComputedStyle(seg.querySelector("rt")).color,
+  const s = getComputedStyle(seg), found = {text: s.color, bg: BAND_COLOUR(seg), ruby: getComputedStyle(seg.querySelector("rt")).color,
     underline: getComputedStyle(seg, "::after").borderBottomColor, plate: getComputedStyle(root, "::before").backgroundColor};
   if (old === undefined) delete seg.dataset.state; else seg.dataset.state = old;
-  return found; }"""
+  return found; }""".replace("BAND_COLOUR", BAND_COLOUR)
 
 
 @pytest.mark.parametrize("speaker", SPEAKERS, ids=["no-speaker", "speaker-a", "speaker-b"])
@@ -212,3 +213,116 @@ def test_no_character_moves_when_the_theme_or_the_speaker_changes(drawn):
                 }""", [where, theme, speaker])
                 for t in (0.1, 2.3, 9.0):
                     assert boxes(at(t)) == boxes(first), (where, theme, speaker, t)
+
+
+# --- a font whose content area is taller than its em box ------------------------------------
+
+# Noto Sans JP's metrics (an ascent of 1.16em and a descent of 0.29em: a content area of 1.45em,
+# 0.28em of it above the em box of the text) put on a face from the system with ascent-override
+# and descent-override, so that the test downloads nothing. Shippori Mincho B1, Zen Kaku Gothic
+# New and the rest of the Noto family measure the same; Hiragino Sans has no extra height at all.
+TALL_FACE = """@font-face { font-family: "tsubu-tall"; ascent-override: 116%; descent-override: 29%;
+  src: local("Hiragino Sans W3"), local("HiraginoSans-W3"), local("Noto Sans JP Regular"), local("NotoSansJP-Regular"),
+       local("Noto Sans CJK JP Regular"), local("NotoSansCJKjp-Regular"), local("Noto Sans CJK JP"); }
+.bubble { font-family: "tsubu-tall"; }"""
+
+# The current segment's text and furigana in colours nothing else has, its highlight's band (the
+# segment's ::before) and the underline from their computed insets, and the baseline of the text.
+GEOMETRY = """() => { const root = document.querySelector(".tsubu"), seg = root.querySelector('.tsubu-seg[data-state="current"]');
+  const box = seg.getBoundingClientRect(), band = getComputedStyle(seg, "::before"), after = getComputedStyle(seg, "::after");
+  const probe = document.createElement("span"); probe.style.cssText = "display: inline-block; width: 0; height: 0; vertical-align: baseline";
+  seg.append(probe); const baseline = probe.getBoundingClientRect().top; probe.remove();
+  const rt = seg.querySelector("rt").getBoundingClientRect();
+  const em = parseFloat(getComputedStyle(seg).fontSize), content = box.height / em;
+  return {box: {left: box.left, right: box.right, top: box.top, bottom: box.bottom}, root: root.getBoundingClientRect().toJSON(),
+          em, content, baseline, rt: {top: rt.top, bottom: rt.bottom, left: rt.left, right: rt.right},
+          band: {top: box.top + parseFloat(band.top), bottom: box.top + parseFloat(band.top) + parseFloat(band.height),
+                 left: box.left + parseFloat(band.left), right: box.right - parseFloat(band.right), color: BAND_COLOUR(seg)},
+          underline: {bottom: box.bottom - parseFloat(after.bottom), width: parseFloat(after.borderBottomWidth)}}; }""".replace("BAND_COLOUR", BAND_COLOUR)
+
+
+def tall(found):
+    assert found["content"] > 1.4, "no face matched TALL_FACE: add the system's Japanese face to its src list"
+    return found
+
+
+def rows_with(page, clip, colour, tolerance=40):
+    """The rows of a screenshot of the clip that hold a pixel within `tolerance` of the colour, in page coordinates."""
+    width, bpp, rows = png_rows(page.screenshot(clip=clip))
+    return [clip["y"] + y for y, row in enumerate(rows)
+            if any(all(abs(row[x * bpp + i] - colour[i]) <= tolerance for i in range(3)) for x in range(width))]
+
+
+@pytest.mark.parametrize("theme", THEMES)
+@pytest.mark.parametrize("sentence", [TIMED, WHOLE], ids=["timed", "whole"])
+def test_every_preset_meets_the_thresholds_in_a_font_with_a_tall_content_area(drawn, theme, sentence):
+    at = drawn(sentence, css=TALL_FACE, theme=theme)
+    at(1.2 if sentence is TIMED else 5.0)
+    tall(at.page.evaluate(GEOMETRY))
+    found = at.page.evaluate(CHECK)
+    assert found["ok"], found["failures"]
+    covered = {(c["state"], c["layer"]) for c in found["checks"]}
+    assert covered == {(state, layer) for state in STATES for layer in ("text", "ruby", "underline")} | {("current", "highlight")}
+    # the current segment's furigana are on the page (on the plate, over media), not on the highlight
+    assert {c["background"] for c in found["checks"] if c["state"] == "current" and c["layer"] == "ruby"} == set(
+        {"light": ["#ffffff", "#f1f5f9"], "dark": ["#0f172a", "#1e293b"], "media": ["#000000", "#404040"]}[theme])
+
+
+def test_the_highlight_and_the_underline_are_drawn_from_the_em_box_whatever_the_font(drawn):
+    for css in ("", TALL_FACE):
+        at = drawn(TIMED, css=css, theme="light")
+        at(1.2)
+        found = at.page.evaluate(GEOMETRY)
+        if css:
+            tall(found)
+        else:
+            assert found["content"] == pytest.approx(1, abs=0.01)  # the system face: content area = em box
+        em, baseline, spread = found["em"], found["baseline"], 0.06 * found["em"]
+        # the band: the em box (0.88em above the baseline to 0.12em below it) and the spread past it,
+        # within the rounding of the font's ascent and descent to whole pixels
+        assert found["band"]["top"] == pytest.approx(baseline - 0.88 * em - spread, abs=0.75), css
+        assert found["band"]["bottom"] == pytest.approx(baseline + 0.12 * em + spread, abs=0.75), css
+        assert found["band"]["left"] == pytest.approx(found["box"]["left"] - spread, abs=0.05)
+        assert found["band"]["right"] == pytest.approx(found["box"]["right"] + spread, abs=0.05)
+        assert found["band"]["color"] == "rgb(29, 78, 216)"
+        # the underline: its offset below the em box, not below the segment's box
+        assert found["underline"]["bottom"] == pytest.approx(baseline + 0.12 * em + 0.02 * em, abs=0.75), css
+        # the reading's box is above the band, apart from what the spread grazes
+        assert (found["rt"]["top"] + found["rt"]["bottom"]) / 2 < found["band"]["top"]
+        assert found["rt"]["bottom"] - found["band"]["top"] < 0.5 * em, css
+        # and in a screenshot: the text's ink lies inside the band, the reading's ink above it
+        at.page.evaluate("""() => { const root = document.querySelector(".tsubu");
+          root.style.setProperty("--tsubu-current-color", "#00ff00"); root.style.setProperty("--tsubu-current-ruby-color", "#ff0000"); }""")
+        clip = {"x": found["box"]["left"] + 2, "y": found["root"]["y"], "width": found["box"]["right"] - found["box"]["left"] - 4, "height": found["root"]["height"]}
+        text, reading, band = (rows_with(at.page, clip, c) for c in ((0, 255, 0), (255, 0, 0), (29, 78, 216)))
+        assert text and reading and band, css
+        assert band[0] <= text[0] and text[-1] <= band[-1], (css, band[0], band[-1], text[0], text[-1])
+        assert reading[-1] <= band[0] + 1, (css, reading[-1], band[0])  # one row for anti-aliasing
+
+
+def test_in_vertical_text_the_highlight_is_drawn_from_the_em_box_too(drawn):
+    at = drawn(TIMED, css=TALL_FACE, style="height: 700px", theme="light", writing="vertical")
+    at(1.2)
+    found = at.page.evaluate("""() => { const seg = document.querySelector('.tsubu-seg[data-state="current"]');
+      const box = seg.getBoundingClientRect(), band = getComputedStyle(seg, "::before"), after = getComputedStyle(seg, "::after");
+      const rt = seg.querySelector("rt").getBoundingClientRect(), em = parseFloat(getComputedStyle(seg).fontSize);
+      return {em, content: box.width / em, centre: (box.left + box.right) / 2, rtMiddle: (rt.left + rt.right) / 2,
+              band: {left: box.right - parseFloat(band.right) - parseFloat(band.width), right: box.right - parseFloat(band.right)},
+              sideLine: box.left + parseFloat(after.left)}; }""")
+    tall(found)
+    em, spread = found["em"], 0.06 * found["em"]
+    # across the column the em box is centred in the content area; the band is that and the spread
+    assert found["band"]["left"] == pytest.approx(found["centre"] - 0.5 * em - spread, abs=0.25)
+    assert found["band"]["right"] == pytest.approx(found["centre"] + 0.5 * em + spread, abs=0.25)
+    assert found["sideLine"] == pytest.approx(found["centre"] - 0.5 * em - 0.02 * em, abs=0.25)
+    assert found["band"]["right"] < found["rtMiddle"]  # the reading at the right is clear of it
+    assert at.page.evaluate(CHECK)["ok"]
+
+
+def test_nothing_moves_in_a_font_with_a_tall_content_area(drawn):
+    at = drawn(LONG, css=TALL_FACE, theme="dark")
+    first = at(2.3)
+    boxes = lambda f: ([(c["ch"], c["box"]) for c in f["chars"]], [s["box"] for s in f["segments"]], [r["box"] for r in f["rts"]], f["root"])
+    for t in (0.1, 2.3, 9.0):
+        for on in (False, True):
+            assert boxes(at(t, on)) == boxes(first), (t, on)

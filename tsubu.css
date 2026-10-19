@@ -12,10 +12,11 @@
  *   --tsubu-ruby-weight              400
  *   --tsubu-underline-style          dotted
  *   --tsubu-underline-width          0.06em
- *   --tsubu-underline-offset         0.02em   below the bottom of the segment's box (left of it in
+ *   --tsubu-underline-offset         0.02em   below the bottom of the text's em box (left of it in
  *                                             vertical text, where the underline is a side line)
  *   --tsubu-underline-inset          0.12em   in from each end, so neighbouring underlines stay apart
- *   --tsubu-current-spread           0.06em   drawn as a box-shadow, so it takes no room
+ *   --tsubu-current-spread           0.06em   how far the highlight reaches past the text's em box
+ *                                             (a positioned layer, so it takes no room)
  *   --tsubu-current-radius           0.18em
  *   --tsubu-plate-spread             0px      how far the plate reaches past the sentence's box
  *   --tsubu-plate-radius             0
@@ -52,7 +53,19 @@
  *   --tsubu-progress                 written by apply(); read it, do not set it
  *
  * No box changes size with the state, the furigana switch, the theme or the speaker: these
- * change colours, a background and a box-shadow only, and hidden furigana keep their place.
+ * change colours and the background of one positioned layer only, and hidden furigana keep their
+ * place.
+ *
+ * The em box. A segment's own box is the font's content area, which in many web fonts (Noto
+ * Sans JP and the rest of the Noto and Source Han family, Shippori Mincho, Zen Kaku Gothic) is
+ * about 1.45em tall: it reaches 0.28em above the em box of the text, into the furigana, whose ink
+ * sits just above the base's em box. So the highlight and the underline are not drawn from that
+ * box but from the em box, as a 1em band and a line under it. CSS cannot read the font's
+ * ascent, so the em box is placed within the content area by a fixed split of the extra height,
+ * --tsubu-em-lead before it and --tsubu-em-trail after it: 0.62 / 0.38 in horizontal text, which
+ * is exact for Hiragino Sans (no extra height) and for the whole Noto family, and 0.5 / 0.5 in
+ * vertical text, where Chromium centres the em box. A font whose metrics split differently can
+ * set the two on the sentence.
  */
 .tsubu {
   display: block;
@@ -184,19 +197,42 @@
   position: relative;
   white-space: nowrap;
   text-decoration: none;
+}
+
+/* The highlight: one layer behind the segment, over the em box of its text and `spread` past
+ * it on every side. Empty until the segment is current; it is always there, so the state
+ * creates nothing. z-index -1 puts it behind every character of the sentence (the root is a
+ * stacking context) and, in tree order, over the plate. Its colour is painted as a one-colour
+ * gradient, not as a background colour: Chromium rasterises the rounded corners of a positioned
+ * box's background colour differently after a partial repaint, by a pixel, and a frame must be
+ * the same whatever was drawn before it; the gradient is clipped to the corners and is not. */
+.tsubu-seg::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: calc(-1 * var(--tsubu-current-spread, 0.06em));
+  inset-block-start: calc(var(--tsubu-em-lead, 0.62) * (100% - 1em) - var(--tsubu-current-spread, 0.06em));
+  block-size: calc(1em + 2 * var(--tsubu-current-spread, 0.06em));
   border-radius: var(--tsubu-current-radius, 0.18em);
+  background: none;
+  pointer-events: none;
 }
 
 .tsubu-seg:not([data-kind="punct"])::after {
   content: "";
   position: absolute;
   /* Logical sides: below the segment in horizontal text, and in vertical text a side line at its
-   * left, the side opposite the furigana. */
+   * left, the side opposite the furigana; `offset` past the em box of the text. */
   inset-inline-start: var(--tsubu-underline-inset, 0.12em);
   inset-inline-end: var(--tsubu-underline-inset, 0.12em);
-  inset-block-end: calc(-1 * var(--tsubu-underline-offset, 0.02em));
+  inset-block-end: calc(var(--tsubu-em-trail, 0.38) * (100% - 1em) - var(--tsubu-underline-offset, 0.02em));
   border-block-end: var(--tsubu-underline-width, 0.06em) var(--tsubu-underline-style, dotted) var(--tsubu-underline-color, #9ca3af);
   pointer-events: none;
+}
+/* In vertical text Chromium centres the em box in the content area. */
+.tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg {
+  --tsubu-em-lead: 0.5;
+  --tsubu-em-trail: 0.5;
 }
 
 .tsubu ruby {
@@ -231,8 +267,9 @@
 
 .tsubu-seg[data-state="current"] {
   color: var(--tsubu-speaker-color, var(--tsubu-current-color, var(--tsubu-text-color)));
-  background-color: var(--tsubu-speaker-bg, var(--tsubu-current-bg, #e5e7eb));
-  box-shadow: 0 0 0 var(--tsubu-current-spread, 0.06em) var(--tsubu-speaker-bg, var(--tsubu-current-bg, #e5e7eb));
+}
+.tsubu-seg[data-state="current"]::before {
+  background-image: linear-gradient(var(--tsubu-speaker-bg, var(--tsubu-current-bg, #e5e7eb)), var(--tsubu-speaker-bg, var(--tsubu-current-bg, #e5e7eb)));
 }
 .tsubu-seg[data-state="current"] rt {
   color: var(--tsubu-speaker-ruby-color, var(--tsubu-current-ruby-color, var(--tsubu-ruby-color, #6b7280)));
@@ -241,18 +278,22 @@
   border-block-end-color: var(--tsubu-speaker-underline-color, var(--tsubu-current-underline-color, var(--tsubu-underline-color, #9ca3af)));
 }
 /* With only the sentence's time the whole sentence is lit: one band per line, no seams. */
-.tsubu[data-timing="sentence"] .tsubu-seg { border-radius: 0; }
+.tsubu[data-timing="sentence"] .tsubu-seg::before { border-radius: 0; }
 
-/* Forced colours (Windows contrast themes and the like) replace backgrounds and drop box-shadows,
- * which would leave the segment being spoken looking like every other. That segment alone keeps
- * a highlight, drawn in the user's own colours for selected text; its furigana sit on the page,
- * so they take the page's text colour. */
+/* Forced colours (Windows contrast themes and the like) replace backgrounds, which would leave
+ * the segment being spoken looking like every other. That segment alone keeps a highlight, drawn
+ * in the user's own colours for selected text; its furigana sit on the page, so they take the
+ * page's text colour. */
 @media (forced-colors: active) {
   .tsubu-seg[data-state="current"] {
     forced-color-adjust: none;
     color: HighlightText;
-    background-color: Highlight;
-    box-shadow: 0 0 0 var(--tsubu-current-spread, 0.06em) Highlight;
+  }
+  /* A background colour here: Chromium resolves a system colour inside a gradient from the
+   * page's own scheme, not from the forced palette. */
+  .tsubu-seg[data-state="current"]::before {
+    forced-color-adjust: none;
+    background: Highlight;
   }
   .tsubu-seg[data-state="current"] rt { color: CanvasText; }
   .tsubu-seg[data-state="current"]::after { border-block-end-color: HighlightText; }
@@ -306,9 +347,10 @@
  * Each one is checked in the tests with Tsubu.checkContrast() against its own --tsubu-backdrop,
  * in every state and for each speaker, at the thresholds in Tsubu.CONTRAST.
  *
- * The highlight covers the line of text, not the furigana above it: the current segment's
- * furigana sit on the page (or the plate), so they take the highlight's hue in a shade that
- * reads there, not the colour of the text inside the highlight.
+ * The highlight covers the em box of the text, not the furigana above it, whatever the font's
+ * content area (see "The em box" at the top): the current segment's furigana sit on the page (or
+ * the plate), so they take the highlight's hue in a shade that reads there, not the colour of the
+ * text inside the highlight.
  */
 
 /* Dark text on a white or near-white page. */

@@ -222,9 +222,9 @@ Layout and shape:
 | `--tsubu-ruby-weight` | `400` | furigana weight |
 | `--tsubu-underline-style` | `dotted` | underline style (any `border-style`) |
 | `--tsubu-underline-width` | `0.06em` | underline thickness |
-| `--tsubu-underline-offset` | `0.02em` | distance below the bottom of the segment's box |
+| `--tsubu-underline-offset` | `0.02em` | distance below the em box of the text |
 | `--tsubu-underline-inset` | `0.12em` | inset from each end, so neighbouring underlines stay apart |
-| `--tsubu-current-spread` | `0.06em` | how far the highlight reaches past the text (a `box-shadow`, so it takes no room) |
+| `--tsubu-current-spread` | `0.06em` | how far the highlight reaches past the em box of the text (a positioned layer, so it takes no room) |
 | `--tsubu-current-radius` | `0.18em` | highlight corner radius (0 with timing `"sentence"`, so the sentence reads as one band per line) |
 | `--tsubu-plate-spread` | `0px` | how far the plate reaches past the sentence's box (it takes no room) |
 | `--tsubu-plate-radius` | `0` | plate corner radius |
@@ -251,11 +251,11 @@ speakers `a` and `b`; for another name, copy its four-line `.tsubu[data-speaker=
 `--tsubu-backdrop` is not painted: it names the colours a theme is designed to sit on, for
 `checkContrast`.
 
-The highlight covers the line of text, not the furigana above it, so the current segment's
+The highlight covers the em box of the text, not the furigana above it, so the current segment's
 furigana sit on the page: give them a colour that reads on the page, not on the highlight.
 
-States, themes and speakers change colours, a background and a `box-shadow` only, never weight,
-padding or size, so none of them can move a character.
+States, themes and speakers change colours and the background of one positioned layer only,
+never weight, padding or size, so none of them can move a character.
 
 ## Themes and contrast
 
@@ -300,6 +300,18 @@ The backdrop is `options.backdrop` (a colour, a list, or `"any"` for black and w
 theme's `--tsubu-backdrop`, else the background colours of the root's ancestors painted over white.
 It does not see background images, `text-shadow` or anti-aliasing: over an image, use the `media`
 plate or pass the image's lightest and darkest colours as backdrops.
+
+**Fonts with a tall content area.** A segment's own box is the font's content area, and in many
+web fonts (Noto Sans JP and the rest of the Noto and Source Han family, Shippori Mincho,
+Zen Kaku Gothic) that is about 1.45em tall and reaches 0.28em above the em box of the text,
+into the furigana, whose ink sits just above the base's em box. So the highlight and the underline
+are not drawn from that box but from the em box: a band 1em tall, `--tsubu-current-spread` past
+it, and a line `--tsubu-underline-offset` below it. CSS cannot read a font's ascent, so the em box
+is placed within the content area by a fixed split of the extra height (62% above it and 38%
+below in horizontal text, half and half in vertical text, where Chromium centres the em box),
+which is exact for Hiragino Sans, whose content area is its em box, and for the whole Noto family,
+and within a few hundredths of an em for the rest. The current segment's furigana therefore sit
+on the page in every font, and `checkContrast` measures the highlight where it is drawn.
 
 ## Several lines
 
@@ -530,8 +542,7 @@ ffmpeg with libass is installed, that the ASS karaoke lights up at each syllable
 ## Accessibility
 
 - **Forced colours.** In forced-colours mode (Windows contrast themes and the like) browsers
-  replace backgrounds and drop box-shadows, which would leave the segment being spoken looking
-  like every other. tsubu keeps a highlight on that segment alone, in the user's own colours for
+  replace backgrounds, which would leave the segment being spoken looking like every other. tsubu keeps a highlight on that segment alone, in the user's own colours for
   selected text (`Highlight` and `HighlightText`); its furigana take `CanvasText`, since they sit
   on the page. Everything else is left to the browser.
 - **Screen readers.** A reading is read after its base by default (Chromium exposes
@@ -558,6 +569,13 @@ Each of these is checked by measuring the page in headless Chromium (see `tests/
   each speaker, measured by `checkContrast` on the library's own CSS. The tests also check that a
   colour below its threshold is reported, and that furigana above the highlight are measured
   against the page, not the highlight.
+- **The highlight stays clear of the furigana whatever the font's metrics** (`tests/test_theme.py`).
+  The system face is given Noto Sans JP's metrics with `ascent-override` and `descent-override`
+  (a content area of 1.45em, 0.28em of it above the em box), and every preset still meets its
+  thresholds in every state, horizontally and vertically. The highlight's band and the underline
+  are measured against the baseline of the text, in that face and in the system's own, and a
+  screenshot shows the text's ink inside the band and the reading's ink above it; nothing moves
+  in that face either.
 - **Furigana are not clipped and do not touch the line above.** `--tsubu-ruby-reserve` adds room
   above the first line, because browsers differ in whether the first line box grows to fit its
   ruby; with the reserve the reading stays inside the sentence's box (and so inside a container

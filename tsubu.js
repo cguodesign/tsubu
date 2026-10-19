@@ -312,12 +312,18 @@
    * (left to right in vertical-lr, which tsubu does not set but measures correctly).
    *   start(rect)  where a box lies along that axis, growing from one line to the next;
    *   span(rect)   the box's extent across its line, in page coordinates, as [low, high];
+   *   layer(rect, style)  the same for a positioned layer of the box (the highlight's band), from
+   *                the layer's computed insets and size;
    *   side         the physical side of a segment's line, its block-end side. */
   function blockAxis(root) {
     const mode = getComputedStyle(root).writingMode || "horizontal-tb";
-    if (mode === "horizontal-tb") return { vertical: false, start: (r) => r.top, span: (r) => [r.top, r.bottom], side: "bottom" };
+    const px = (v) => parseFloat(v) || 0;
+    if (mode === "horizontal-tb") return { vertical: false, start: (r) => r.top, span: (r) => [r.top, r.bottom], side: "bottom",
+      // a positioned layer of the box, from its computed insets, along the same axis
+      layer: (r, s) => [r.top + px(s.top), r.top + px(s.top) + px(s.height)] };
     const rl = !/-lr$/.test(mode);
-    return { vertical: true, start: (r) => (rl ? -r.right : r.left), span: (r) => [r.left, r.right], side: rl ? "left" : "right" };
+    return { vertical: true, start: (r) => (rl ? -r.right : r.left), span: (r) => [r.left, r.right], side: rl ? "left" : "right",
+      layer: (r, s) => (rl ? [r.right - px(s.right) - px(s.width), r.right - px(s.right)] : [r.left + px(s.left), r.left + px(s.left) + px(s.width)]) };
   }
 
   /* With a maximum number of lines, shows only the page that holds the segment being spoken:
@@ -555,14 +561,31 @@
 
   const LAYERS = Object.freeze(["text", "ruby", "underline", "highlight"]);
 
+  /* The colour of a highlight's band: the stylesheet paints it as a one-colour gradient (its first
+   * colour, read up to the first comma outside parentheses), or, should a theme set a background
+   * colour on the band instead, that. */
+  function bandColourOf(style) {
+    const image = style.backgroundImage;
+    const open = image.indexOf("(");
+    if (open < 0) return style.backgroundColor;
+    let depth = 0;
+    for (let i = open + 1; i < image.length; i++) {
+      const ch = image[i];
+      if (ch === "(") depth++;
+      else if (ch === ")" && depth > 0) depth--;
+      else if ((ch === "," || ch === ")") && depth === 0) return image.slice(open + 1, i).trim();
+    }
+    return style.backgroundColor;
+  }
+
   /**
    * Tsubu.checkContrast(root, options) -> { ok, checks, failures }
    * Measures the colours the browser computes for a drawn sentence in every state ("static",
    * before any apply and with timing "none", then each of STATES), for each layer (text,
    * furigana, underline, and the highlight against what surrounds it), against each backdrop.
    * A layer is measured against the highlight when the highlight covers its middle: furigana sit
-   * above the highlighted line (to its right in vertical text), so they are measured against the
-   * plate and the backdrop.
+   * above the highlighted em box (to its right in vertical text), so they are measured against
+   * the plate and the backdrop.
    *   options: { backdrop?: colour | [colours] | "any", thresholds?: { text, ruby, underline, highlight } }
    * It works on a copy of the sentence, which it removes again: the page is left as it was.
    */
@@ -612,20 +635,21 @@
           const base = over(plate, over(parseColour(backdrop), [255, 255, 255, 1]));
           for (const el of segments) {
             const style = getComputedStyle(el);
-            const highlight = parseColour(style.backgroundColor);
+            // The highlight is the segment's ::before, a band over the em box of its text that
+            // reaches `spread` past it (see the stylesheet). A layer is on the highlight when the
+            // band covers its middle (and checked against both when the band covers only part of
+            // it); a layer whose middle lies outside the band, like the furigana, which the band
+            // at most grazes, is on what is behind the highlight. Positions are compared across
+            // the line, which is horizontal in vertical text.
+            const band = getComputedStyle(el, "::before");
+            const bandColour = bandColourOf(band);
+            const highlight = band.visibility === "hidden" ? [0, 0, 0, 0] : parseColour(bandColour);
             const behind = over(highlight, base);
-            // The highlight is the segment's background and its box-shadow: it covers the line of
-            // text and reaches `spread` past it. A layer is on the highlight when the band covers
-            // its middle (and checked against both when the band covers only part of it); a
-            // layer whose middle lies outside the band, like the furigana, whose box the spread
-            // just grazes, is on what is behind the highlight. Positions are compared across the
-            // line, which is horizontal in vertical text.
             const box = el.getBoundingClientRect();
-            const spread = highlight[3] > 0 ? parseFloat((/(-?[\d.]+)px\s*$/.exec(style.boxShadow) || [])[1]) || 0 : 0;
-            const [low, high] = axis.span(box);
+            const [from, to] = axis.layer(box, band);
             const backgroundsFor = (top, bottom) => {
               if (highlight[3] === 0) return [base];
-              const from = low - spread, to = high + spread, middle = (top + bottom) / 2;
+              const middle = (top + bottom) / 2;
               if (middle < from || middle > to) return [base];
               return top >= from && bottom <= to ? [behind] : [behind, base];
             };
@@ -646,7 +670,7 @@
               const [a, b] = axis.side === "left" ? [edge, edge + width] : [edge - width, edge];
               for (const under of backgroundsFor(a, b)) layers.push(["underline", after[`border${side}Color`], under, fade(el, after)]);
             }
-            if (highlight[3] > 0 && style.visibility !== "hidden") layers.push(["highlight", style.backgroundColor, base, fade(el)]);
+            if (highlight[3] > 0) layers.push(["highlight", bandColour, base, fade(el, band)]);
             for (const [layer, colour, under, alpha] of layers) {
               const paint = parseColour(colour);
               paint[3] *= alpha;

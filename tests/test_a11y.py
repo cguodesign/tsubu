@@ -1,21 +1,21 @@
 """Forced colours and screen readers, in headless Chromium.
 
-In forced-colours mode (Windows contrast themes and the like) browsers replace backgrounds and drop
-box-shadows; the segment being spoken must still stand out, in the user's own colours, and nothing
+In forced-colours mode (Windows contrast themes and the like) browsers replace backgrounds; the
+segment being spoken must still stand out, in the user's own colours, and nothing
 may move. And with announceRuby off, a screen reader reads the sentence once, without each reading.
 """
 
 import pytest
 
-from support import LONG, TIMED, WHOLE, run_library
+from support import BAND_COLOUR, LONG, TIMED, WHOLE, run_library
 
 SYSTEM = """(names) => { const d = document.createElement('div'); document.body.append(d); const out = {};
   for (const c of names) { d.style.color = c; out[c] = getComputedStyle(d).color; } d.remove(); return out; }"""
 
 LOOK = """() => [...document.querySelectorAll('.tsubu-seg')].map((s) => { const st = getComputedStyle(s), rt = s.querySelector('rt');
-  return {state: s.dataset.state, bg: st.backgroundColor, color: st.color, shadow: st.boxShadow,
+  return {state: s.dataset.state, bg: BAND_COLOUR(s), color: st.color,
           rt: rt ? getComputedStyle(rt).color : null, underline: getComputedStyle(s, '::after').borderBottomColor,
-          punct: s.dataset.kind === 'punct'}; })"""
+          punct: s.dataset.kind === 'punct'}; })""".replace("BAND_COLOUR", BAND_COLOUR)
 
 
 @pytest.mark.parametrize("theme", [None, "light", "dark", "media"])
@@ -31,7 +31,6 @@ def test_in_forced_colours_the_segment_being_spoken_keeps_a_highlight_in_the_use
     assert current
     for x in current:
         assert x["bg"] == system["Highlight"] and x["color"] == system["HighlightText"], x
-        assert system["Highlight"] in x["shadow"]
         assert x["rt"] in (None, system["CanvasText"])  # the reading sits on the page, above the highlight
         if not x["punct"]:
             assert x["underline"] == system["HighlightText"]
