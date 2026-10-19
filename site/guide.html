@@ -35,8 +35,8 @@ section.g .label { margin-top: 18px; }
 <div class="wrap">
   <header class="mast"></header>
   <h1 class="page-title"><span class="en">Guide</span><span class="zh" lang="zh-CN">指南</span><span class="ja" lang="ja">ガイド</span></h1>
-  <p class="page-lede en">What the library does, section by section, with a live example in each. Everything here is also in the README; the API page has the full surface.</p>
-  <p class="page-lede zh" lang="zh-CN">这个库做的事，一节一节讲，每节都有活的示例。这些内容 README 里都有；完整接口见 API 页。</p><p class="page-lede ja" lang="ja">このライブラリができることを、節ごとに動く例つきで説明します。内容はすべて README にもあり、API の全体は API ページにあります。</p>
+  <p class="page-lede en">What the library does, section by section, with a live example in each. Everything here is also in the repository's guide, <code>docs/guide.md</code>; the API page has the full surface.</p>
+  <p class="page-lede zh" lang="zh-CN">这个库做的事，一节一节讲，每节都有活的示例。这些内容仓库里的指南 <code>docs/guide.md</code> 都有；完整接口见 API 页。</p><p class="page-lede ja" lang="ja">このライブラリができることを、節ごとに動く例つきで説明します。内容はすべてリポジトリのガイド <code>docs/guide.md</code> にもあり、API の全体は API ページにあります。</p>
   <ul class="toc">
     <li><a href="#timing"><span class="en">Input and timing</span><span class="zh" lang="zh-CN">输入与时间</span><span class="ja" lang="ja">入力とタイミング</span></a></li>
     <li><a href="#lines"><span class="en">Several lines and paging</span><span class="zh" lang="zh-CN">多行与翻页</span><span class="ja" lang="ja">複数行とページ送り</span></a></li>
@@ -174,8 +174,8 @@ root.addEventListener("click", (event) =&gt; {
         <p class="zh" lang="zh-CN"><code>Tsubu.sentence(input, { writing: "vertical" })</code>，或在任何祖先上写 <code>data-tsubu-writing="vertical"</code>。列从右向左排，注音在字的右侧，每段的下划线变成它左侧的点状边线。高亮、它的外扩和 <code>media</code> 底板是随文字一起转过来的同一组盒子。请给容器设高度：列长就是句子的高度。</p><p class="ja" lang="ja"><code>Tsubu.sentence(input, { writing: "vertical" })</code>、または任意の祖先に <code>data-tsubu-writing="vertical"</code>。列は右から左へ進み、ふりがなは文字の右側に付き、各文節の下線は左側の点線の傍線になります。ハイライト、その広がり、<code>media</code> のプレートは、文字と一緒に回転した同じ箱です。コンテナには高さを与えてください。列の長さが文の高さです。</p>
         <p class="en">A run of half-width digits or letters of at most <code>options.combineUpright</code> characters (0 to 4, default 2) stands upright across the column (10月, AI); longer runs lie on their side (2025年). Every horizontal guarantee holds with columns in place of lines, and paging counts columns from the right.</p>
         <p class="zh" lang="zh-CN">不超过 <code>options.combineUpright</code> 个（0 到 4，默认 2）的半角数字或字母在列中直立显示（10月、AI）；更长的侧躺（2025年）。横排的每条保证在竖排里以列代替行同样成立，翻页从右边数列。</p><p class="ja" lang="ja"><code>options.combineUpright</code> 文字以内（0 から 4、既定 2）の半角の数字や英字は縦中横で立ちます（10月、AI）。それより長い並びは横倒しです（2025年）。横書きの保証はすべて、行を列に読み替えて縦書きでも成り立ち、ページ送りは右から列を数えます。</p>
-        <p class="small muted en">Vertical writing is measured in Chromium, Firefox and WebKit (Safari's engine); every guarantee holds in all three except balanced columns, as the README's Browser support records.</p>
-        <p class="small muted zh" lang="zh-CN">竖排在 Chromium、Firefox 和 WebKit（Safari 的引擎）里都实测过；除了均衡分列，三个引擎里每条保证都成立，详见 README 的浏览器支持一节。</p><p class="small muted ja" lang="ja">縦書きは Chromium、Firefox、WebKit（Safari のエンジン）で計測しています。列の均等化を除き、三つのエンジンすべてで各保証が成り立ちます。詳しくは README のブラウザ対応の節をご覧ください。</p>
+        <p class="small muted en">Vertical writing is measured in Chromium, Firefox and WebKit (Safari's engine); every guarantee holds in all three except balanced columns, as <code>docs/testing.md</code> records under Browser support.</p>
+        <p class="small muted zh" lang="zh-CN">竖排在 Chromium、Firefox 和 WebKit（Safari 的引擎）里都实测过；除了均衡分列，三个引擎里每条保证都成立，详见 <code>docs/testing.md</code> 的浏览器支持一节。</p><p class="small muted ja" lang="ja">縦書きは Chromium、Firefox、WebKit（Safari のエンジン）で計測しています。列の均等化を除き、三つのエンジンすべてで各保証が成り立ちます。詳しくは <code>docs/testing.md</code> のブラウザ対応の節をご覧ください。</p>
       </div>
       <div>
         <div class="ctl"><label>combineUpright <select id="vt-combine"><option>0</option><option selected>2</option><option>4</option></select></label></div>

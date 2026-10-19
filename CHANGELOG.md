@@ -11,6 +11,11 @@ All notable changes to tsubu are recorded here. The format follows
 - The package's homepage is the site's own address, https://chong.works/tsubu/.
 - The README's CDN examples carry the real Subresource Integrity hashes of 0.1.0, and a test
   checks each against the file at its version's tag.
+- The READMEs are short: what tsubu is, install, the input and output in brief, a list of
+  features, and development. The detail moved, unchanged, to `docs/guide.md` (input, output,
+  CSS custom properties and every feature) and `docs/testing.md` (layout guarantees, how they
+  are tested, browser support, running the tests); the site's API page is checked against the
+  guide.
 
 ## [0.1.0] - 2026-10-19
 

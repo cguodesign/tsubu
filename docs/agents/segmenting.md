@@ -37,7 +37,7 @@ required step changes, a minor version when tools or advice are added, a patch f
 ## The target format
 
 What `Tsubu.sentence(input)` takes (the full contract is in the
-[README's Input section](../../README.md#input)):
+[guide's Input section](../guide.md#input)):
 
 - `segments`, in reading order. Each segment is one unit of reading, here one bunsetsu.
 - Each segment has `parts`: pieces of text. A part with `ruby` carries a reading and is drawn as
@@ -428,7 +428,7 @@ if (!fit.ok || !contrast.ok) { /* report; do not ship the frame */ }
 
 `checkFit` reports segments that overflow the container, are too long for a line, furigana that
 are clipped, and too many lines; `checkContrast` measures every colour in every state against
-`Tsubu.CONTRAST`. Both are described in the [README](../../README.md#output).
+`Tsubu.CONTRAST`. Both are described in the [guide](../guide.md#output).
 
 ## Using an LLM in the loop
 

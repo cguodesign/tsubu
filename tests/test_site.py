@@ -1,6 +1,6 @@
 """The site (site/): every page loads without errors and without a horizontal scroll at phone
 width, every colour pair on it meets the thresholds, both languages are complete, the API page
-agrees with the README and the library, and the home page's film draws every frame from t alone
+agrees with the guide (docs/guide.md) and the library, and the home page's film draws every frame from t alone
 while its loupe's two layers line up character for character.
 
 Every page is a whole document. All are copied into tmp_path next to the library files, as the
@@ -196,10 +196,10 @@ def test_the_api_tables_share_a_grid(site):
         assert abs(e[0] - 2) < 0.15 and (len(e) < 2 or abs(e[1] - 2) < 0.15 or abs(e[1] - 10) < 0.15), edges
 
 
-# ---- the API page against the README and the library ----
+# ---- the API page against the guide and the library ----
 
-def test_the_api_page_names_everything_the_readme_and_the_library_do(site):
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+def test_the_api_page_names_everything_the_guide_and_the_library_do(site):
+    readme = (ROOT / "docs" / "guide.md").read_text(encoding="utf-8")
     page = site("api.html")
     text = page.evaluate("() => document.getElementById('api').innerText")  # innerText keeps cells apart
     # the speaker group is written with a placeholder name in both, and left out here
