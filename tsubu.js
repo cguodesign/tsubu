@@ -148,8 +148,20 @@
       const timed = segment.start !== undefined || segment.end !== undefined;
       if (punct && timed) fail(`${where}: punctuation carries no time of its own`);
       if (timed) checkSpan(segment.start, segment.end, where);
-      return timed ? { parts, punct, start: segment.start, end: segment.end } : { parts, punct };
+      // An id and tags are the caller's: an id to find the segment by, tags to style it by
+      // (data-tags="new-word"). tsubu gives them no meaning.
+      if (segment.id !== undefined && (typeof segment.id !== "string" || segment.id === "")) fail(`${where}: \`id\` must be a non-empty string`);
+      if (segment.tags !== undefined && (!Array.isArray(segment.tags) || !segment.tags.every((tag) => typeof tag === "string" && NAME.test(tag))))
+        fail(`${where}: \`tags\` must be an array of names in lower case, such as "new-word"`);
+      const made = { parts, punct };
+      if (timed) Object.assign(made, { start: segment.start, end: segment.end });
+      if (segment.id !== undefined) made.id = segment.id;
+      if (segment.tags !== undefined && segment.tags.length) made.tags = [...new Set(segment.tags)];
+      return made;
     });
+    const ids = segments.filter((s) => "id" in s).map((s) => s.id);
+    const twice = ids.find((id, i) => ids.indexOf(id) !== i);
+    if (twice !== undefined) fail(`two segments have the id ${JSON.stringify(twice)}`);
     const spoken = segments.filter((s) => !s.punct);
     if (spoken.length === 0) fail("a sentence needs at least one segment that is not punctuation");
     const timedCount = spoken.filter((s) => "start" in s).length;
@@ -209,9 +221,11 @@
         })
         .join("");
       const kind = segment.punct ? ' data-kind="punct"' : "";
+      const id = segment.id === undefined ? "" : ` data-id="${escapeHTML(segment.id)}"`;
+      const tags = segment.tags ? ` data-tags="${segment.tags.join(" ")}"` : "";
       const shown = Boolean(revealed && revealed.includes(i));
       const state = at ? stateAttributes(at.segments[i].state, at.segments[i].progress, i === at.current, shown) : shown ? ' data-revealed=""' : "";
-      return `<span class="tsubu-seg" data-index="${i}"${kind}${state}>${inner}</span>`;
+      return `<span class="tsubu-seg" data-index="${i}"${kind}${id}${tags}${state}>${inner}</span>`;
     });
     // A line may break between two segments unless the break would put a closing mark, the
     // long-vowel mark or a small kana at the start of a line, or an opening bracket at the end of
@@ -370,8 +384,8 @@
   }
 
   /**
-   * Tsubu.sentence(input, options) -> { html, timing, stateAt(t), htmlAt(t), apply(root, t) }
-   *   input:   { lang?, start?, end?, segments: [{ parts: [{ text, ruby? }], start?, end?, kind? }] }
+   * Tsubu.sentence(input, options) -> { html, timing, stateAt(t), htmlAt(t), apply(root, t), span(i), find(id) }
+   *   input:   { lang?, start?, end?, segments: [{ parts: [{ text, ruby? }], start?, end?, kind?, id?, tags? }] }
    *   options: { ruby: true | false (default true), announceRuby: true | false (default true),
    *              theme?: name, speaker?: name, motion?: names from MOTIONS,
    *              writing?: "horizontal" | "vertical", combineUpright: 0 to 4 (default 2) }
@@ -400,7 +414,21 @@
       // Paging needs the layout, so it is not done here.
       htmlAt: (t, at) => renderHTML(normalised, ruby, look, stateOf(normalised, t), revealedIndexes((at || {}).revealed, normalised.segments.length)),
       apply: (root, t) => applyState(root, normalised, t),
+      // A segment's own time, { start, end }, to seek the caller's audio to when it is tapped; null
+      // for punctuation and for a sentence without times for its segments (nothing is estimated).
+      span: (i) => spanOf(normalised, i),
+      // The index of the segment with this id, or null.
+      find: (id) => {
+        const i = normalised.segments.findIndex((s) => s.id === id);
+        return i === -1 ? null : i;
+      },
     });
+  }
+
+  function spanOf(sentence, i) {
+    if (!Number.isInteger(i) || i < 0 || i >= sentence.segments.length) fail(`span needs a segment index from 0 to ${sentence.segments.length - 1}, not ${i}`);
+    const segment = sentence.segments[i];
+    return "start" in segment ? { start: segment.start, end: segment.end } : null;
   }
 
   /* Which segments a caller's `which` names: "all", "none", or an array of segment indexes. */
