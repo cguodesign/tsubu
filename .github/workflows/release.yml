@@ -1,0 +1,53 @@
+# On a version tag (v0.1.0): run the tests, publish to npm with provenance through trusted
+# publishing (no token is stored anywhere), then deploy the site from the same commit.
+# The `release` environment holds the job until the maintainer approves it.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # trusted publishing and provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24" # npm 11, which trusted publishing needs (11.5.1 or later)
+          registry-url: "https://registry.npmjs.org"
+      - name: The tag names the package's version
+        run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+      - run: npm --version
+      - run: npm publish --ignore-scripts
+      - name: Subresource Integrity hashes for the CDN
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          {
+            echo "### SRI for tsubu@$version"
+            echo
+            for file in tsubu.js tsubu.css tsubu-export.js tsubu.mjs tsubu-export.mjs; do
+              echo "- \`https://cdn.jsdelivr.net/npm/tsubu@$version/$file\`: \`sha384-$(openssl dgst -sha384 -binary "$file" | openssl base64 -A)\`"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  site:
+    needs: publish
+    uses: ./.github/workflows/pages.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

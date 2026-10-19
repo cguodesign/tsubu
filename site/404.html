@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Not found · tsubu</title>
+<style>
+/* Self-contained: GitHub Pages serves this page at any missing path, where relative links to the
+ * site's stylesheet would not resolve. Colours are the site's 白練 and 濃藍. */
+:root { color-scheme: light; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f3f3f2; color: #0f2350;
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; line-height: 1.7; padding: 16px; box-sizing: border-box; }
+main { max-width: 36rem; }
+h1 { font-size: 28px; margin: 0 0 8px; }
+p { margin: 0 0 6px; }
+a { color: #0f2350; }
+</style>
+</head>
+<body>
+<main>
+  <h1>粒 · 404</h1>
+  <p>This page does not exist. <a href="./" id="home">Go to the tsubu home page</a>.</p>
+  <p lang="zh-CN">没有这个页面。<a href="./" class="home">回到 tsubu 首页</a>。</p>
+  <p lang="ja">このページはありません。<a href="./" class="home">tsubu のトップへ</a>。</p>
+</main>
+<script>
+// On a github.io project site the home page is the first path segment, not the host's root.
+const root = location.hostname.endsWith("github.io") ? "/" + location.pathname.split("/")[1] + "/" : "/";
+document.querySelectorAll("#home, .home").forEach((a) => a.setAttribute("href", root));
+</script>
+</body>
+</html>

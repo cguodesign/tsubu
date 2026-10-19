@@ -102,6 +102,21 @@ All notable changes to tsubu are recorded here. The format follows
   or a speech synthesiser's timing, never estimated, and the checks before use. With a
   dependency-free validator, `docs/agents/validate.mjs`, a hand-made worked example in
   `docs/agents/example/`, and `tests/test_agent_guide.py`.
+- The npm package `tsubu`, from the same files and with no build step: `tsubu.mjs` and
+  `tsubu-export.mjs`, ES modules that re-export the scripts' objects and have no code of their own
+  (`import Tsubu from "tsubu"`, `"tsubu/export"`), TypeScript declarations for both forms
+  (`tsubu.d.ts`, `tsubu.d.mts` and the exporter's), and an `exports` map that also offers
+  `tsubu/tsubu.css` and the agent guide's validator, `tsubu/validate`. Tests check that the
+  package, the script and this changelog name the same version, that the ES modules are the
+  scripts' objects (in Node and in the browser), that every exported name and option is declared,
+  that the declarations compile (TypeScript 7.0.2, pinned), and which files would be published.
+- The test tools are pinned in `requirements-dev.txt` (pytest 8.0.2, Playwright 1.54.0).
+- GitHub Actions: the tests on every push in Chromium, Firefox and WebKit; on a version tag, the
+  tests, then `npm publish` through trusted publishing with provenance and no stored token, held
+  for the maintainer's approval, then the site on GitHub Pages from the same commit.
+- The README says how to install from npm or a CDN with Subresource Integrity, and what counts as
+  a breaking change before 1.0.
+- The site's home page is a whole document, and a self-contained 404 page links home.
 
 ### Changed
 

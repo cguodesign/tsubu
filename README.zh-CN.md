@@ -49,6 +49,49 @@ tsubu **不做**的事：把文本切成词或段、把音频和文本对齐、�
 
 直接从磁盘打开 [`demo/index.html`](demo/index.html)，可以拖动时间、开关注音。
 
+## 安装
+
+从 npm 安装，锁定精确版本：
+
+```sh
+npm install --save-exact tsubu
+```
+
+包里的文件和本仓库相同，没有构建步骤：`tsubu.js`（普通脚本）、`tsubu.css`、`tsubu-export.js`，
+每个脚本各有一个 ES 模块（`tsubu.mjs`、`tsubu-export.mjs`，只把脚本的对象再导出），以及
+TypeScript 类型声明。
+
+```js
+const Tsubu = require("tsubu");                     // Node，CommonJS
+const TsubuExport = require("tsubu/export");
+import Tsubu, { sentence } from "tsubu";            // ES 模块和打包工具
+import { toSRT } from "tsubu/export";
+import "tsubu/tsubu.css";                           // 打包工具能处理 CSS 时
+```
+
+从 CDN 加载时，写精确版本并加上[子资源完整性（SRI）](https://developer.mozilla.org/zh-CN/docs/Web/Security/Subresource_Integrity)，
+页面就只会运行它所针对的那个文件：
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tsubu@0.1.0/tsubu.css"
+      integrity="sha384-…" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/tsubu@0.1.0/tsubu.js"
+        integrity="sha384-…" crossorigin="anonymous"></script>
+```
+
+`https://unpkg.com/tsubu@0.1.0/tsubu.js` 提供同一个文件。文件的哈希是
+`openssl dgst -sha384 -binary tsubu.js | openssl base64 -A`，从包（`npm pack`）或 CDN 上的副本算；
+向 CDN 要文件本身，不要它压缩过的版本，那个哈希不同。不用打包工具的页面也可以用
+`<script type="module">` 从同样的地址导入 `tsubu.mjs`；这时普通脚本也会定义全局的 `Tsubu`。
+
+也可以直接把 `tsubu.js` 和 `tsubu.css` 复制到页面旁边：页面只需要这两个文件，从 `file://` 打开也能用。
+
+**版本。** tsubu 遵循[语义化版本](https://semver.org/lang/zh-CN/)。1.0 之前，会破坏调用方的改动升次版本号
+（0.1 到 0.2），其他改动升修订号。破坏性改动指：输入格式或它拒绝的内容，HTML（元素、class、`data-*` 和
+`aria-*` 属性），`--tsubu-*` 属性、主题和动效预设的名字，`Tsubu` 和 `TsubuExport` 上的名字和签名，
+`stateAt`、`apply`、`checkContrast`、`checkFit` 返回值的结构，以及导出器写出的文本。`Tsubu.version`
+是手上这份脚本的版本；每次改动都记在 [CHANGELOG.md](CHANGELOG.md)。
+
 ## 输入
 
 ```js
@@ -416,10 +459,10 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 需要：
 
 - `PATH` 上有 Node 18 或更新的版本（用 Node 22 测过）；
-- Python 3.9 或更新的版本（用 3.13 测过），装好 `pytest` 和 `playwright`，以及 Playwright 的 Chromium（要在 Firefox 和 WebKit 里跑，再装它们）：
+- Python 3.9 或更新的版本（用 3.13 测过），装好 `requirements-dev.txt` 里锁定版本的 `pytest` 和 `playwright`，以及这个 Playwright 版本锁定的 Chromium 构建（要在 Firefox 和 WebKit 里跑，再装它们）：
 
   ```sh
-  python -m pip install pytest playwright
+  python -m pip install -r requirements-dev.txt
   python -m playwright install chromium firefox webkit
   ```
 
@@ -436,6 +479,8 @@ python -m pytest -q --engine firefox
 python -m pytest -q --engine webkit
 ```
 
+`npm ci` 会装上锁定版本的 TypeScript 编译器，测试随后也会对照类型声明编译 `tests/types`（只做这一步用 `npm run typecheck`）。每次推送，GitHub Actions 都会在三种引擎里跑同一套测试（`.github/workflows/ci.yml`）。
+
 版面测试使用系统里的日文字体（Hiragino Sans、Noto Sans JP 或 Noto Sans CJK JP）；测量都是相对的，换别的 CJK 字体结果应该相同。
 
 ## 文件
@@ -445,10 +490,15 @@ python -m pytest -q --engine webkit
 | `tsubu.js` | 库本身：一个普通脚本，在页面里定义 `Tsubu`，在 Node 里是 `module.exports` |
 | `tsubu.css` | 样式；可调的都是自定义属性 |
 | `tsubu-export.js` | 可选：用同样的输入生成 WebVTT、ASS 卡拉 OK 和 SRT 字幕 |
+| `tsubu.mjs`、`tsubu-export.mjs` | 同样的对象，以 ES 模块的形式，本身没有代码 |
+| `*.d.ts`、`*.d.mts` | TypeScript 类型声明，由 `tests/test_package.py` 和 `tests/types` 对照脚本检查 |
+| `package.json` | npm 包：导出、发布哪些文件、锁定版本的 TypeScript |
+| `docs/agents/` | 给 agent 的版本化指南，讲怎么准备 tsubu 的输入，附校验器（也在包里） |
 | `examples/` | 录制视频：用 Playwright 生成 PNG 帧，用 Node 生成 HTML 帧；帧换算 `tsubu-frames.js`，以及 Remotion 和 HyperFrames 示例 |
 | `site/` | 项目网站：首页（短片由 `t` 绘制）、快速开始、指南、API 参考、试验场和画廊，中英双语。页面从同级文件加载库（检出里是符号链接），所以从磁盘直接打开就能看 |
 | `demo/index.html` | 演示页：拖动时间、开关注音、选主题，有一段对话和一个流式、会翻页的框；地址可带 `?t=秒数&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | 测试（pytest；状态用 Node，版面用 Playwright，在 Chromium、Firefox 或 WebKit 里） |
+| `.github/workflows/` | 每次推送跑 CI；打版本 tag 时先测试，再带来源证明 `npm publish`，再把网站部署到 GitHub Pages |
 | `assets/` | logo |
 
 ## 许可证

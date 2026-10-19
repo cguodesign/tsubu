@@ -1,0 +1,4 @@
+# The test suite's Python tools, pinned. Each Playwright release pins its own browser builds,
+# which `python -m playwright install` fetches.
+pytest==8.0.2
+playwright==1.54.0

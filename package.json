@@ -1,0 +1,58 @@
+{
+  "name": "tsubu",
+  "version": "0.1.0",
+  "description": "Renders one pre-segmented Japanese sentence for read-along: furigana that never move a character, and a highlight that is a pure function of time.",
+  "keywords": ["japanese", "furigana", "ruby", "read-along", "karaoke", "subtitles", "bunsetsu", "language-learning"],
+  "license": "MIT",
+  "author": "cgdev",
+  "homepage": "https://cguodesign.github.io/tsubu/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cguodesign/tsubu.git"
+  },
+  "bugs": "https://github.com/cguodesign/tsubu/issues",
+  "main": "./tsubu.js",
+  "module": "./tsubu.mjs",
+  "types": "./tsubu.d.ts",
+  "unpkg": "./tsubu.js",
+  "jsdelivr": "./tsubu.js",
+  "style": "./tsubu.css",
+  "exports": {
+    ".": {
+      "import": { "types": "./tsubu.d.mts", "default": "./tsubu.mjs" },
+      "require": { "types": "./tsubu.d.ts", "default": "./tsubu.js" }
+    },
+    "./export": {
+      "import": { "types": "./tsubu-export.d.mts", "default": "./tsubu-export.mjs" },
+      "require": { "types": "./tsubu-export.d.ts", "default": "./tsubu-export.js" }
+    },
+    "./tsubu.css": "./tsubu.css",
+    "./tsubu.js": "./tsubu.js",
+    "./tsubu-export.js": "./tsubu-export.js",
+    "./validate": "./docs/agents/validate.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "tsubu.js",
+    "tsubu.mjs",
+    "tsubu.d.ts",
+    "tsubu.d.mts",
+    "tsubu.css",
+    "tsubu-export.js",
+    "tsubu-export.mjs",
+    "tsubu-export.d.ts",
+    "tsubu-export.d.mts",
+    "docs/agents/segmenting.md",
+    "docs/agents/validate.mjs",
+    "CHANGELOG.md",
+    "README.zh-CN.md"
+  ],
+  "sideEffects": ["*.css", "./tsubu.js", "./tsubu-export.js"],
+  "scripts": {
+    "test": "python3 -m pytest -q",
+    "typecheck": "tsc -p tests/types"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

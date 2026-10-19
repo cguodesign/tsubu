@@ -1,0 +1,41 @@
+# The site in site/ on GitHub Pages. Called by the release workflow after a version is
+# published, so the site always shows the released library; it can also be run by hand.
+# The library files in site/ are symlinks: the upload action archives with --dereference, so
+# the published site holds real copies.
+name: Site
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Every link in site/ resolves
+        run: |
+          broken="$(find site -type l ! -exec test -e {} \; -print)"
+          test -z "$broken" || { echo "broken links: $broken"; exit 1; }
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

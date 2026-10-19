@@ -61,6 +61,53 @@ caller.
 Open [`demo/index.html`](demo/index.html) straight from disk for a page with a time slider and a
 furigana switch.
 
+## Install
+
+From npm, pinned to an exact version:
+
+```sh
+npm install --save-exact tsubu
+```
+
+The package holds the same files as this repository, with no build step: `tsubu.js` (the classic
+script), `tsubu.css`, `tsubu-export.js`, an ES module for each script (`tsubu.mjs`,
+`tsubu-export.mjs`, which only re-export the script's object) and TypeScript declarations.
+
+```js
+const Tsubu = require("tsubu");                     // Node, CommonJS
+const TsubuExport = require("tsubu/export");
+import Tsubu, { sentence } from "tsubu";            // ES modules and bundlers
+import { toSRT } from "tsubu/export";
+import "tsubu/tsubu.css";                           // with a bundler that handles CSS
+```
+
+From a CDN, with an exact version and [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity),
+so the page runs only the file it was written against:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tsubu@0.1.0/tsubu.css"
+      integrity="sha384-…" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/tsubu@0.1.0/tsubu.js"
+        integrity="sha384-…" crossorigin="anonymous"></script>
+```
+
+`https://unpkg.com/tsubu@0.1.0/tsubu.js` serves the same file. The hash of a file is
+`openssl dgst -sha384 -binary tsubu.js | openssl base64 -A`, taken from the package (`npm pack`)
+or the CDN's copy; ask the CDN for the file itself, not a minified version, whose hash differs.
+In a page without a bundler, `<script type="module">` can import `tsubu.mjs` from the same
+places; the classic script then also defines the global `Tsubu`.
+
+Or copy `tsubu.js` and `tsubu.css` next to your page: that is all a page needs, and it works from
+`file://`.
+
+**Versions.** tsubu follows [Semantic Versioning](https://semver.org/). Until 1.0, a change that
+breaks callers raises the minor version (0.1 to 0.2) and anything else the patch version. Breaking
+means a change to the input format or what it refuses, the HTML (elements, classes, `data-*` and
+`aria-*` attributes), the names of the `--tsubu-*` properties, themes and motion presets, the
+names and signatures on `Tsubu` and `TsubuExport`, the shape of what `stateAt`, `apply`,
+`checkContrast` and `checkFit` return, or the text the exporters write. `Tsubu.version` is the
+version of the script in hand; [CHANGELOG.md](CHANGELOG.md) lists every change.
+
 ## Input
 
 ```js
@@ -752,11 +799,12 @@ do not let the reading overhang the neighbouring kana, and in WebKit tsubu turns
 Requirements:
 
 - Node 18 or newer on `PATH` (tested with Node 22);
-- Python 3.9 or newer (tested with 3.13) with `pytest` and `playwright`, and Playwright's Chromium
-  (and its Firefox and WebKit, to run the tests there):
+- Python 3.9 or newer (tested with 3.13) with the versions of `pytest` and `playwright` pinned in
+  `requirements-dev.txt`, and Playwright's Chromium (and its Firefox and WebKit, to run the tests
+  there), the builds that Playwright version pins:
 
   ```sh
-  python -m pip install pytest playwright
+  python -m pip install -r requirements-dev.txt
   python -m playwright install chromium firefox webkit
   ```
 
@@ -774,6 +822,10 @@ python -m pytest -q --engine firefox
 python -m pytest -q --engine webkit
 ```
 
+`npm ci` installs the pinned TypeScript compiler, and the suite then also compiles
+`tests/types` against the declarations (`npm run typecheck` does it alone). The same suite runs
+on every push in GitHub Actions (`.github/workflows/ci.yml`), in all three engines.
+
 The layout tests use a Japanese font from the system (Hiragino Sans, Noto Sans JP or Noto Sans CJK
 JP); the measurements are relative, so another CJK font should give the same results.
 
@@ -784,10 +836,15 @@ JP); the measurements are relative, so another CJK font should give the same res
 | `tsubu.js` | the library: a classic script that defines `Tsubu`, or `module.exports` in Node |
 | `tsubu.css` | the styles; everything adjustable is a custom property |
 | `tsubu-export.js` | optional: WebVTT, ASS karaoke and SRT subtitles from the same input |
+| `tsubu.mjs`, `tsubu-export.mjs` | the same objects as ES modules, with no code of their own |
+| `*.d.ts`, `*.d.mts` | TypeScript declarations, checked against the scripts by `tests/test_package.py` and `tests/types` |
+| `package.json` | the npm package: its exports, the files it publishes, the pinned TypeScript |
+| `docs/agents/` | the versioned guide for agents preparing tsubu's input, with its validator (also in the package) |
 | `examples/` | recording video: PNG frames through Playwright, HTML frames from Node; `tsubu-frames.js`, the frame arithmetic, with Remotion and HyperFrames examples |
 | `site/` | the project's website: a home page whose film is drawn from `t`, getting started, a guide, the API reference, a playground and a gallery, in English and 简体中文. The pages load the library from sibling files (symlinks in the checkout), so they open straight from disk |
 | `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker, a dialogue and a fluid, paged frame; accepts `?t=seconds&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | the test suite (pytest; Node for the state, Playwright for the layout, in Chromium, Firefox or WebKit) |
+| `.github/workflows/` | CI on every push; on a version tag, the tests, then `npm publish` with provenance, then the site on GitHub Pages |
 | `assets/` | the logo |
 
 ## Licence

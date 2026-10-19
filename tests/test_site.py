@@ -3,8 +3,7 @@ width, every colour pair on it meets the thresholds, both languages are complete
 agrees with the README and the library, and the home page's film draws every frame from t alone
 while its loupe's two layers line up character for character.
 
-The home page is a fragment, as the artifact host serves it; the test wraps it in a document. The
-other pages are whole documents. All are copied into tmp_path next to the library files, as the
+Every page is a whole document. All are copied into tmp_path next to the library files, as the
 symlinks in site/ place them. Fonts come from Google Fonts; without a network the browser falls
 back to system fonts, which changes the look but none of these checks."""
 
@@ -17,9 +16,6 @@ from support import ROOT, run_library
 
 SITE = ROOT / "site"
 PAGES = ["index.html", "start.html", "guide.html", "api.html", "playground.html", "gallery.html"]
-HEAD = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
-        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
-        "<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>")
 
 
 @pytest.fixture(scope="module")
@@ -30,10 +26,7 @@ def copied(tmp_path_factory):
     for path in SITE.iterdir():
         if path.is_symlink() or not path.is_file():
             continue
-        text = path.read_text(encoding="utf-8")
-        if path.name == "index.html":
-            text = HEAD + text + "</body></html>"
-        (out / path.name).write_text(text, encoding="utf-8")
+        shutil.copy(path, out / path.name)
     return out
 
 
@@ -60,6 +53,24 @@ def site(browser, copied):
 def test_the_library_files_in_site_are_the_library(copied):
     for name in ("tsubu.css", "tsubu.js", "tsubu-export.js"):
         assert (SITE / name).is_symlink() and (SITE / name).read_bytes() == (ROOT / name).read_bytes()
+
+
+
+def test_the_not_found_page_stands_alone_and_links_home(browser, copied):
+    # GitHub Pages serves 404.html at any missing path, so it may not rely on relative files.
+    text = (SITE / "404.html").read_text(encoding="utf-8")
+    assert not re.search(r'<(?:link|script)[^>]+(?:href|src)=', text)
+    page = browser.new_page(viewport={"width": 390, "height": 800})
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    try:
+        page.goto((copied / "404.html").as_uri())
+        assert errors == []
+        assert page.evaluate("() => document.documentElement.scrollWidth") <= 390
+        links = page.evaluate("() => [...document.querySelectorAll('main a')].map((a) => a.getAttribute('href'))")
+    finally:
+        page.close()
+    assert links == ["/", "/", "/"]  # a file:// page is not on github.io, so home is the root
 
 
 # ---- every page ----
