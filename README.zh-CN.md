@@ -116,6 +116,7 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
   - `progress` 是整句或该段从 0 到 1 的进度。timing 为 `"sentence"` 时各段的 `progress` 是 `null`（不知道）；标点的永远是 `null`。
   - `current` 是正在读的那一段的下标，没有就是 `null`。timing 为 `"sentence"` 时永远是 `null`。
   - timing 为 `"segments"` 时，标点和它前面那个非标点段一起变成 past；句首的标点在第一个非标点段开始时变成 past。timing 为 `"sentence"` 时，每一段（包括标点）的状态都和整句相同。
+- **`htmlAt(t)`**：不需要页面，把第 `t` 秒那一帧作为 HTML 字符串返回：也就是带上 `apply(root, t)` 会写的那些属性的 `html`。用在服务器上、Node 里，或者接受 HTML 的渲染器里（服务端渲染、HTML 转图片、视频渲染器的逐帧画面）。测试检查它和刚生成的 `html` 在 Chromium 里经过 `apply` 之后是同样的元素树、文字和属性，在 Chromium 里连字符串都相同。它不翻页（翻页需要版面），和 `stateAt` 一样，句子没有时间时会拒绝。
 - **`apply(root, t)`**：把 `stateAt(t)` 写到页面上并返回它。`root` 必须是由 `html` 生成的那个 `.tsubu` 元素（是别的元素或段数不对就抛错）。它只设置属性：
   - 根元素：`data-state`、`--tsubu-progress`；timing 为 `"sentence"` 的句子正在读时带 `aria-current="true"`；
   - 每一段：`data-state`、`--tsubu-progress`（只有带时间的段）；正在读的那一段带 `aria-current="true"`；

@@ -42,6 +42,8 @@ All notable changes to tsubu are recorded here. The format follows
   and `HighlightText`, where it used to vanish with the background and box-shadow.
 - `options.announceRuby: false` hides every reading from screen readers (`aria-hidden`), so the
   sentence is read once.
+- `htmlAt(t)` on a sentence: the frame at `t` as HTML without a page, the same as `html` after
+  `apply(root, t)`, for servers and renderers that take HTML.
 
 ### Fixed
 

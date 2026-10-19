@@ -145,6 +145,12 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
   - With timing `"segments"`, punctuation becomes past together with the spoken segment before it;
     punctuation that opens the sentence becomes past when the first spoken segment begins. With
     timing `"sentence"` every segment, punctuation included, has the sentence's state.
+- **`htmlAt(t)`**: the frame at `t` as an HTML string, without a page: `html` with the
+  attributes `apply(root, t)` would write. Use it on a server, in Node, or with a renderer that
+  takes HTML (server-side rendering, HTML-to-image, a video renderer's frames). The tests check that
+  it is the same element tree, text and attributes as a fresh `html` after `apply` in Chromium,
+  and in Chromium even the same string. It does not page (paging needs the layout), and like
+  `stateAt` it refuses a sentence without times.
 - **`apply(root, t)`**: writes `stateAt(t)` onto the page and returns it. `root` must be the
   `.tsubu` element made from `html` (it throws if it is another element or the segment count does
   not match). It only sets attributes:

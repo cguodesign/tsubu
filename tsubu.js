@@ -124,7 +124,15 @@
     return { lang: input.lang || "ja", segments, timing, start, end };
   }
 
-  function renderHTML(sentence, ruby, look) {
+  /* The attributes apply() writes for a state, as HTML (in the order Chromium serialises them,
+   * which writes the style attribute last; the order carries no meaning). */
+  function stateAttributes(state, progress, current) {
+    const style = progress === null ? "" : ` style="--tsubu-progress: ${String(progress)};"`;
+    return ` data-state="${state}"${current ? ' aria-current="true"' : ""}${style}`;
+  }
+
+  /* The sentence as HTML; with `at` (a state from stateOf), as it is after apply() at that t. */
+  function renderHTML(sentence, ruby, look, at) {
     // With announceRuby off, screen readers read the sentence once, without each reading after
     // its base.
     const rt = look.announceRuby === false ? '<rt aria-hidden="true">' : "<rt>";
@@ -133,7 +141,8 @@
         .map((p) => (p.ruby === undefined ? escapeHTML(p.text) : `<ruby>${escapeHTML(p.text)}${rt}${escapeHTML(p.ruby)}</rt></ruby>`))
         .join("");
       const kind = segment.punct ? ' data-kind="punct"' : "";
-      return `<span class="tsubu-seg" data-index="${i}"${kind}>${inner}</span>`;
+      const state = at ? stateAttributes(at.segments[i].state, at.segments[i].progress, i === at.current) : "";
+      return `<span class="tsubu-seg" data-index="${i}"${kind}${state}>${inner}</span>`;
     });
     // A line may break between two segments unless the break would put a closing mark, the
     // long-vowel mark or a small kana at the start of a line, or an opening bracket at the end of
@@ -151,7 +160,8 @@
     const joined = units.map((html) => `<span class="tsubu-unit">${html}</span>`).join("<wbr>");
     const theme = look.theme ? ` data-tsubu-theme="${look.theme}"` : "";
     const speaker = look.speaker ? ` data-speaker="${look.speaker}"` : "";
-    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${ruby ? "on" : "off"}"${theme}${speaker}>${joined}</span>`;
+    const state = at ? stateAttributes(at.state, at.progress, at.timing === "sentence" && at.state === "current") : "";
+    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${ruby ? "on" : "off"}"${theme}${speaker}${state}>${joined}</span>`;
   }
 
   /* The state of the sentence and of each segment at t (seconds, on the same clock as the
@@ -273,7 +283,7 @@
   }
 
   /**
-   * Tsubu.sentence(input, options) -> { html, timing, stateAt(t), apply(root, t) }
+   * Tsubu.sentence(input, options) -> { html, timing, stateAt(t), htmlAt(t), apply(root, t) }
    *   input:   { lang?, start?, end?, segments: [{ parts: [{ text, ruby? }], start?, end?, kind? }] }
    *   options: { ruby: true | false (default true), announceRuby: true | false (default true),
    *              theme?: name, speaker?: name }
@@ -286,10 +296,16 @@
       if (opts[key] !== undefined && (typeof opts[key] !== "string" || !NAME.test(opts[key])))
         fail(`options.${key} must be a name in lower case, such as ${JSON.stringify(key === "theme" ? THEMES[0] : SPEAKERS[0])}`);
     const normalised = normalise(input);
+    const ruby = opts.ruby !== false;
+    const look = { theme: opts.theme, speaker: opts.speaker, announceRuby: opts.announceRuby };
     return Object.freeze({
-      html: renderHTML(normalised, opts.ruby !== false, { theme: opts.theme, speaker: opts.speaker, announceRuby: opts.announceRuby }),
+      html: renderHTML(normalised, ruby, look),
       timing: normalised.timing,
       stateAt: (t) => stateOf(normalised, t),
+      // The frame at t as HTML, without a page: what `html` becomes after apply(root, t), for
+      // server-side rendering and renderers that take HTML. Paging needs the layout, so it is
+      // not done here.
+      htmlAt: (t) => renderHTML(normalised, ruby, look, stateOf(normalised, t)),
       apply: (root, t) => applyState(root, normalised, t),
     });
   }
