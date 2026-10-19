@@ -331,7 +331,7 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
   node examples/frames-from-node.mjs examples/sentence.json frames 30
   ```
 
-测试先按顺序、再倒序渲染所有帧，要求 PNG 逐字节相同。它发现了一件事：在同一个元素上逐帧调用 `apply`，状态是一样的，但 Chromium 只重画变化的部分；高亮的圆角压在半透明的 `media` 底板上时，边缘的几个像素会受前一帧影响。示例在每帧都用一份新的句子副本来画（`innerHTML = s.html`，然后 `apply`），这样任何顺序画出的帧都相同，也可以并行渲染。在逐帧绘制标记的渲染器里（比如 Remotion 的 composition），渲染 `s.htmlAt(frame / fps)` 即可（这里没有测试：测试套件里没有 Remotion）。
+测试先按顺序、再倒序渲染所有帧，要求 PNG 逐字节相同。它发现了一件事：在同一个元素上逐帧调用 `apply`，状态是一样的，但 Chromium 只重画变化的部分；高亮的圆角压在半透明的 `media` 底板上时，边缘的几个像素会受前一帧影响。示例在每帧都用一份新的句子副本来画（`innerHTML = s.html`，然后 `apply`），这样任何顺序画出的帧都相同，也可以并行渲染。有自己时钟的引擎（比如 Remotion）见[与其他工具配合](#与其他工具配合)。
 
 ## 导出字幕
 
@@ -339,8 +339,17 @@ recogniser.onCorrect = (i) => { shown = Tsubu.setRevealed(root, [...shown, i]); 
 
 - **`TsubuExport.toWebVTT(input, { ruby = true, offset = 0, id })`** 返回一个 WebVTT 文件，只有一条覆盖整句的 cue。每一段是一个类 span：`<c.tsubu-seg>`（标点为 `<c.tsubu-seg.punct>`）；读音写成 `<ruby>雨<rt>あめ</rt></ruby>`。timing 为 `"segments"` 时，每个非标点段的开始处有一个 cue 时间戳，所以 `::cue(:past)` 会跟着朗读走。时间戳严格递增，都在 cue 之内。`ruby: false` 去掉读音，`offset` 以秒平移所有时间，`id` 设置 cue 标识符。`&`、`<`、`>` 会被转义。
 - **`TsubuExport.toASS(input, { ruby = "omit", offset = 0 })`** 返回一行 ASS 卡拉 OK `Dialogue:`，使用 `\k` 时长。段与段之间的空隙是一个空音节，标点并入它前面的音节。先把每个边界取整到百分之一秒再求差，所以各时长之和总是等于这一行的长度。ASS 没有 ruby：`ruby: "inline"` 写成 `雨(あめ)`。ASS 无法转义 `{`、`}` 和 `\`，所以写成全角的 ｛ ｝ ＼。**`toASSScript`** 用只含一个 `Default` 样式的最小脚本把这一行包起来。
+- **`TsubuExport.toSRT(input, { mode = "sentence", ruby = "omit", offset = 0 })`** 返回一个纯文本的 SubRip（`.srt`）文件。`mode: "sentence"` 为整句写一条 cue；`mode: "segments"` 为每个非标点段写一条带编号的 cue，从它的开始到结束，标点并入它前面的段。`"segments"` 需要 timing 为 `"segments"`，整句计时的句子会被拒绝。时间格式是 `HH:MM:SS,mmm`。每个边界各自取整，所以首尾相接的段，它们的 cue 也首尾相接。`ruby` 与 ASS 相同。SRT 没有标准的卡拉 OK，播放器对其中标签的处理也各不相同，所以文件里不写任何标签：文本里的 `<`、`>`、`{`、`}` 和 `\` 写成全角的 ＜ ＞ ｛ ｝ ＼。要让高亮跟着朗读走，请用 ASS 或 WebVTT。
 
-时间按书写的十进制值四舍五入（到毫秒或百分之一秒），文本里的换行变成空格，负时间会被拒绝。测试（`tests/test_export.py`）在 Node 里检查精确输出，检查浏览器把 WebVTT 解析成一条带 span、ruby 和时间戳的 cue；装了带 libass 的 ffmpeg 时，还检查 ASS 卡拉 OK 在每个音节开始时亮起。
+时间按书写的十进制值四舍五入（到毫秒或百分之一秒），文本里的换行变成空格，负时间会被拒绝。测试（`tests/test_export.py`）在 Node 里检查精确输出，检查浏览器把 WebVTT 解析成一条带 span、ruby 和时间戳的 cue；装了带 libass 的 ffmpeg 时，还检查 ASS 卡拉 OK 在每个音节开始时亮起；装了 ffmpeg 和 ffprobe 时，检查它们读出的 SRT 的 cue 和时间与写入的一致。
+
+## 与其他工具配合
+
+每一帧只取决于 `t`，所以任何有自己时钟的工具都能驱动 tsubu：把工具的时间换算成秒，再渲染那一帧。对帧计数器来说，`t = from + frame / fps`，每次都由帧号算出，不要逐帧累加。然后要么把 `s.htmlAt(t)` 写进一个元素（不需要排版，也不会留下上一帧的痕迹），要么对已经画出的句子调用 `s.apply(root, t)`。`examples/tsubu-frames.js` 包含这部分换算（`TsubuFrames.timeAt`、`frameCount`、`span` 和 `htmlAtFrame`），测试在 Node 里拿它和 `htmlAt` 对照。
+
+- **HTML 帧引擎。** [`examples/remotion/`](examples/remotion/) 是一个 Remotion composition，按 `useCurrentFrame()` 和 `useVideoConfig().fps` 渲染 `htmlAt`。[`examples/hyperframes/`](examples/hyperframes/) 是一个 HyperFrames composition，注册一个 frame source，它的 `render(sourceTime)` 写入 `htmlAt`。两者都依照各自引擎的文档编写（每个文件夹的 README 列出了出处），但都没有在真正的引擎里运行过。测试检查 Remotion 的文件能被解析，并用一个替身运行时检查 HyperFrames 页面在任何时间都画出 `htmlAt(t)`。
+- **视频编辑器。** 大多数编辑器都能导入字幕文件：SRT 几乎处处可用，ASS 用于基于 libass 的工具（Aegisub、mpv、ffmpeg 的 `ass` 滤镜），WebVTT 用于网页播放器。只有 ASS 和 WebVTT 带逐段高亮。要用 tsubu 自己的样式把句子烧进画面，按[录制视频](#录制视频)录下帧，再把这段视频叠在素材上。
+- **PowerPoint 和其他幻灯片工具。** 幻灯片不能运行 tsubu 的脚本。用 `examples/capture-frames.py` 录制，用它打印的 ffmpeg 命令把帧合成视频，再把视频插入幻灯片。
 
 ## 无障碍
 
@@ -423,8 +432,8 @@ python -m pytest -q --engine webkit
 |---|---|
 | `tsubu.js` | 库本身：一个普通脚本，在页面里定义 `Tsubu`，在 Node 里是 `module.exports` |
 | `tsubu.css` | 样式；可调的都是自定义属性 |
-| `tsubu-export.js` | 可选：用同样的输入生成 WebVTT 和 ASS 卡拉 OK 字幕 |
-| `examples/` | 录制视频：用 Playwright 生成 PNG 帧，用 Node 生成 HTML 帧 |
+| `tsubu-export.js` | 可选：用同样的输入生成 WebVTT、ASS 卡拉 OK 和 SRT 字幕 |
+| `examples/` | 录制视频：用 Playwright 生成 PNG 帧，用 Node 生成 HTML 帧；帧换算 `tsubu-frames.js`，以及 Remotion 和 HyperFrames 示例 |
 | `site/` | 项目网站：首页（短片由 `t` 绘制）、快速开始、指南、API 参考、试验场和画廊，中英双语。页面从同级文件加载库（检出里是符号链接），所以从磁盘直接打开就能看 |
 | `demo/index.html` | 演示页：拖动时间、开关注音、选主题，有一段对话和一个流式、会翻页的框；地址可带 `?t=秒数&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | 测试（pytest；状态用 Node，版面用 Playwright，在 Chromium、Firefox 或 WebKit 里） |

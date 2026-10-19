@@ -1,0 +1,72 @@
+<!doctype html>
+<!--
+  One tsubu sentence as a HyperFrames composition. HyperFrames owns the clock: it calls the frame
+  source's render(sourceTime) with the time in seconds since the host's start, for every frame and
+  in any order, and render writes s.htmlAt(t) whole into the host. Nothing is carried from one
+  frame to the next. Untested against a live HyperFrames runtime; see README.md.
+
+  The root's data-duration is the sentence's span plus PAD before and after: 2.6 + 2 x 0.5 s.
+-->
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="stylesheet" href="tsubu.css" />
+    <script src="tsubu.js"></script>
+    <script src="tsubu-frames.js"></script>
+    <style>
+      body { margin: 0; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #ffffff; }
+      #sentence {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font: 96px "Hiragino Sans", "Noto Sans JP", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="3.6"
+         data-width="1920" data-height="1080" data-fps="30" data-no-timeline>
+      <div id="sentence" data-composition-id="tsubu" data-start="0" data-duration="3.6"
+           data-track-index="1" data-width="1920" data-height="1080" data-no-timeline></div>
+    </div>
+
+    <script>
+      const SENTENCE = {
+        segments: [
+          { parts: [{ text: "雨", ruby: "あめ" }, { text: "の" }, { text: "日", ruby: "ひ" }, { text: "は" }], start: 0.0, end: 0.7 },
+          { parts: [{ text: "、" }], kind: "punct" },
+          { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], start: 0.9, end: 1.3 },
+          { parts: [{ text: "お" }, { text: "茶", ruby: "ちゃ" }, { text: "を" }], start: 1.3, end: 1.8 },
+          { parts: [{ text: "飲", ruby: "の" }, { text: "みます" }], start: 1.85, end: 2.6 },
+          { parts: [{ text: "。" }], kind: "punct" },
+        ],
+      };
+      const PAD = 0.5; // seconds shown before the first segment and after the last
+
+      const s = Tsubu.sentence(SENTENCE, { theme: "light" });
+      const from = TsubuFrames.span(SENTENCE).start - PAD;
+      const host = document.getElementById("sentence");
+      const draw = (sourceTime) => {
+        host.innerHTML = s.htmlAt(from + sourceTime);
+      };
+
+      const characters = SENTENCE.segments.flatMap((g) => g.parts.map((p) => p.text + (p.ruby || ""))).join("");
+
+      if (window.__hyperframes) {
+        window.__hyperframes.registerFrameSource({
+          element: host,
+          // The sentence is drawn by this script, so its font is not one HyperFrames waits for
+          // on its own: request it, with the characters it needs, before the first capture.
+          ready: document.fonts.load('96px "Hiragino Sans", "Noto Sans JP"', characters),
+          render: draw,
+        });
+      } else {
+        // Opened on its own, outside HyperFrames: show the frame at ?t= seconds of the video.
+        draw(Number(new URLSearchParams(location.search).get("t")) || 0);
+      }
+    </script>
+  </body>
+</html>

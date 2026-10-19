@@ -1,7 +1,7 @@
-"""The exporters in tsubu-export.js: WebVTT and ASS karaoke.
+"""The exporters in tsubu-export.js: WebVTT, ASS karaoke and SRT.
 
 The exact output is computed by running tsubu-export.js in Node. The browser then parses the WebVTT
-as a <track>, and, when ffmpeg is installed, libass renders the ASS script.
+as a <track>, and, when ffmpeg is installed, libass renders the ASS script and ffmpeg reads the SRT.
 """
 
 import base64
@@ -218,14 +218,84 @@ def test_the_ass_script_is_complete_around_the_line():
     assert script.endswith("\n" + value("toASS", TIMED, {"ruby": "inline"}) + "\n")
 
 
+# --- SRT ----------------------------------------------------------------------------------------
+
+TIMED_SRT_SEGMENTS = ("1\n00:00:00,000 --> 00:00:00,500\nけさ、\n\n"
+                      "2\n00:00:00,700 --> 00:00:01,000\n古い\n\n"
+                      "3\n00:00:01,000 --> 00:00:01,400\n本屋で\n\n"
+                      "4\n00:00:01,500 --> 00:00:02,000\n面白い\n\n"
+                      "5\n00:00:02,000 --> 00:00:02,500\n地図を\n\n"
+                      "6\n00:00:02,500 --> 00:00:03,500\n買いました。\n")
+
+SRT_TIME = r"(\d{2,}):([0-5]\d):([0-5]\d),(\d{3})"
+
+
+def srt_cues(srt):
+    """Each cue of an SRT file as (number, start ms, end ms, text)."""
+    cues = []
+    for block in srt.rstrip("\n").split("\n\n"):
+        number, timing, text = block.split("\n")
+        found = re.fullmatch(rf"{SRT_TIME} --> {SRT_TIME}", timing).groups()
+        cues.append((int(number), ms(found[:4]), ms(found[4:]), text))
+    return cues
+
+
+def test_srt_writes_one_cue_for_the_sentence_by_default():
+    assert value("toSRT", TIMED) == "1\n00:00:00,000 --> 00:00:03,500\nけさ、古い本屋で面白い地図を買いました。\n"
+    assert value("toSRT", TIMED, {"mode": "sentence"}) == value("toSRT", TIMED)
+    assert value("toSRT", WHOLE) == "1\n00:00:04,000 --> 00:00:06,000\n先週、東京で英語の授業を受けました。\n"
+    assert value("toSRT", WHOLE, {"ruby": "inline"}) == (
+        "1\n00:00:04,000 --> 00:00:06,000\n先週(せんしゅう)、東京(とうきょう)で英語(えいご)の授業(じゅぎょう)を受(う)けました。\n")
+    # the cue spans the sentence's own start and end when it has them
+    assert value("toSRT", dict(TIMED, start=-0.5, end=4.0), {"offset": 1}).startswith("1\n00:00:00,500 --> 00:00:05,000\n")
+
+
+def test_srt_segments_mode_writes_a_cue_per_spoken_segment_with_its_punctuation():
+    assert value("toSRT", TIMED, {"mode": "segments"}) == TIMED_SRT_SEGMENTS
+    inline = srt_cues(value("toSRT", TIMED, {"mode": "segments", "ruby": "inline", "offset": 3600 + 61.25}))
+    assert [c[3] for c in inline] == ["けさ、", "古(ふる)い", "本屋(ほんや)で", "面白(おもしろ)い", "地図(ちず)を", "買(か)いました。"]
+    assert inline[0][1:3] == (3661250, 3661750) and inline[-1][1:3] == (3663750, 3664750)
+    quoted = {"segments": [seg("「", punct=True), seg("はい", start=1.0, end=2.0), seg("」", punct=True)]}
+    assert value("toSRT", quoted, {"mode": "segments"}) == "1\n00:00:01,000 --> 00:00:02,000\n「はい」\n"
+
+
+def test_srt_times_are_rounded_at_each_boundary_without_drift():
+    steady = {"segments": [seg("あ", start=0.0005, end=0.3334), seg("い", start=0.3334, end=0.6667),
+                           seg("う", start=0.6667, end=1.0001), seg("お", start=1.0004, end=1.285), seg("か", start=1.2851, end=2.675)]}
+    assert [c[1:3] for c in srt_cues(value("toSRT", steady, {"mode": "segments"}))] == [
+        (1, 333), (333, 667), (667, 1000), (1000, 1285), (1285, 2675)]
+    many = {"segments": [seg("ら", start=i / 3, end=(i + 1) / 3) for i in range(30)]}
+    # the last end, 10 s plus the offset, rounded half up as written
+    for offset, last in [(0, 10000), (0.0005, 10001), (1 / 7, 10143), (3599.9995, 3610000)]:
+        cues = srt_cues(value("toSRT", many, {"mode": "segments", "offset": offset}))
+        assert [c[0] for c in cues] == list(range(1, 31))
+        # segments that meet give cues that meet, and no cue moves however many come before it
+        assert all(a[2] == b[1] for a, b in zip(cues, cues[1:]))
+        assert cues[-1][2] == last and all(c[1] < c[2] for c in cues)
+        whole = srt_cues(value("toSRT", many, {"offset": offset}))
+        assert len(whole) == 1 and whole[0][1:3] == (cues[0][1], cues[-1][2])
+
+
+def test_srt_text_is_plain_on_one_line_and_cannot_be_read_as_a_tag():
+    tricky = {"start": 0, "end": 1, "segments": [seg("<i>a</i>{\\an8}\\N", ("b", "<c>")), seg("one\ntwo\r\n\r\nthree")]}
+    assert value("toSRT", tricky, {"ruby": "inline"}) == (
+        "1\n00:00:00,000 --> 00:00:01,000\n＜i＞a＜/i＞｛＼an8｝＼Nb(＜c＞)one two  three\n")
+
+
+def test_srt_segments_mode_needs_segment_times():
+    assert "mode \"segments\" needs a time for every segment" in error("toSRT", WHOLE, {"mode": "segments"})
+    assert "lasts less than a millisecond" in error("toSRT", AWKWARD, {"mode": "segments"})
+    assert "at least a millisecond" in error("toSRT", {"start": 1, "end": 1.0004, "segments": [seg("本")]})
+
+
 # --- refusals -----------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("name", ["toWebVTT", "toASS", "toASSScript"])
+@pytest.mark.parametrize("name", ["toWebVTT", "toASS", "toASSScript", "toSRT"])
 def test_a_sentence_without_times_cannot_be_exported(name):
     assert "has no times" in error(name, {"segments": [seg(("本", "ほん"), "を")]})
 
 
-@pytest.mark.parametrize("name", ["toWebVTT", "toASS", "toASSScript"])
+@pytest.mark.parametrize("name", ["toWebVTT", "toASS", "toASSScript", "toSRT"])
 @pytest.mark.parametrize("sentence, message", [
     ({"segments": [seg("本", start=0, end=1), seg("を")]}, "only 1 of 2 segments have times"),
     ({"segments": [seg("本", start=0, end=1), seg("を", start=0.5, end=1.5)]}, "overlap or are out of order"),
@@ -254,6 +324,13 @@ def test_input_is_refused_with_tsubu_s_own_errors(name, sentence, message):
     ("toASS", {"offset": -0.01}, "cannot be negative"),
     ("toASSScript", {"ruby": "furigana"}, 'options.ruby must be "omit" or "inline"'),
     ("toASSScript", "inline", "options must be an object"),
+    ("toSRT", {"mode": "cues"}, 'options.mode must be "sentence" or "segments"'),
+    ("toSRT", {"mode": None}, 'options.mode must be "sentence" or "segments"'),
+    ("toSRT", {"ruby": False}, 'options.ruby must be "omit" or "inline"'),
+    ("toSRT", {"offset": [1]}, "options.offset must be a finite number"),
+    ("toSRT", {"id": "x"}, 'toSRT has no option "id"'),
+    ("toSRT", {"offset": -0.0006}, "cannot be negative"),
+    ("toSRT", 3, "options must be an object"),
 ])
 def test_options_are_checked(name, options, message):
     assert message in error(name, TIMED, options)
@@ -267,7 +344,7 @@ def test_a_sentence_too_short_for_the_format_is_refused():
 
 def test_the_export_object_is_frozen_and_the_output_deterministic():
     found = run_export(("toWebVTT", TIMED, None), ("toWebVTT", TIMED, None), ("toASS", AWKWARD, None), ("toASS", AWKWARD, None))
-    assert found["frozen"] and sorted(found["keys"]) == ["toASS", "toASSScript", "toWebVTT"]
+    assert found["frozen"] and sorted(found["keys"]) == ["toASS", "toASSScript", "toSRT", "toWebVTT"]
     a, b, c, d = (r["value"] for r in found["results"])
     assert a == b and c == d
 
@@ -386,3 +463,29 @@ def test_libass_reads_the_event_s_times_and_lights_each_syllable_at_its_start(tm
     assert white[0.65] < white[0.85] < white[1.2] and white[1.45] < white[1.75] < white[2.25] < white[3.0]
     # the event ends at 3.5 s
     assert lit[3.6] == (0, 0)
+
+
+# --- ffmpeg reads the SRT, when it is installed -------------------------------------------------
+
+@pytest.mark.parametrize("sentence, options, cues", [
+    (TIMED, {"mode": "segments"}, [(0.0, 0.5), (0.7, 0.3), (1.0, 0.4), (1.5, 0.5), (2.0, 0.5), (2.5, 1.0)]),
+    (TIMED, {}, [(0.0, 3.5)]),
+    (WHOLE, {"offset": 0.25}, [(4.25, 2.0)]),
+], ids=["segments", "sentence", "whole"])
+def test_ffmpeg_reads_the_srt_cue_by_cue_and_keeps_the_text_plain(tmp_path, sentence, options, cues):
+    ffmpeg, ffprobe = shutil.which("ffmpeg"), shutil.which("ffprobe")
+    if not (ffmpeg and ffprobe):
+        pytest.skip("ffmpeg and ffprobe are not installed, so no other program reads the SRT (it is not needed otherwise)")
+    srt = value("toSRT", sentence, options)
+    (tmp_path / "sentence.srt").write_text(srt, encoding="utf-8")
+    probe = subprocess.run([ffprobe, "-v", "error", "-show_packets", "-of", "json", "sentence.srt"], cwd=tmp_path,
+                           capture_output=True, text=True, timeout=30, check=True)
+    packets = json.loads(probe.stdout)["packets"]
+    assert [(float(p["pts_time"]), float(p["duration_time"])) for p in packets] == pytest.approx(cues, abs=1e-6)
+    # ffmpeg's SRT decoder turns tags into ASS overrides; there are none to turn, so each event's
+    # text is the cue's text as written
+    subprocess.run([ffmpeg, "-v", "error", "-i", "sentence.srt", "sentence.ass"], cwd=tmp_path,
+                   capture_output=True, timeout=30, check=True)
+    events = [line.split(",", 9)[9] for line in (tmp_path / "sentence.ass").read_text(encoding="utf-8").split("\n")
+              if line.startswith("Dialogue:")]
+    assert events == [c[3] for c in srt_cues(srt)]

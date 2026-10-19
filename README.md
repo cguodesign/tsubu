@@ -524,9 +524,8 @@ for byte. One thing it found: calling `apply` on the same element frame after fr
 state, but Chromium repaints only what changed, and where a highlight's rounded corner lies over
 the translucent `media` plate, a few edge pixels then depend on the frame before. The example draws
 each frame on a fresh copy of the sentence (`innerHTML = s.html`, then `apply`), which makes frames
-identical in any order, and lets them be rendered in parallel. In a renderer that draws markup per
-frame, such as a Remotion composition, render `s.htmlAt(frame / fps)` (untested here: Remotion is
-not part of the test suite).
+identical in any order, and lets them be rendered in parallel. For engines with their own clock,
+such as Remotion, see [Using tsubu with other tools](#using-tsubu-with-other-tools).
 
 ## Exporting subtitles
 
@@ -548,11 +547,46 @@ exported, and nothing is estimated.
   durations always add up to the line's length. ASS has no ruby: `ruby: "inline"` writes
   `雨(あめ)`. ASS cannot escape `{`, `}` or `\`, so they are written as ｛ ｝ ＼.
   **`toASSScript`** wraps the line in a minimal script with one `Default` style.
+- **`TsubuExport.toSRT(input, { mode = "sentence", ruby = "omit", offset = 0 })`** returns a
+  SubRip (`.srt`) file of plain text. `mode: "sentence"` writes one cue for the sentence;
+  `mode: "segments"` writes one numbered cue per spoken segment, from its start to its end, with
+  punctuation joined to the segment before it. `"segments"` needs timing `"segments"` and is
+  refused for a sentence timed as a whole. Times are `HH:MM:SS,mmm`. Each boundary is rounded on
+  its own, so cues of segments that meet also meet. `ruby` is as for ASS. SRT has no standard
+  karaoke, and players read tags in it inconsistently, so the file has no tags at all:
+  `<`, `>`, `{`, `}` and `\` in the text are written as ＜ ＞ ｛ ｝ ＼. For a highlight that
+  follows the reading, use ASS or WebVTT.
 
 Times are rounded half up as written (to milliseconds or centiseconds), line breaks in text become
 spaces, and negative times are refused. The tests (`tests/test_export.py`) check exact output in
 Node, that the browser parses the WebVTT as one cue with its spans, ruby and timestamps, and, where
-ffmpeg with libass is installed, that the ASS karaoke lights up at each syllable's start.
+ffmpeg with libass is installed, that the ASS karaoke lights up at each syllable's start. Where
+ffmpeg and ffprobe are installed, they read the SRT with the cues and times it was written with.
+
+## Using tsubu with other tools
+
+Every frame is a function of `t` alone, so any tool with its own clock can drive tsubu. Turn the
+tool's time into seconds and render that frame. For a frame counter, `t = from + frame / fps`,
+computed from the frame number each time rather than added up. Then either write
+`s.htmlAt(t)` into an element, which needs no layout and leaves nothing behind from the previous
+frame, or call `s.apply(root, t)` on a drawn sentence. `examples/tsubu-frames.js` holds that
+arithmetic (`TsubuFrames.timeAt`, `frameCount`, `span` and `htmlAtFrame`), and the tests run it in
+Node against `htmlAt`.
+
+- **HTML frame engines.** [`examples/remotion/`](examples/remotion/) is a Remotion composition
+  that renders `htmlAt` at `useCurrentFrame()` and `useVideoConfig().fps`.
+  [`examples/hyperframes/`](examples/hyperframes/) is a HyperFrames composition that registers a
+  frame source whose `render(sourceTime)` writes `htmlAt`. Both follow their engine's
+  documentation, which each folder's README cites, but neither has been run against a live
+  engine. The tests check that the Remotion files parse and that the HyperFrames page draws
+  `htmlAt(t)` for any time, against a stand-in for the runtime.
+- **Video editors.** Most editors import subtitle files: SRT nearly everywhere, ASS in tools built
+  on libass (Aegisub, mpv, ffmpeg's `ass` filter), and WebVTT in web players. Only ASS and WebVTT
+  carry the per-segment highlight. To burn the sentence into the picture with tsubu's own look,
+  record frames as in [Recording video](#recording-video) and lay the video over your footage.
+- **PowerPoint and other slide tools.** Slides cannot run tsubu's script. Record a video with
+  `examples/capture-frames.py`, join the frames with the ffmpeg command it prints, and insert the
+  video into the slide.
 
 ## Accessibility
 
@@ -721,8 +755,8 @@ JP); the measurements are relative, so another CJK font should give the same res
 |---|---|
 | `tsubu.js` | the library: a classic script that defines `Tsubu`, or `module.exports` in Node |
 | `tsubu.css` | the styles; everything adjustable is a custom property |
-| `tsubu-export.js` | optional: WebVTT and ASS karaoke subtitles from the same input |
-| `examples/` | recording video: PNG frames through Playwright, HTML frames from Node |
+| `tsubu-export.js` | optional: WebVTT, ASS karaoke and SRT subtitles from the same input |
+| `examples/` | recording video: PNG frames through Playwright, HTML frames from Node; `tsubu-frames.js`, the frame arithmetic, with Remotion and HyperFrames examples |
 | `site/` | the project's website: a home page whose film is drawn from `t`, getting started, a guide, the API reference, a playground and a gallery, in English and 简体中文. The pages load the library from sibling files (symlinks in the checkout), so they open straight from disk |
 | `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker, a dialogue and a fluid, paged frame; accepts `?t=seconds&ruby=off&theme=dark&frame=320&lines=2` |
 | `tests/` | the test suite (pytest; Node for the state, Playwright for the layout, in Chromium, Firefox or WebKit) |

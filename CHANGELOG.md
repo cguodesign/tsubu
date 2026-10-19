@@ -58,6 +58,15 @@ All notable changes to tsubu are recorded here. The format follows
   refused.
 - Examples for recording video: `examples/capture-frames.py` (PNG frames through Playwright, the
   same pixels in any frame order) and `examples/frames-from-node.mjs` (HTML frames with `htmlAt`).
+- `TsubuExport.toSRT`: a SubRip file of plain text, one cue for the sentence (`mode: "sentence"`)
+  or one per spoken segment with its punctuation (`mode: "segments"`), readings inline or omitted,
+  each boundary rounded to milliseconds on its own, and no tags (angle brackets, braces and
+  backslashes written in full-width). Tested with exact output, rounding, refusals, and, where
+  installed, ffprobe and ffmpeg reading the file.
+- Using tsubu with other tools: `examples/tsubu-frames.js` (`TsubuFrames.timeAt`, `frameCount`,
+  `span`, `htmlAtFrame`: frame number to `t` to `htmlAt`, tested in Node), a Remotion example and a
+  HyperFrames example, each citing the engine's documentation and not yet run against a live
+  engine, and a README section on frame engines, video editors and PowerPoint.
 - Vertical writing: `options.writing: "horizontal" | "vertical"` (`data-tsubu-writing`, also on
   an ancestor). Columns run right to left, furigana sit at the right, each segment has a side line
   at its left, and the ruby reserve sits at the right of the first column. `underline-draw` draws

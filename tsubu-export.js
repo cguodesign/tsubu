@@ -1,8 +1,8 @@
 /*
- * tsubu-export turns one tsubu sentence into subtitles: a WebVTT file with one cue, or an ASS
- * (Advanced SubStation Alpha) karaoke line. It is optional and separate from tsubu.js, which it
- * needs: in a page, load tsubu.js first and this defines the global `TsubuExport`; in Node,
- * require() returns the same object and loads ./tsubu.js itself.
+ * tsubu-export turns one tsubu sentence into subtitles: a WebVTT file with one cue, an ASS
+ * (Advanced SubStation Alpha) karaoke line, or a SubRip (SRT) file of plain text. It is optional
+ * and separate from tsubu.js, which it needs: in a page, load tsubu.js first and this defines the
+ * global `TsubuExport`; in Node, require() returns the same object and loads ./tsubu.js itself.
  *
  * The input is the one Tsubu.sentence() takes, and is checked by Tsubu.sentence(), so the same
  * input is refused with the same error. Nothing is estimated here either: a sentence without
@@ -18,6 +18,8 @@
   const WEBVTT_OPTIONS = Object.freeze(["ruby", "offset", "id"]);
   const ASS_OPTIONS = Object.freeze(["ruby", "offset"]);
   const ASS_RUBY = Object.freeze(["omit", "inline"]);
+  const SRT_OPTIONS = Object.freeze(["mode", "ruby", "offset"]);
+  const SRT_MODES = Object.freeze(["sentence", "segments"]);
 
   function fail(message) {
     throw new Error(`tsubu: ${message}`);
@@ -247,5 +249,60 @@
     return `${SCRIPT_HEAD}\n${dialogue(input, checkASS(options, "toASSScript"))}\n`;
   }
 
-  return Object.freeze({ toWebVTT, toASS, toASSScript });
+  /* hh:mm:ss,ttt, as SubRip writes times: a comma before the milliseconds. */
+  function srtTime(ms) {
+    return vttTime(ms).replace(".", ",");
+  }
+
+  /* SubRip has no escapes, and players read <i>-style tags, {\an8}-style override blocks and \N
+   * in its text, each in its own way. tsubu writes no tags, and so that the text cannot be read as
+   * one, angle brackets, braces and the backslash are written as their full-width forms,
+   * ＜ ＞ ｛ ｝ ＼, as in ASS. */
+  function srtText(segments, inline) {
+    return segments
+      .map((segment) => segment.parts.map((p) => p.text + (inline && p.ruby !== undefined ? `(${p.ruby})` : "")).join(""))
+      .map((text) => oneLine(text).replace(/[<>{}\\]/g, (c) => ({ "<": "＜", ">": "＞", "{": "｛", "}": "｝", "\\": "＼" })[c]))
+      .join("");
+  }
+
+  /**
+   * TsubuExport.toSRT(input, options) -> a SubRip (.srt) file of plain text, without tags.
+   *   options: { mode: "sentence" | "segments" (default "sentence"), ruby: "omit" | "inline"
+   *   (default "omit"), offset: seconds (default 0) }
+   * "sentence" writes one cue for the sentence. "segments" writes one cue per spoken segment, from
+   * its start to its end, with punctuation joined to the segment before it; it needs timing
+   * "segments". SubRip has no karaoke, so a highlight that follows the reading needs ASS or WebVTT.
+   */
+  function toSRT(input, options) {
+    const opts = optionsOf(options, SRT_OPTIONS, "toSRT");
+    if (opts.mode !== undefined && !SRT_MODES.includes(opts.mode)) fail('options.mode must be "sentence" or "segments"');
+    if (opts.ruby !== undefined && !ASS_RUBY.includes(opts.ruby)) fail('options.ruby must be "omit" or "inline"');
+    const offset = checkOffset(opts.offset);
+    const inline = opts.ruby === "inline";
+    const sentence = read(input);
+    const ms = (seconds, what) => units(seconds, offset, 1000, what);
+
+    let cues;
+    if (opts.mode !== "segments") {
+      const start = ms(sentence.start, "the sentence's start");
+      const end = ms(sentence.end, "the sentence's end");
+      if (end <= start) fail("the sentence must last at least a millisecond: an SRT cue must end after it starts");
+      cues = [{ start, end, text: srtText(sentence.segments, inline) }];
+    } else {
+      if (sentence.timing !== "segments")
+        fail('mode "segments" needs a time for every segment; this sentence is timed as a whole, and its span is not divided among segments');
+      // Each boundary is rounded on its own, so a cue ends in the very millisecond the next one
+      // starts when the two segments meet, and no cue moves however many come before it.
+      cues = groups(sentence.segments).map((group) => {
+        const start = ms(group.start, "a segment's start");
+        const end = ms(group.end, "a segment's end");
+        if (end <= start)
+          fail(`a segment lasts less than a millisecond (${srtTime(start)}); an SRT cue must end after it starts`);
+        return { start, end, text: srtText(group.segments, inline) };
+      });
+    }
+    return cues.map((cue, i) => `${i + 1}\n${srtTime(cue.start)} --> ${srtTime(cue.end)}\n${cue.text}\n`).join("\n");
+  }
+
+  return Object.freeze({ toWebVTT, toASS, toASSScript, toSRT });
 });
