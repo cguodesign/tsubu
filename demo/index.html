@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tsubu demo</title>
+<link rel="stylesheet" href="../tsubu.css">
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; background: #eef0f3; color: #111827; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 24px 64px; }
+  header { display: flex; align-items: center; gap: 14px; margin: 0 0 8px; }
+  header img { width: 56px; height: 56px; border-radius: 12px; }
+  h1 { font-size: 22px; margin: 0; }
+  .note { font-size: 14px; line-height: 1.5; color: #4b5563; margin: 0 0 16px; max-width: 72ch; }
+  code { font: 13px ui-monospace, Menlo, monospace; background: #e2e5ea; padding: 1px 4px; border-radius: 4px; }
+  #bar { position: sticky; top: 0; z-index: 1; display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; padding: 12px 16px; margin: 0 0 20px; background: #fff; border-radius: 10px; font-size: 14px; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+  #bar label:first-child { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px; }
+  #bar input[type=range] { flex: 1; min-width: 0; }
+  #bar output { min-width: 64px; font-variant-numeric: tabular-nums; text-align: right; }
+  .card { background: #fff; border-radius: 20px; padding: 16px 24px 20px; margin: 0 0 16px; }
+  .card h2 { font-size: 13px; font-weight: 600; color: #6b7280; margin: 0 0 4px; letter-spacing: .02em; }
+  .bubble { font-size: 40px; font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "Yu Gothic", sans-serif; }
+  .state { margin: 8px 0 0; font: 12px/1.4 ui-monospace, Menlo, monospace; color: #374151; white-space: pre-wrap; overflow-wrap: anywhere; }
+  /* The same library with another set of custom properties: a dark card. */
+  .card.dark { background: #0f172a; }
+  .card.dark h2, .card.dark .state { color: #94a3b8; }
+  .card.dark .bubble {
+    color: #f8fafc;
+    --tsubu-ruby-color: #94a3b8;
+    --tsubu-underline-color: #475569;
+    --tsubu-past-color: #94a3b8;
+    --tsubu-current-color: #ffffff;
+    --tsubu-current-bg: #1d4ed8;
+    --tsubu-current-underline-color: #93c5fd;
+  }
+  @media (max-width: 600px) {
+    main { padding: 16px 16px 48px; }
+    .card { padding: 12px 16px 16px; border-radius: 16px; }
+    .bubble { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="../assets/logo.svg" alt="">
+    <h1>tsubu demo</h1>
+  </header>
+  <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana and see that nothing moves. The sentences were written for this page and their times are invented, not measured. The address accepts <code>?t=seconds&amp;ruby=off</code>.</p>
+  <div id="bar">
+    <label>t <input id="t" type="range" min="-0.5" max="12.5" step="0.01" value="0"></label>
+    <output id="tv">0.00 s</output>
+    <label><input id="ruby" type="checkbox" checked> furigana</label>
+  </div>
+  <div id="cards"></div>
+</main>
+<script src="../tsubu.js"></script>
+<script>
+"use strict";
+// 雨の日は、家で温かいお茶を飲みます。  "On rainy days I drink hot tea at home."
+// 図書館は、月曜日から金曜日まで開いています。  "The library is open from Monday to Friday."
+// 夏休みには、海の近くの小さな町で、祖母と一緒に一週間を過ごしました。
+//   "In the summer holidays I spent a week with my grandmother in a small town by the sea."
+// ありがとうございます。  "Thank you."
+const EXAMPLES = [
+  { title: "Every segment timed (timing: segments)", input: {
+    segments: [
+      { parts: [{ text: "雨", ruby: "あめ" }, { text: "の" }, { text: "日", ruby: "ひ" }, { text: "は" }], start: 0.0, end: 0.7 },
+      { parts: [{ text: "、" }], kind: "punct" },
+      { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], start: 0.9, end: 1.3 },
+      { parts: [{ text: "温", ruby: "あたた" }, { text: "かい" }], start: 1.3, end: 1.9 },
+      { parts: [{ text: "お" }, { text: "茶", ruby: "ちゃ" }, { text: "を" }], start: 1.9, end: 2.4 },
+      { parts: [{ text: "飲", ruby: "の" }, { text: "みます" }], start: 2.45, end: 3.3 },
+      { parts: [{ text: "。" }], kind: "punct" },
+    ] } },
+  { title: "Only the whole sentence timed (timing: sentence): the sentence lights up as one", input: {
+    start: 3.8, end: 6.6,
+    segments: [
+      { parts: [{ text: "図書館", ruby: "としょかん" }, { text: "は" }] },
+      { parts: [{ text: "、" }], kind: "punct" },
+      { parts: [{ text: "月曜日", ruby: "げつようび" }, { text: "から" }] },
+      { parts: [{ text: "金曜日", ruby: "きんようび" }, { text: "まで" }] },
+      { parts: [{ text: "開", ruby: "あ" }, { text: "いて" }] },
+      { parts: [{ text: "います" }] },
+      { parts: [{ text: "。" }], kind: "punct" },
+    ] } },
+  { title: "Every segment timed, several lines, dark custom properties", cls: "dark", input: {
+    segments: [
+      { parts: [{ text: "夏休", ruby: "なつやす" }, { text: "みには" }], start: 7.0, end: 7.6 },
+      { parts: [{ text: "、" }], kind: "punct" },
+      { parts: [{ text: "海", ruby: "うみ" }, { text: "の" }], start: 7.75, end: 8.05 },
+      { parts: [{ text: "近", ruby: "ちか" }, { text: "くの" }], start: 8.05, end: 8.4 },
+      { parts: [{ text: "小", ruby: "ちい" }, { text: "さな" }], start: 8.4, end: 8.8 },
+      { parts: [{ text: "町", ruby: "まち" }, { text: "で" }], start: 8.8, end: 9.15 },
+      { parts: [{ text: "、" }], kind: "punct" },
+      { parts: [{ text: "祖母", ruby: "そぼ" }, { text: "と" }], start: 9.3, end: 9.7 },
+      { parts: [{ text: "一緒", ruby: "いっしょ" }, { text: "に" }], start: 9.7, end: 10.15 },
+      { parts: [{ text: "一週間", ruby: "いっしゅうかん" }, { text: "を" }], start: 10.15, end: 10.9 },
+      { parts: [{ text: "過", ruby: "す" }, { text: "ごしました" }], start: 10.9, end: 11.8 },
+      { parts: [{ text: "。" }], kind: "punct" },
+    ] } },
+  { title: "No times at all (timing: none): drawn, never highlighted", input: {
+    segments: [
+      { parts: [{ text: "ありがとう" }] },
+      { parts: [{ text: "ございます" }] },
+      { parts: [{ text: "。" }], kind: "punct" },
+    ] } },
+];
+
+const params = new URLSearchParams(location.search);
+const slider = document.getElementById("t");
+const rubyBox = document.getElementById("ruby");
+if (params.has("t")) slider.value = params.get("t");
+if (params.get("ruby") === "off") rubyBox.checked = false;
+
+const shown = EXAMPLES.map((ex) => {
+  const s = Tsubu.sentence(ex.input, { ruby: rubyBox.checked });
+  const card = document.createElement("section");
+  card.className = "card " + (ex.cls || "");
+  const title = document.createElement("h2");
+  title.textContent = ex.title;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.innerHTML = s.html;
+  const out = document.createElement("p");
+  out.className = "state";
+  card.append(title, bubble, out);
+  document.getElementById("cards").append(card);
+  return { s, root: bubble.querySelector(".tsubu"), out };
+});
+
+function describe(st) {
+  const marks = { future: "·", current: "▶", past: "✓" };
+  return `timing=${st.timing}  sentence=${st.state}  current=${st.current}  segments=${st.segments.map((x) => marks[x.state]).join(" ")}`;
+}
+
+// What the page shows is a function of t and the furigana switch alone.
+function renderAt(t) {
+  slider.value = String(t);
+  document.getElementById("tv").textContent = `${Number(t).toFixed(2)} s`;
+  for (const x of shown) {
+    Tsubu.setRuby(x.root, rubyBox.checked);
+    x.out.textContent = x.s.timing === "none" ? "timing=none  (stateAt and apply refuse a sentence without times)" : describe(x.s.apply(x.root, Number(t)));
+  }
+}
+window.renderAt = renderAt;
+slider.addEventListener("input", () => renderAt(Number(slider.value)));
+rubyBox.addEventListener("change", () => renderAt(Number(slider.value)));
+renderAt(Number(slider.value));
+</script>
+</body>
+</html>
