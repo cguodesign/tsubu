@@ -1,47 +1,22 @@
+<meta charset="utf-8">
 <title>tsubu</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="tsubu.css">
+<link rel="stylesheet" href="site.css">
 <style>
-/* Layout: one column of paper. A 16:9 film stage, then the loupe, both on the full measure.
-   Colours are traditional Japanese colours (values from the Wairo Daijiten), chosen to sit on the
-   brand's cool off-white: shironeri paper, koiai ink, ruri blue, with shu and yamabuki as accents.
-   A single deliberate look: washi paper does not turn dark, so no dark theme. */
-:root {
-  --shironeri: #f3f3f2;   /* 白練 paper */
-  --koiai: #0f2350;       /* 濃藍 ink */
-  --ruri: #1e50a2;        /* 瑠璃 blue */
-  --konjo: #192f60;       /* 紺青 deep field */
-  --shu: #eb6101;         /* 朱 accent, graphics only */
-  --yamabuki: #f8b500;    /* 山吹 highlight on dark fields */
-  --shirooi: #c1e4e9;     /* 白藍 readings on blue */
-  --ginnezu: #afafb0;     /* 銀鼠 quiet lines on dark */
-  --gunjo: #4c6cb3;       /* 群青 secondary text on paper */
-  --paper: var(--shironeri);
-  --ink: var(--koiai);
-  --display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
-  --body: "Zen Kaku Gothic New", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  color-scheme: light;
-}
-body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.7; }
-.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-
-/* masthead */
-.mast { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 32px; padding-block: 28px 20px; }
-.mark { font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: 0.42em; margin: 0; }
-.mark .kanji { letter-spacing: 0; font-size: 0.8em; margin-left: 0.2em; color: var(--ruri); }
-.lede { margin: 0; max-width: 58ch; color: var(--ink); font-size: 14px; }
-
-.label { display: flex; gap: 12px; align-items: baseline; margin: 0 0 12px; font-size: 13px; letter-spacing: 0.06em; color: var(--gunjo); }
-.label .kanji { font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: 0; }
+/* The home page: a 16:9 film stage, then the loupe, both on the full measure, then where to go. */
+.hero { padding-block: 10px 6px; }
+.hero h1 { font-size: clamp(28px, 4.4vw, 46px); max-width: 24ch; margin: 0 0 10px; }
+.hero h1 .ja { color: var(--ruri); }
+.hero .lede { max-width: 64ch; font-size: 16px; }
 
 /* the film */
-.film { padding-block: 8px 40px; }
-.stage { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden; container-type: inline-size; background: var(--paper); border-radius: 2px; }
-.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.film { padding-block: 24px 40px; }
+.stage.screen { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden; container-type: inline-size; background: var(--paper); border-radius: 2px; padding: 0; outline: 0; font-size: 1em; }
+.screen canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* asymmetric: the sentence holds the left three fifths, the large reading the right column */
 .film-line { position: absolute; left: 6%; right: 33%; top: 40%; text-align: left; font-family: var(--display); font-weight: 700; font-size: 4.5cqi;
   --tsubu-ruby-size: 0.42em; --tsubu-ruby-weight: 500; --tsubu-underline-width: 0.05em; }
@@ -68,30 +43,28 @@ body { background: var(--paper); color: var(--ink); font-family: var(--body); fo
 .beats i { width: 0.75cqi; height: 0.75cqi; min-width: 5px; min-height: 5px; border-radius: 50%; border: 1px solid var(--cap, var(--koiai)); }
 .beats i.on { background: var(--cap, var(--koiai)); }
 
-.endcard { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 1.2cqi; pointer-events: none; }
-.endcard .word { font-family: var(--display); font-weight: 700; font-size: 7.2cqi; letter-spacing: 0.42em; margin-right: -0.42em; color: var(--koiai); display: flex; }
-.endcard .word span { display: inline-block; }
-.endcard .dots { display: flex; gap: 1.05cqi; margin-top: -0.4cqi; }
-.endcard .dots i { width: 0.9cqi; height: 0.9cqi; border-radius: 50%; background: var(--koiai); }
-.endcard .dots i.lit { background: var(--ruri); }
-.endcard .tag { font-family: var(--display); font-weight: 500; font-size: 2.3cqi; color: var(--koiai); --tsubu-text-color: var(--koiai); --tsubu-ruby-color: var(--ruri); --tsubu-underline-color: var(--gunjo); }
+/* the end card: the grains are drawn by the canvas; the word and the tagline sit in the page, and
+   the camera (a scale set from t) jump-cuts onto the word, then pushes in slowly */
+.endcard { position: absolute; inset: 0; pointer-events: none; }
+.endcard .word { position: absolute; left: 50%; top: 58%; transform: translate(-50%, -50%); transform-origin: 50% 50%; display: flex; align-items: baseline;
+  font-family: var(--display); font-weight: 800; font-size: 8cqi; letter-spacing: 0.03em; color: var(--koiai); white-space: nowrap; }
+.endcard .word::after { content: ""; position: absolute; left: 0.04em; right: 0.04em; bottom: -0.06em; height: 0; border-bottom: 0.06em dotted var(--shu); transform: scaleX(var(--draw, 0)); transform-origin: 0 50%; }
+.endcard .word .kanji { font-size: 0.56em; color: var(--ruri); margin-left: 0.18em; font-weight: 700; }
+.endcard .tag { position: absolute; left: 50%; top: 80%; transform: translate(-50%, -50%); font-family: var(--display); font-weight: 500; font-size: 2.3cqi; color: var(--koiai); white-space: nowrap;
+  --tsubu-text-color: var(--koiai); --tsubu-ruby-color: var(--ruri); --tsubu-underline-color: var(--gunjo);
+  --tsubu-current-bg: var(--ruri); --tsubu-current-color: var(--paper); --tsubu-current-ruby-color: var(--ruri); --tsubu-current-underline-color: var(--shirooi); --tsubu-backdrop: #f3f3f2; }
 
-.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-block: 12px 0; font-size: 13px; }
-.transport button { font: inherit; font-weight: 500; color: var(--paper); background: var(--ink); border: 0; border-radius: 999px; padding: 6px 16px; cursor: pointer; }
-.transport button:focus-visible, .transport input:focus-visible, .loupe:focus-visible { outline: 2px solid var(--shu); outline-offset: 3px; }
-.transport input[type=range] { flex: 1; min-width: 140px; accent-color: var(--ruri); }
-.transport output { font-family: var(--mono); font-variant-numeric: tabular-nums; min-width: 6ch; }
-.note { margin: 10px 0 0; max-width: 72ch; font-size: 13px; color: var(--gunjo); }
-code { font-family: var(--mono); font-size: 0.92em; }
+.film .transport { padding-block: 12px 0; }
+.film .note { margin: 10px 0 0; max-width: 72ch; font-size: 13px; color: var(--gunjo); }
 
 /* the loupe */
-.loupe-sec { padding-block: 32px 56px; border-top: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); }
+.loupe-sec { padding-block: 32px 48px; border-top: 1px solid var(--rule); }
 .loupe { position: relative; margin-top: 8px; padding-block: 28px 44px; cursor: crosshair; touch-action: pan-y; container-type: inline-size; overflow: hidden; }
 .layer { font-family: var(--display); font-weight: 700; font-size: clamp(26px, 5.2cqi, 62px); --tsubu-ruby-size: 0.4em; --tsubu-ruby-weight: 500; }
 .layer .tsubu { --tsubu-underline-color: transparent; }
 .base { color: transparent; -webkit-text-stroke: 1px var(--ink); }
 .top { position: absolute; inset: 28px 0 44px 0; color: var(--ink); --tsubu-ruby-color: var(--ruri); clip-path: circle(var(--r, 92px) at var(--x, 50%) var(--y, 50%)); }
-.top .tsubu { --tsubu-underline-color: var(--shu); --tsubu-underline-style: solid; }
+.top .tsubu { --tsubu-underline-color: var(--shu); --tsubu-underline-style: solid; --tsubu-current-bg: var(--ruri); --tsubu-current-color: var(--paper); --tsubu-current-ruby-color: var(--ruri); --tsubu-current-underline-color: var(--shirooi); }
 .guides { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
 .ui { position: absolute; inset: 0; pointer-events: none; }
 .ui .h, .ui .v { position: absolute; background: color-mix(in srgb, var(--shu) 55%, transparent); }
@@ -102,24 +75,35 @@ code { font-family: var(--mono); font-size: 0.92em; }
 .loupe-note { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 32px; font-size: 13px; margin-top: 4px; }
 .loupe-note p { margin: 0; min-width: 0; }
 .loupe-note b { font-weight: 700; }
-footer { padding-block: 0 40px; font-size: 12px; color: var(--gunjo); }
-@media (max-width: 600px) { .mark { font-size: 22px; } .ui .tag { font-size: 10px; } }
+
+/* what it does, and where to go */
+.what { padding-block: 32px 24px; border-top: 1px solid var(--rule); }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 18px 32px; margin: 0; padding: 0; list-style: none; }
+.facts li { min-width: 0; font-size: 14px; }
+.facts b { display: block; font-family: var(--display); font-size: 17px; margin: 0 0 4px; }
+.facts .ja { display: block; font-family: var(--display); font-weight: 700; font-size: 24px; color: var(--ink); margin: 0 0 8px; --tsubu-ruby-size: 0.42em; --tsubu-ruby-color: var(--ruri); --tsubu-underline-color: var(--gunjo); }
+.facts .ja .tsubu { --tsubu-current-bg: var(--ruri); --tsubu-current-color: var(--paper); --tsubu-current-ruby-color: var(--ruri); --tsubu-current-underline-color: var(--shirooi); --tsubu-past-color: var(--gunjo); --tsubu-past-ruby-color: var(--gunjo); }
+.go { padding-block: 24px 8px; }
+.go .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+@media (max-width: 600px) { .ui .tag { font-size: 10px; } }
 </style>
 
 <div class="wrap">
-  <header class="mast">
-    <h1 class="mark">tsubu<span class="kanji">粒</span></h1>
-    <p class="lede">A small library that draws one Japanese sentence for reading along: a segment at a time, furigana that switch on and off without moving a character, and a highlight that follows the voice.</p>
-  </header>
+  <header class="mast"></header>
+
+  <section class="hero">
+    <h1><span class="en">One Japanese sentence, read along <span class="ja">grain by grain</span>.</span><span class="zh" lang="zh-CN">一句日语，<span class="ja">一粒一粒</span>地跟着读。</span></h1>
+    <p class="lede en">tsubu is a small, dependency-free browser library that draws exactly one sentence for read-along and language learning: a dotted line under each segment, furigana that switch on and off without moving a character, and a highlight that follows the voice as a pure function of time.</p>
+    <p class="lede zh" lang="zh-CN">tsubu 是一个很小、零依赖的浏览器库，只画一句话，用于跟读和语言学习：每段一条点状下划线，注音开关时任何一个字都不移动，高亮作为时间的纯函数跟着声音走。</p>
+  </section>
 
   <section class="film" aria-labelledby="film-title">
-    <h2 class="label" id="film-title"><span class="kanji">動</span>In time</h2>
-    <div class="stage" id="stage">
+    <h2 class="label" id="film-title"><span class="kanji" data-ruby="うごき">動</span><span class="en">In time</span><span class="zh" lang="zh-CN">随时间</span></h2>
+    <div class="stage screen" id="stage">
       <canvas id="fx" aria-hidden="true"></canvas>
-      <div class="film-line" id="line" data-field="shironeri"></div>
+      <div class="film-line" id="line" data-field="shironeri" data-unchecked></div>
       <div class="endcard" id="endcard" aria-hidden="true">
-        <div class="word" id="word"><span>t</span><span>s</span><span>u</span><span>b</span><span>u</span></div>
-        <div class="dots" id="enddots"></div>
+        <div class="word" id="word">tsubu<span class="kanji">粒</span></div>
         <div class="tag" id="endtag"></div>
       </div>
       <div class="cap" id="cap" aria-hidden="true"></div>
@@ -127,37 +111,66 @@ footer { padding-block: 0 40px; font-size: 12px; color: var(--gunjo); }
     </div>
     <div class="transport">
       <button type="button" id="play">Pause</button>
-      <input type="range" id="scrub" min="0" max="8.4" step="0.0333" value="0" aria-label="Time in the film">
+      <input type="range" id="scrub" min="0" max="9" step="0.0333" value="0" aria-label="Time in the film">
       <output id="tc" for="scrub">0.00 s</output>
     </div>
-    <p class="note">Every frame is drawn from the time alone, by <code>renderAt(t)</code>: the same page plays here and renders to video frame by frame. The sentence is drawn by tsubu with the <code>appear</code> preset; the field, the ink grain and the large reading follow the state tsubu reports for that time. The times are set to a beat, not measured from a recording.</p>
+    <p class="note en">Every frame is drawn from the time alone, by <code>renderAt(t)</code>: the same page plays here and renders to video frame by frame. The sentence is drawn by tsubu with the <code>appear</code> preset; the field, the ink grain and the large reading follow the state tsubu reports for that time. The times are set to a beat, not measured from a recording.</p>
+    <p class="note zh" lang="zh-CN">每一帧都只由时间决定，由 <code>renderAt(t)</code> 画出：同一个页面既在这里播放，也能逐帧渲染成视频。句子由 tsubu 用 <code>appear</code> 预设绘制；底色、墨色米粒和大字读音都跟着 tsubu 在那个时刻报告的状态走。时间是按节拍定的，不是从录音里量的。</p>
   </section>
 
   <section class="loupe-sec" aria-labelledby="loupe-title">
-    <h2 class="label" id="loupe-title"><span class="kanji">透</span>Under the loupe</h2>
+    <h2 class="label" id="loupe-title"><span class="kanji" data-ruby="とおる">透</span><span class="en">Under the loupe</span><span class="zh" lang="zh-CN">放大镜下</span></h2>
     <div class="loupe" id="loupe" tabindex="0" aria-describedby="loupe-help">
-      <div class="layer base" id="base"></div>
+      <div class="layer base" id="base" data-unchecked></div>
       <div class="layer top" id="top" aria-hidden="true"><svg class="guides" id="guides"></svg></div>
       <div class="ui" id="ui" aria-hidden="true"><div class="h" id="uh"></div><div class="v" id="uv"></div><div class="ring" id="ring"></div><div class="tag" id="utag"></div></div>
     </div>
     <div class="loupe-note" id="loupe-help">
-      <p><b>Move over the sentence</b> to read its furigana, with each segment's box and its time. On a phone, tap a word; with the keyboard, focus the sentence and use the arrow keys.</p>
-      <p>The sentence is drawn twice from the same HTML, once with furigana off and once with them on. The two layers line up exactly because switching furigana in tsubu moves nothing.</p>
+      <p class="en"><b>Move over the sentence</b> to read its furigana, with each segment's box and its time. On a phone, tap a word; with the keyboard, focus the sentence and use the arrow keys.</p>
+      <p class="zh" lang="zh-CN"><b>把指针移到句子上</b>，就能看到注音、每一段的框和它的时间。手机上点一个词；用键盘时，先聚焦句子，再按方向键。</p>
+      <p class="en">The sentence is drawn twice from the same HTML, once with furigana off and once with them on. The two layers line up exactly because switching furigana in tsubu moves nothing.</p>
+      <p class="zh" lang="zh-CN">同一段 HTML 画了两遍，一遍不带注音，一遍带。两层完全对齐，因为在 tsubu 里开关注音什么都不会动。</p>
     </div>
   </section>
 
-  <footer>tsubu · MIT licence · Colours: 白練, 濃藍, 瑠璃, 紺青, 朱, 山吹, 白藍, 銀鼠, 群青</footer>
+  <section class="what" aria-labelledby="what-title">
+    <h2 class="label" id="what-title"><span class="kanji" data-ruby="つぶ">粒</span><span class="en">What it does</span><span class="zh" lang="zh-CN">它做什么</span></h2>
+    <ul class="facts" id="facts">
+      <li><span class="ja" data-fact="0"></span><b class="en">One grain per segment</b><b class="zh" lang="zh-CN">一段一粒</b><span class="en">The sentence arrives already cut into segments (for Japanese, <i>bunsetsu</i>). Each gets its own dotted underline; a word with a reading is never split.</span><span class="zh" lang="zh-CN">句子传进来时已经切好了段（日语里就是文节）。每段有自己的点状下划线；带读音的词不会被拆开。</span></li>
+      <li><span class="ja" data-fact="1"></span><b class="en">Furigana that move nothing</b><b class="zh" lang="zh-CN">开关注音，字不动</b><span class="en">Readings are <code>&lt;ruby&gt;</code> and switch on and off without moving a character, which a test measures in a real browser.</span><span class="zh" lang="zh-CN">读音是 <code>&lt;ruby&gt;</code>，开关时任何一个字都不移动；有测试在真实浏览器里量过。</span></li>
+      <li><span class="ja" data-fact="2"></span><b class="en">A frame is a function of <code>t</code></b><b class="zh" lang="zh-CN">每一帧都是 <code>t</code> 的函数</b><span class="en"><code>stateAt(t)</code> and <code>apply(root, t)</code> are pure. No timers, no transitions: live playback and frame-by-frame capture draw the same thing.</span><span class="zh" lang="zh-CN"><code>stateAt(t)</code> 和 <code>apply(root, t)</code> 是纯函数。没有计时器、没有过渡：实时播放和逐帧截图画出来完全一样。</span></li>
+      <li><span class="ja" data-fact="3"></span><b class="en">Measured colours</b><b class="zh" lang="zh-CN">实测的颜色</b><span class="en">Themes for a light page, a dark page and text over video, colours per speaker, and <code>checkContrast</code>, which measures every state against WCAG-based thresholds.</span><span class="zh" lang="zh-CN">浅色页、深色页和叠在视频上的三套主题，按说话人上色，以及按 WCAG 阈值测量每个状态的 <code>checkContrast</code>。</span></li>
+      <li><span class="ja" data-fact="4"></span><b class="en">Japanese lines</b><b class="zh" lang="zh-CN">日语的行</b><span class="en">Lines break only between segments and by Japanese line-breaking rules, stay close in length, take their size from the container, and are paged by <code>t</code>. Vertical writing too.</span><span class="zh" lang="zh-CN">只在段与段之间、按禁则断行，各行长度接近，字号随容器变化，超长时按 <code>t</code> 翻页。也支持竖排。</span></li>
+      <li><span class="ja" data-fact="5"></span><b class="en">Motion that shows the reading</b><b class="zh" lang="zh-CN">表现朗读的动效</b><span class="en">Presets <code>appear</code>, <code>mask</code>, <code>blur</code> and <code>underline-draw</code>, each drawn from the state at <code>t</code>, and revealing on the learner's own events.</span><span class="zh" lang="zh-CN">预设 <code>appear</code>、<code>mask</code>、<code>blur</code>、<code>underline-draw</code>，都由 <code>t</code> 时刻的状态画出；也能按学习者的操作揭示。</span></li>
+    </ul>
+    <p class="small muted en" style="margin: 14px 0 0; max-width: 72ch">What tsubu does not do: split text into segments, align audio, estimate times, play audio, draw a speech bubble or lay out more than one sentence. Those belong to the caller.</p>
+    <p class="small muted zh" lang="zh-CN" style="margin: 14px 0 0; max-width: 72ch">tsubu 不做的事：切分文本、对齐音频、估算时间、播放音频、画对话气泡、排多句话。这些由调用方负责。</p>
+  </section>
+
+  <section class="go" aria-label="Where to go">
+    <div class="grid">
+      <a class="pointer" href="start.html"><b class="en">Getting started</b><b class="zh" lang="zh-CN">快速开始</b><span class="en">Two files, a 30-second example, and a live one to edit.</span><span class="zh" lang="zh-CN">两个文件、一个 30 秒示例，还有一个可以现场改的。</span></a>
+      <a class="pointer" href="guide.html"><b class="en">Guide</b><b class="zh" lang="zh-CN">指南</b><span class="en">Timing, lines and paging, themes, motion, vertical text, video, subtitles, accessibility.</span><span class="zh" lang="zh-CN">时间、多行与翻页、主题、动效、竖排、录视频、字幕、无障碍。</span></a>
+      <a class="pointer" href="api.html"><b class="en">API</b><b class="zh" lang="zh-CN">API</b><span class="en">Every function, option, state and CSS property.</span><span class="zh" lang="zh-CN">每个函数、选项、状态和 CSS 属性。</span></a>
+      <a class="pointer" href="playground.html"><b class="en">Playground</b><b class="zh" lang="zh-CN">试验场</b><span class="en">Paste a sentence, scrub the time, switch everything, and watch the contrast.</span><span class="zh" lang="zh-CN">贴一句话，拖时间，切换各种选项，看对比度。</span></a>
+      <a class="pointer" href="gallery.html"><b class="en">Gallery</b><b class="zh" lang="zh-CN">画廊</b><span class="en">Every theme, motion preset and writing mode, live.</span><span class="zh" lang="zh-CN">每套主题、每个动效预设、每种书写方向，都是活的。</span></a>
+    </div>
+  </section>
+
+  <footer class="foot"></footer>
 </div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><path id="grainpath" d="M0 -46 C26 -46 36 -16 34 10 C32 36 16 48 -2 48 C-22 48 -34 30 -34 6 C-34 -6 -31 -14 -26 -20 C-21 -18 -16 -20 -14 -26 C-12 -40 -8 -46 0 -46 Z"/></svg>
 
 <script src="tsubu.js"></script>
+<script src="site.js"></script>
 <script>
 "use strict";
 (async function () {
+Site.mast("index.html");
 const css = getComputedStyle(document.documentElement);
 const C = Object.fromEntries(["shironeri", "koiai", "ruri", "konjo", "shu", "yamabuki", "shirooi", "ginnezu", "gunjo"].map((k) => [k, css.getPropertyValue("--" + k).trim()]));
-const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reduce = Site.reduce;
 
 /* ---------- small maths ---------- */
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -187,21 +200,25 @@ const FILM = { segments: [
 ] };
 const GLOSS = { 0: ["ひとつぶずつ", "hitotsubu-zutsu", "grain by grain"], 2: ["こえに", "koe ni", "to the voice"], 3: ["あわせて", "awasete", "in time with"], 4: ["よむ", "yomu", "read"] };
 const SPOKEN = [0, 2, 3, 4];
-const DURATION = 8.4, WIPE = 0.34;
-// each field lands on a beat: the wipe ends as the segment begins
+const DURATION = 9.0, WIPE = 0.34;
+// each field lands on a beat: the wipe ends as the segment begins. Cuts stay under 3 a second.
 const FIELDS = [{ t: 0, f: "shironeri" }, { t: 2.0, f: "ruri" }, { t: 3.2, f: "koiai" }, { t: 3.8, f: "shu" }, { t: 4.8, f: "konjo" }, { t: 5.9, f: "shironeri" }];
 const CAPTION = { shironeri: C.koiai, ruri: C.shironeri, koiai: C.shironeri, konjo: C.shironeri, shu: C.koiai };
+// the outro: the band becomes a grain and travels (OUTRO), splits into the logo's three (SPLIT),
+// then the camera jump-cuts onto the word (CUTS) and pushes in slowly while the grains wiggle on
+// the beat (BEAT seconds)
+const OUTRO = 5.6, SPLIT = 6.15, CUTS = [7.0, 7.2, 7.4], TAG = 7.55, BEAT = 0.6;
+// the logo's three grains, as offsets from their centre (logo units: a grain is 94 tall), angle, size
+const TRIO = [{ x: -30, y: -42, rot: -28, s: 1.15 }, { x: 38, y: -6, rot: 22, s: 1.05 }, { x: -8, y: 48, rot: 98, s: 1.1 }];
 
 const stage = document.getElementById("stage"), cv = document.getElementById("fx"), ctx = cv.getContext("2d");
 const line = document.getElementById("line");
 const film = Tsubu.sentence(FILM, { motion: "appear", announceRuby: false });
 line.innerHTML = film.html;
 const root = line.querySelector(".tsubu");
-const tagline = Tsubu.sentence({ segments: [{ parts: [{ text: "一粒", ruby: "ひとつぶ" }, { text: "ずつ" }] }, { parts: [{ text: "、" }], kind: "punct" }, { parts: [{ text: "読", ruby: "よ" }, { text: "む" }] }, { parts: [{ text: "。" }], kind: "punct" }] });
+const tagline = Tsubu.sentence({ segments: [{ parts: [{ text: "一粒", ruby: "ひとつぶ" }, { text: "ずつ" }] }, { parts: [{ text: "、" }], kind: "punct" }, { parts: [{ text: "読", ruby: "よ" }, { text: "む" }] }, { parts: [{ text: "。" }], kind: "punct" }] }, { announceRuby: false });
 document.getElementById("endtag").innerHTML = tagline.html;
-const enddots = document.getElementById("enddots");
-enddots.innerHTML = "<i></i>".repeat(11);
-const letters = [...document.querySelectorAll("#word span")];
+const word = document.getElementById("word"), endtag = document.getElementById("endtag");
 const beats = document.getElementById("beats");
 beats.innerHTML = "<i></i>".repeat(SPOKEN.length);
 const cap = document.getElementById("cap");
@@ -223,10 +240,17 @@ function roundBox(w, h, r) { // perimeter from top centre, clockwise, by arc len
   return Array.from({ length: N }, (_, i) => at((i / N) * P));
 }
 const blend = (A, B, u) => A.map((a, i) => [lerp(a[0], B[i][0], u), lerp(a[1], B[i][1], u)]);
+const scaled = (P, k) => P.map(([x, y]) => [x * k, y * k]);
 function fillShape(P, cx, cy, sx, sy, rot, colour) {
   ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(sx, sy);
   ctx.beginPath(); P.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
   ctx.fillStyle = colour; ctx.fill(); ctx.restore();
+}
+function groove(cx, cy, sx, sy, rot, alpha, colour) { // the light stroke of the logo's grain
+  if (alpha <= 0) return;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(sx, sy); ctx.globalAlpha = 0.55 * alpha;
+  ctx.strokeStyle = colour; ctx.lineWidth = 3.2; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(7, -36); ctx.bezierCurveTo(15, -14, 15, 14, 6, 38); ctx.stroke(); ctx.restore();
 }
 
 /* ---------- paper grain: seeded, so every render of a frame is the same ---------- */
@@ -237,7 +261,7 @@ const grain = document.createElement("canvas"); grain.width = grain.height = 256
 let grainPattern = null;
 
 await document.fonts.load('700 100px "Shippori Mincho B1"', "ひとつぶずつこえにあわせてよむ一粒声合読");
-await document.fonts.load('800 40px "Shippori Mincho B1"', "こえにあわせてよむひとつぶずつ");
+await document.fonts.load('800 40px "Shippori Mincho B1"', "こえにあわせてよむひとつぶずつtsubu");
 await document.fonts.ready;
 
 let W = 0, H = 0, DPR = 1;
@@ -309,7 +333,7 @@ function bandAt(t, fa) {
       if (p && a.start - p.end < 0.15 && t < a.start + 0.12) return { box: union(p.R, a.R, EASE((t - a.start) / 0.12), true), stretch: 0, colour };
       return { box: a.R, stretch: 0, colour };
     }
-    if (!b) { const u = EASE((t - a.end) / 0.15); return t < a.end + 0.3 ? { box: between(a.R, dotOf(a.R), u), stretch: 0, colour, alpha: 1 - clamp((t - a.end - 0.15) / 0.15) } : null; }
+    if (!b) return { box: a.R, stretch: 0, colour }; // the outro takes it from here
     if (b.start - a.end < 0.15) { // no pause: reach over to the next segment just before it begins
       if (t < b.start - 0.12) return { box: a.R, stretch: 0, colour };
       if (t < b.start) return { box: union(a.R, b.R, EASE((t - (b.start - 0.12)) / 0.12), false), stretch: 0, colour };
@@ -323,26 +347,65 @@ function bandAt(t, fa) {
   return null;
 }
 
+// The camera of the end card: a scale about the word, cut hard three times, then a slow push in.
+function cameraAt(t) {
+  if (t < CUTS[0]) return { k: 1, on: false };
+  if (t < CUTS[1]) return { k: 2.4, on: true };
+  if (t < CUTS[2]) return { k: 1.5, on: true };
+  return { k: 1 + 0.035 * clamp((t - CUTS[2]) / 1.6), on: true };
+}
+const CENTRE = () => ({ x: W / 2, y: H * 0.58 }); // where the camera looks: the word
+// a kick on every beat, settling before the next: the grains' wiggle
+const kick = (t, phase) => { const u = ((t - SPLIT - phase) % BEAT + BEAT) % BEAT; return Math.sin(2 * Math.PI * u / BEAT * 1.5) * Math.exp(-u * 6); };
+
+function drawOutro(t, fa) {
+  const last = bandRect(SPOKEN[SPOKEN.length - 1]);
+  const unit = (0.15 * H) / 94, cluster = { x: W / 2, y: H * 0.34 }, g = unit * 1.6;
+  const colour = fa.theme === "shironeri" ? C.koiai : C[BAND[fa.theme]];
+  const LIFT = OUTRO + 0.25;
+  if (t < LIFT) { // the band shrinks to a grain-sized dot, as it does in every pause
+    const box = between(last, dotOf(last), EASE((t - OUTRO) / (LIFT - OUTRO)));
+    fillShape(roundBox(box.w, box.h, box.r), box.x, box.y, 1, 1, 0, colour);
+    return;
+  }
+  if (t < SPLIT) { // the dot leaves the sentence as one grain and travels up to the middle
+    const u = EASE((t - LIFT) / (SPLIT - LIFT)), d = dotOf(last);
+    const P = blend(circle(d.r), scaled(GRAIN, g), u);
+    const x = lerp(d.x, cluster.x, u), y = lerp(d.y, cluster.y, u), rot = lerp(0, -18, u) * Math.PI / 180;
+    fillShape(P, x, y, 1, 1, rot, colour);
+    groove(x, y, g, g, rot, clamp((u - 0.6) / 0.4), C.shironeri);
+    return;
+  }
+  // one grain becomes the logo's three, each settling into its angle, then wiggling on the beat.
+  // While the camera is tight on the word (the first jump cut) the grains are out of frame.
+  const cam = cameraAt(t), look = CENTRE();
+  if (cam.k > 1.6) return;
+  TRIO.forEach((gr, i) => {
+    const u = OUT(clamp((t - SPLIT - i * 0.07) / 0.45));
+    const s = unit * lerp(1.6, gr.s, u), x = cluster.x + gr.x * unit * u, y = cluster.y + gr.y * unit * u;
+    const rot = (lerp(-18, gr.rot, u) + 7 * kick(t, i * 0.05) * (i % 2 ? -1 : 1)) * Math.PI / 180;
+    const X = look.x + (x - look.x) * cam.k, Y = look.y + (y - look.y) * cam.k, S = s * cam.k;
+    fillShape(GRAIN, X, Y, S, S, rot, i === 1 ? C.ruri : C.koiai);
+    groove(X, Y, S, S, rot, 1, C.shironeri);
+  });
+}
+
 function drawGrain(t, fa) {
-  if (t >= 5.9) return;
+  if (t >= OUTRO) return drawOutro(t, fa);
   if (t >= 1.05) {
     const band = bandAt(t, fa); if (!band) return;
     const { box } = band, k = band.stretch;
-    ctx.save(); ctx.globalAlpha = band.alpha === undefined ? 1 : band.alpha;
-    fillShape(roundBox(box.w, box.h, box.r), box.x, box.y, 1 + k, 1 - k, 0, band.colour); ctx.restore();
+    fillShape(roundBox(box.w, box.h, box.r), box.x, box.y, 1 + k, 1 - k, 0, band.colour);
     return;
   }
   const scale = (0.3 * H) / 94, cx0 = W / 2, cy0 = H * 0.47;
-  let P = GRAIN, cx = cx0, cy = cy0, sx = scale, sy = scale, rot = (-18 * Math.PI) / 180, groove = 1;
+  let P = GRAIN, cx = cx0, cy = cy0, sx = scale, sy = scale, rot = (-18 * Math.PI) / 180, g = 1;
   if (t < 0.45) { const u = t / 0.45; cy = lerp(-0.3 * H, cy0, u * u); rot = lerp(-34, -18, u) * Math.PI / 180; }
   else if (t < 0.62) { const k = Math.sin(Math.PI * (t - 0.45) / 0.17) * 0.12; sx = scale * (1 + k); sy = scale * (1 - k); cy = cy0 + 47 * scale * k; }
-  else { const u = EASE((t - 0.62) / 0.43), r = 0.13 * H / scale; P = blend(GRAIN, circle(r), u); rot = lerp(-18, 0, u) * Math.PI / 180; groove = 1 - clamp(u * 3);
+  else { const u = EASE((t - 0.62) / 0.43), r = 0.13 * H / scale; P = blend(GRAIN, circle(r), u); rot = lerp(-18, 0, u) * Math.PI / 180; g = 1 - clamp(u * 3);
     const k = Math.sin(Math.PI * u) * 0.1; sx = scale * (1 - k); sy = scale * (1 + k); }
   fillShape(P, cx, cy, sx, sy, rot, C.koiai);
-  if (groove > 0) { // the light stroke of the logo's grain
-    ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(sx, sy); ctx.globalAlpha = 0.55 * groove;
-    ctx.strokeStyle = C.shironeri; ctx.lineWidth = 3.2; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(7, -36); ctx.bezierCurveTo(15, -14, 15, 14, 6, 38); ctx.stroke(); ctx.restore(); }
+  groove(cx, cy, sx, sy, rot, g, C.shironeri);
 }
 
 function spokenAt(s) { let at = null; SPOKEN.forEach((i) => { if (s.segments[i].state !== "future") at = i; }); return at; }
@@ -380,11 +443,14 @@ function overlays(t, s, fa) {
     cap.innerHTML = `<span class="no">${String(n).padStart(2, "0")} / ${String(SPOKEN.length).padStart(2, "0")}</span><span class="kana">${kana}</span><span class="romaji">${romaji}</span><span class="gloss">${gloss}</span>`; }
   [...beats.children].forEach((d, i) => mark(d, "on", t < 5.9 && s.segments[SPOKEN[i]].state !== "future"));
   beats.style.opacity = t >= 1.6 && t < 5.9 ? "1" : "0";
-  // end card: the grains line up as an underline, then the word, then the tagline
-  [...enddots.children].forEach((d, i) => { const u = OUT(clamp((t - 6.25 - i * 0.045) / 0.25)); d.style.transform = `scale(${u})`;
-    mark(d, "lit", t > 7.1 && Math.floor((t - 7.1) * 7) % 11 === i); });
-  letters.forEach((l, i) => { const u = OUT(clamp((t - 6.45 - i * 0.07) / 0.4)); l.style.opacity = String(u); l.style.transform = `translateY(${(1 - u) * 0.35}em)`; });
-  const tg = document.getElementById("endtag"); tg.style.opacity = String(OUT(clamp((t - 7.0) / 0.4)));
+  // end card: the camera cuts onto the word, then pushes in; the tagline arrives last
+  const cam = cameraAt(t);
+  word.style.opacity = cam.on ? "1" : "0";
+  word.style.transform = `translate(-50%, -50%) scale(${cam.k.toFixed(4)})`;
+  word.style.setProperty("--draw", EASE(clamp((t - CUTS[2]) / 0.5)).toFixed(4));
+  const u = OUT(clamp((t - TAG) / 0.4));
+  endtag.style.opacity = String(u);
+  endtag.style.transform = `translate(-50%, ${(-50 + (1 - u) * 40).toFixed(2)}%)`;
 }
 
 let current = 0;
@@ -403,13 +469,15 @@ window.renderAt = (t) => {
 /* ---------- playback: the clock only chooses t; the frame is renderAt(t) ---------- */
 const play = document.getElementById("play"), scrub = document.getElementById("scrub");
 let playing = !reduce, origin = 0, from = reduce ? 4.2 : 0;
+const words = () => ({ pause: Site.lang() === "zh" ? "暂停" : "Pause", play: Site.lang() === "zh" ? "播放" : "Play" });
 function tick(now) { if (!playing) return; if (!origin) origin = now - from * 1000; renderAt(((now - origin) / 1000) % DURATION); requestAnimationFrame(tick); }
-function setPlaying(on) { playing = on; play.textContent = on ? "Pause" : "Play"; if (on) { origin = 0; from = current; requestAnimationFrame(tick); } }
+function setPlaying(on) { playing = on; play.textContent = on ? words().pause : words().play; if (on) { origin = 0; from = current; requestAnimationFrame(tick); } }
 play.addEventListener("click", () => setPlaying(!playing));
 scrub.addEventListener("input", () => { if (playing) setPlaying(false); renderAt(Number(scrub.value)); });
+document.addEventListener("tsubu-lang", () => { play.textContent = playing ? words().pause : words().play; });
 size(); renderAt(from);
 new ResizeObserver(() => { size(); renderAt(current); }).observe(stage);
-if (playing) requestAnimationFrame(tick); else play.textContent = "Play";
+if (playing) requestAnimationFrame(tick); else play.textContent = words().play;
 
 /* ---------- the loupe ---------- */
 // 夏休みには、海の近くの小さな町で、祖母と一緒に一週間を過ごしました。
@@ -475,6 +543,25 @@ loupe.addEventListener("keydown", (e) => { if (e.key === "ArrowRight" || e.key =
 function relayout() { layoutGuides(); parkOn(parked); }
 relayout();
 new ResizeObserver(relayout).observe(loupe);
+
+/* ---------- the facts: one small sentence each, drawn by tsubu, in a state that shows the point ---------- */
+// 雨の日は、家でお茶を飲みます。 "On rainy days I drink tea at home." (the README's example)
+const RAIN = { segments: [
+  { parts: [{ text: "雨", ruby: "あめ" }, { text: "の" }, { text: "日", ruby: "ひ" }, { text: "は" }], start: 0.0, end: 0.7 }, { parts: [{ text: "、" }], kind: "punct" },
+  { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], start: 0.9, end: 1.3 }, { parts: [{ text: "お" }, { text: "茶", ruby: "ちゃ" }, { text: "を" }], start: 1.3, end: 1.8 },
+  { parts: [{ text: "飲", ruby: "の" }, { text: "みます" }], start: 1.85, end: 2.6 }, { parts: [{ text: "。" }], kind: "punct" },
+] };
+const facts = [...document.querySelectorAll(".facts .ja")];
+const factRoots = facts.map((el, i) => {
+  const options = [{}, { ruby: i % 2 === 0 }, {}, { theme: "light" }, {}, { motion: "mask" }][i];
+  const s = Tsubu.sentence(RAIN, { announceRuby: false, ...options });
+  el.innerHTML = s.html; const r = el.querySelector(".tsubu");
+  if (i === 1) Tsubu.setRuby(r, false);
+  if (i === 2 || i === 3 || i === 5) s.apply(r, 1.0);
+  if (i === 5) Tsubu.setRevealed(r, [4]);
+  return r;
+});
+if (factRoots.length) { factRoots[1].parentElement.style.cursor = "pointer"; factRoots[1].parentElement.addEventListener("click", () => Tsubu.setRuby(factRoots[1], factRoots[1].dataset.ruby !== "on")); }
 window.__ready = true;
 })().catch((e) => console.error("tsubu site:", e));
 </script>
