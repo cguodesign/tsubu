@@ -25,6 +25,7 @@ First version.
 - `Tsubu.version` and `Tsubu.STATES`.
 - A demo page (`demo/index.html`) that works from `file://`.
 - Tests: the state in Node, the layout measured in headless Chromium through Playwright.
+- README in English and Simplified Chinese, and a roadmap.
 
 ### Notes
 
