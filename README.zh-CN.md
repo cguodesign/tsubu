@@ -65,6 +65,7 @@ input = {
 }
 options = {                    // 都是可选的
   ruby: true,                  // 注音一开始是否显示（默认 true）
+  announceRuby: true,          // 读屏软件是否朗读注音（默认 true）
   theme: "light",              // 预设："light"、"dark"、"media"，或你自己起的名字
   speaker: "a",                // 这句话是谁说的，用于按说话人上色："a"、"b" 或你自己起的名字
 }
@@ -88,7 +89,7 @@ tsubu 从不猜测。下面这些输入会抛出 `Error`，消息以 `tsubu:` �
 - 段的时间重叠或顺序颠倒，`end` 早于 `start`，时间不是有限的数，或者只给了 `start`/`end` 中的一个；
 - 段的时间落在整句的 `start`/`end` 之外；
 - 标点带时间，或者没有任何非标点的段；
-- `segments`、`parts`、`text`、`ruby` 或 `lang` 为空，`kind` 不认识，`options.ruby` 不是布尔值，或者 `options.theme`、`options.speaker` 不是小写名字（`a-z`、数字和 `-`，以字母开头）。
+- `segments`、`parts`、`text`、`ruby` 或 `lang` 为空，`kind` 不认识，`options.ruby` 或 `options.announceRuby` 不是布尔值，或者 `options.theme`、`options.speaker` 不是小写名字（`a-z`、数字和 `-`，以字母开头）。
 
 ## 输出
 
@@ -242,6 +243,12 @@ Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  //
 
 没有每段时间的句子（timing 为 `"sentence"`）从不翻页，因为不知道读到了哪一部分：整句都显示。其他页的段是 `display: none`，所以在翻到那一页之前，辅助技术也读不到它们。
 
+## 无障碍
+
+- **强制颜色。** 在强制颜色模式下（Windows 的对比度主题等），浏览器会替换背景、去掉 `box-shadow`，正在读的那一段就和别的段一样了。tsubu 只给这一段保留高亮，用的是用户自己为选中文字设定的颜色（`Highlight` 和 `HighlightText`）；它的注音落在页面上，所以用 `CanvasText`。其余的都交给浏览器。
+- **读屏软件。** 默认会在汉字后面读出注音（Chromium 暴露的是「雨 あめ が 降る」）。设 `options.announceRuby: false` 时，每个 `<rt>` 都带 `aria-hidden="true"`，整句只读一遍；注音照样显示、照样能开关。隐藏的注音是 `visibility: hidden`，本来就不会被读出。
+- 正在读的那一段带 `aria-current="true"`；其他页的段和那一页一起对辅助技术隐藏（见[按 t 翻页](#按-t-翻页)）。
+
 ## 版面保证，以及怎么测
 
 下面每一条都在无界面 Chromium 里实际测量页面来检查（见 `tests/test_layout.py`）：
@@ -258,6 +265,7 @@ Tsubu.checkContrast(root, { backdrop: "#fdf6e3", thresholds: { text: 7 } });  //
 - **均衡换行**：在贪心排版不超过六行、最后一行只剩一段的地方，均衡后的最后一行都不止一段，各行长度也更接近。
 - **流式字号**在每个分档点和它两边检查，默认值和每一档都配置过的情况都测。
 - **翻页**：设了最大行数时，每一段被读时都在当前页上，没有一页超过允许的行数，每页从行首开始，各页没有共同的段、合起来包含全部的段，随 `t` 增大只往后翻，两段之间的空隙保持刚读完那段的页，同一个 `t` 总是显示同一页，开关注音不会让一页重排。
+- **强制颜色和读屏**（`tests/test_a11y.py`）：模拟强制颜色时，每种主题、每种 timing 下正在读的那一段都是系统高亮色，而且没有字移动；关掉 `announceRuby` 时，无障碍树里没有注音。
 - **没有动效。** 每个元素都是 `transition: none` 和 `animation: none`；反复调用 `apply` 得到相同的属性、文字和节点数。
 
 状态逻辑（`tests/test_state.py`）在 Node 里运行 `tsubu.js` 本身：左闭右开的时间段、空隙、标点、进度、每一种被拒绝的输入，以及 `stateAt` 只取决于 `t`。

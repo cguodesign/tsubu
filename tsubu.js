@@ -125,9 +125,12 @@
   }
 
   function renderHTML(sentence, ruby, look) {
+    // With announceRuby off, screen readers read the sentence once, without each reading after
+    // its base.
+    const rt = look.announceRuby === false ? '<rt aria-hidden="true">' : "<rt>";
     const segments = sentence.segments.map((segment, i) => {
       const inner = segment.parts
-        .map((p) => (p.ruby === undefined ? escapeHTML(p.text) : `<ruby>${escapeHTML(p.text)}<rt>${escapeHTML(p.ruby)}</rt></ruby>`))
+        .map((p) => (p.ruby === undefined ? escapeHTML(p.text) : `<ruby>${escapeHTML(p.text)}${rt}${escapeHTML(p.ruby)}</rt></ruby>`))
         .join("");
       const kind = segment.punct ? ' data-kind="punct"' : "";
       return `<span class="tsubu-seg" data-index="${i}"${kind}>${inner}</span>`;
@@ -272,17 +275,19 @@
   /**
    * Tsubu.sentence(input, options) -> { html, timing, stateAt(t), apply(root, t) }
    *   input:   { lang?, start?, end?, segments: [{ parts: [{ text, ruby? }], start?, end?, kind? }] }
-   *   options: { ruby: true | false (default true), theme?: name, speaker?: name }
+   *   options: { ruby: true | false (default true), announceRuby: true | false (default true),
+   *              theme?: name, speaker?: name }
    */
   function sentence(input, options) {
     const opts = options || {};
-    if (opts.ruby !== undefined && typeof opts.ruby !== "boolean") fail("options.ruby must be true or false");
+    for (const key of ["ruby", "announceRuby"])
+      if (opts[key] !== undefined && typeof opts[key] !== "boolean") fail(`options.${key} must be true or false`);
     for (const key of ["theme", "speaker"])
       if (opts[key] !== undefined && (typeof opts[key] !== "string" || !NAME.test(opts[key])))
         fail(`options.${key} must be a name in lower case, such as ${JSON.stringify(key === "theme" ? THEMES[0] : SPEAKERS[0])}`);
     const normalised = normalise(input);
     return Object.freeze({
-      html: renderHTML(normalised, opts.ruby !== false, { theme: opts.theme, speaker: opts.speaker }),
+      html: renderHTML(normalised, opts.ruby !== false, { theme: opts.theme, speaker: opts.speaker, announceRuby: opts.announceRuby }),
       timing: normalised.timing,
       stateAt: (t) => stateOf(normalised, t),
       apply: (root, t) => applyState(root, normalised, t),

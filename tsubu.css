@@ -186,6 +186,21 @@
 /* With only the sentence's time the whole sentence is lit: one band per line, no seams. */
 .tsubu[data-timing="sentence"] .tsubu-seg { border-radius: 0; }
 
+/* Forced colours (Windows contrast themes and the like) replace backgrounds and drop box-shadows,
+ * which would leave the segment being spoken looking like every other. That segment alone keeps
+ * a highlight, drawn in the user's own colours for selected text; its furigana sit on the page,
+ * so they take the page's text colour. */
+@media (forced-colors: active) {
+  .tsubu-seg[data-state="current"] {
+    forced-color-adjust: none;
+    color: HighlightText;
+    background-color: Highlight;
+    box-shadow: 0 0 0 var(--tsubu-current-spread, 0.06em) Highlight;
+  }
+  .tsubu-seg[data-state="current"] rt { color: CanvasText; }
+  .tsubu-seg[data-state="current"]::after { border-bottom-color: HighlightText; }
+}
+
 /*
  * Theme presets. Set data-tsubu-theme on the sentence's root (options.theme) or on any ancestor.
  * Each one is checked in the tests with Tsubu.checkContrast() against its own --tsubu-backdrop,

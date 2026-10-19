@@ -77,6 +77,7 @@ input = {
 }
 options = {                    // all optional
   ruby: true,                  // whether furigana start out shown (default true)
+  announceRuby: true,          // whether screen readers read each reading (default true)
   theme: "light",              // a preset: "light", "dark", "media", or a name of your own
   speaker: "a",                // whose line this is, for colours per speaker: "a", "b" or your own
 }
@@ -103,8 +104,8 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
   a finite number, or only one of `start`/`end`;
 - segment times outside the sentence's `start`/`end`;
 - punctuation with a time, no segment that is not punctuation;
-- an empty `segments`, `parts`, `text`, `ruby` or `lang`, an unknown `kind`, an `options.ruby`
-  that is not a boolean, or an `options.theme` or `options.speaker` that is not a lower-case name
+- an empty `segments`, `parts`, `text`, `ruby` or `lang`, an unknown `kind`, an `options.ruby` or
+  `options.announceRuby` that is not a boolean, or an `options.theme` or `options.speaker` that is not a lower-case name
   (`a-z`, digits and `-`, starting with a letter).
 
 ## Output
@@ -343,6 +344,20 @@ A sentence without times for its segments (timing `"sentence"`) is never paged, 
 of it is being read is not known: it is shown whole. Segments on other pages get `display: none`,
 so they are also hidden from assistive technology until their page comes.
 
+## Accessibility
+
+- **Forced colours.** In forced-colours mode (Windows contrast themes and the like) browsers
+  replace backgrounds and drop box-shadows, which would leave the segment being spoken looking
+  like every other. tsubu keeps a highlight on that segment alone, in the user's own colours for
+  selected text (`Highlight` and `HighlightText`); its furigana take `CanvasText`, since they sit
+  on the page. Everything else is left to the browser.
+- **Screen readers.** A reading is read after its base by default (Chromium exposes
+  「雨 あめ が 降る」). With `options.announceRuby: false`, every `<rt>` gets `aria-hidden="true"`,
+  so the sentence is read once; the readings are still drawn and still switch. Hidden furigana
+  are never read, since they are `visibility: hidden`.
+- The segment being spoken carries `aria-current="true"`, and segments on other pages are hidden
+  from assistive technology along with the page (see [Paging by t](#paging-by-t)).
+
 ## Layout guarantees, and how they are tested
 
 Each of these is checked by measuring the page in headless Chromium (see `tests/test_layout.py`):
@@ -389,6 +404,9 @@ Each of these is checked by measuring the page in headless Chromium (see `tests/
   segment and together hold all of them, they turn only forward as `t` grows, a gap keeps the page
   of the segment just spoken, the same `t` always shows the same page, and switching the furigana
   does not reflow a page.
+- **Forced colours and screen readers** (`tests/test_a11y.py`): under emulated forced colours the
+  segment being spoken has the system highlight in every theme and timing, and nothing moves; with
+  `announceRuby` off the accessibility tree holds no reading.
 - **No motion.** Every element has `transition: none` and `animation: none`, and repeated
   `apply` calls produce the same attributes, text and node count.
 

@@ -38,6 +38,10 @@ All notable changes to tsubu are recorded here. The format follows
   furigana are not clipped, switching them does not reflow, and the line-breaking rules hold;
   and tests of balancing, the fluid size and paging.
 - The demo has a fluid frame with a width slider and a maximum number of lines.
+- Forced colours: the segment being spoken keeps a highlight in the system colours `Highlight`
+  and `HighlightText`, where it used to vanish with the background and box-shadow.
+- `options.announceRuby: false` hides every reading from screen readers (`aria-hidden`), so the
+  sentence is read once.
 
 ### Fixed
 
