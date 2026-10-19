@@ -1,0 +1,480 @@
+<title>tsubu</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="tsubu.css">
+<style>
+/* Layout: one column of paper. A 16:9 film stage, then the loupe, both on the full measure.
+   Colours are traditional Japanese colours (values from the Wairo Daijiten), chosen to sit on the
+   brand's cool off-white: shironeri paper, koiai ink, ruri blue, with shu and yamabuki as accents.
+   A single deliberate look: washi paper does not turn dark, so no dark theme. */
+:root {
+  --shironeri: #f3f3f2;   /* 白練 paper */
+  --koiai: #0f2350;       /* 濃藍 ink */
+  --ruri: #1e50a2;        /* 瑠璃 blue */
+  --konjo: #192f60;       /* 紺青 deep field */
+  --shu: #eb6101;         /* 朱 accent, graphics only */
+  --yamabuki: #f8b500;    /* 山吹 highlight on dark fields */
+  --shirooi: #c1e4e9;     /* 白藍 readings on blue */
+  --ginnezu: #afafb0;     /* 銀鼠 quiet lines on dark */
+  --gunjo: #4c6cb3;       /* 群青 secondary text on paper */
+  --paper: var(--shironeri);
+  --ink: var(--koiai);
+  --display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --body: "Zen Kaku Gothic New", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.7; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* masthead */
+.mast { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 32px; padding-block: 28px 20px; }
+.mark { font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: 0.42em; margin: 0; }
+.mark .kanji { letter-spacing: 0; font-size: 0.8em; margin-left: 0.2em; color: var(--ruri); }
+.lede { margin: 0; max-width: 58ch; color: var(--ink); font-size: 14px; }
+
+.label { display: flex; gap: 12px; align-items: baseline; margin: 0 0 12px; font-size: 13px; letter-spacing: 0.06em; color: var(--gunjo); }
+.label .kanji { font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: 0; }
+
+/* the film */
+.film { padding-block: 8px 40px; }
+.stage { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden; container-type: inline-size; background: var(--paper); border-radius: 2px; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* asymmetric: the sentence holds the left three fifths, the large reading the right column */
+.film-line { position: absolute; left: 6%; right: 33%; top: 40%; text-align: left; font-family: var(--display); font-weight: 700; font-size: 4.5cqi;
+  --tsubu-ruby-size: 0.42em; --tsubu-ruby-weight: 500; --tsubu-underline-width: 0.05em; }
+/* In the film the highlight is the band the canvas draws, fitted to the glyphs' ink rather than to
+   the font's tall line box (which in this face reaches up over the furigana). */
+.film-line .tsubu { --tsubu-current-bg: transparent; --tsubu-speaker-bg: transparent; }
+.film-line[data-field="shironeri"] { --tsubu-backdrop: #f3f3f2; --tsubu-text-color: var(--koiai); --tsubu-past-color: var(--gunjo); --tsubu-ruby-color: var(--ruri); --tsubu-past-ruby-color: var(--gunjo);
+  --tsubu-underline-color: var(--gunjo); --tsubu-current-bg: var(--ruri); --tsubu-current-color: var(--shironeri); --tsubu-current-ruby-color: var(--ruri); --tsubu-current-underline-color: var(--shirooi); }
+.film-line[data-field="ruri"] { --tsubu-backdrop: #1e50a2; --tsubu-text-color: var(--shironeri); --tsubu-past-color: var(--shirooi); --tsubu-ruby-color: var(--shirooi); --tsubu-past-ruby-color: var(--shirooi);
+  --tsubu-underline-color: var(--ginnezu); --tsubu-current-bg: var(--yamabuki); --tsubu-current-color: var(--koiai); --tsubu-current-ruby-color: var(--shironeri); --tsubu-current-underline-color: var(--koiai); }
+.film-line[data-field="koiai"], .film-line[data-field="konjo"] { --tsubu-text-color: var(--shironeri); --tsubu-past-color: var(--ginnezu); --tsubu-ruby-color: var(--shirooi); --tsubu-past-ruby-color: var(--ginnezu);
+  --tsubu-underline-color: var(--ginnezu); --tsubu-current-bg: var(--yamabuki); --tsubu-current-color: var(--koiai); --tsubu-current-ruby-color: var(--yamabuki); --tsubu-current-underline-color: var(--koiai); }
+.film-line[data-field="koiai"] { --tsubu-backdrop: #0f2350; }
+.film-line[data-field="konjo"] { --tsubu-backdrop: #192f60; }
+.film-line[data-field="shu"] { --tsubu-backdrop: #eb6101; --tsubu-text-color: var(--koiai); --tsubu-past-color: var(--koiai); --tsubu-ruby-color: var(--koiai); --tsubu-past-ruby-color: var(--koiai);
+  --tsubu-underline-color: var(--koiai); --tsubu-current-bg: var(--koiai); --tsubu-current-color: var(--shironeri); --tsubu-current-ruby-color: var(--koiai); --tsubu-current-underline-color: var(--shirooi); }
+
+.cap { position: absolute; left: 4.2%; bottom: 6%; display: flex; align-items: baseline; gap: 1.1cqi; font-size: clamp(10px, 1.45cqi, 17px); color: var(--cap, var(--koiai)); white-space: nowrap; }
+.cap .no { font-family: var(--mono); font-size: 0.82em; letter-spacing: 0.04em; opacity: 0.8; }
+.cap .kana { font-family: var(--display); font-weight: 800; font-size: 1.5em; }
+.cap .romaji { font-family: var(--mono); font-size: 0.9em; }
+.cap .gloss { font-size: 0.9em; opacity: 0.85; }
+.beats { position: absolute; right: 4.2%; bottom: 6.6%; display: flex; gap: 0.7cqi; }
+.beats i { width: 0.75cqi; height: 0.75cqi; min-width: 5px; min-height: 5px; border-radius: 50%; border: 1px solid var(--cap, var(--koiai)); }
+.beats i.on { background: var(--cap, var(--koiai)); }
+
+.endcard { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 1.2cqi; pointer-events: none; }
+.endcard .word { font-family: var(--display); font-weight: 700; font-size: 7.2cqi; letter-spacing: 0.42em; margin-right: -0.42em; color: var(--koiai); display: flex; }
+.endcard .word span { display: inline-block; }
+.endcard .dots { display: flex; gap: 1.05cqi; margin-top: -0.4cqi; }
+.endcard .dots i { width: 0.9cqi; height: 0.9cqi; border-radius: 50%; background: var(--koiai); }
+.endcard .dots i.lit { background: var(--ruri); }
+.endcard .tag { font-family: var(--display); font-weight: 500; font-size: 2.3cqi; color: var(--koiai); --tsubu-text-color: var(--koiai); --tsubu-ruby-color: var(--ruri); --tsubu-underline-color: var(--gunjo); }
+
+.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-block: 12px 0; font-size: 13px; }
+.transport button { font: inherit; font-weight: 500; color: var(--paper); background: var(--ink); border: 0; border-radius: 999px; padding: 6px 16px; cursor: pointer; }
+.transport button:focus-visible, .transport input:focus-visible, .loupe:focus-visible { outline: 2px solid var(--shu); outline-offset: 3px; }
+.transport input[type=range] { flex: 1; min-width: 140px; accent-color: var(--ruri); }
+.transport output { font-family: var(--mono); font-variant-numeric: tabular-nums; min-width: 6ch; }
+.note { margin: 10px 0 0; max-width: 72ch; font-size: 13px; color: var(--gunjo); }
+code { font-family: var(--mono); font-size: 0.92em; }
+
+/* the loupe */
+.loupe-sec { padding-block: 32px 56px; border-top: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); }
+.loupe { position: relative; margin-top: 8px; padding-block: 28px 44px; cursor: crosshair; touch-action: pan-y; container-type: inline-size; overflow: hidden; }
+.layer { font-family: var(--display); font-weight: 700; font-size: clamp(26px, 5.2cqi, 62px); --tsubu-ruby-size: 0.4em; --tsubu-ruby-weight: 500; }
+.layer .tsubu { --tsubu-underline-color: transparent; }
+.base { color: transparent; -webkit-text-stroke: 1px var(--ink); }
+.top { position: absolute; inset: 28px 0 44px 0; color: var(--ink); --tsubu-ruby-color: var(--ruri); clip-path: circle(var(--r, 92px) at var(--x, 50%) var(--y, 50%)); }
+.top .tsubu { --tsubu-underline-color: var(--shu); --tsubu-underline-style: solid; }
+.guides { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.ui { position: absolute; inset: 0; pointer-events: none; }
+.ui .h, .ui .v { position: absolute; background: color-mix(in srgb, var(--shu) 55%, transparent); }
+.ui .h { left: 0; right: 0; height: 1px; }
+.ui .v { top: 0; bottom: 0; width: 1px; }
+.ui .ring { position: absolute; border: 1px solid var(--ink); border-radius: 50%; }
+.ui .tag { position: absolute; font-family: var(--mono); font-size: 11px; line-height: 1.3; color: var(--paper); background: var(--ink); padding: 3px 7px; white-space: nowrap; }
+.loupe-note { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 32px; font-size: 13px; margin-top: 4px; }
+.loupe-note p { margin: 0; min-width: 0; }
+.loupe-note b { font-weight: 700; }
+footer { padding-block: 0 40px; font-size: 12px; color: var(--gunjo); }
+@media (max-width: 600px) { .mark { font-size: 22px; } .ui .tag { font-size: 10px; } }
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <h1 class="mark">tsubu<span class="kanji">粒</span></h1>
+    <p class="lede">A small library that draws one Japanese sentence for reading along: a segment at a time, furigana that switch on and off without moving a character, and a highlight that follows the voice.</p>
+  </header>
+
+  <section class="film" aria-labelledby="film-title">
+    <h2 class="label" id="film-title"><span class="kanji">動</span>In time</h2>
+    <div class="stage" id="stage">
+      <canvas id="fx" aria-hidden="true"></canvas>
+      <div class="film-line" id="line" data-field="shironeri"></div>
+      <div class="endcard" id="endcard" aria-hidden="true">
+        <div class="word" id="word"><span>t</span><span>s</span><span>u</span><span>b</span><span>u</span></div>
+        <div class="dots" id="enddots"></div>
+        <div class="tag" id="endtag"></div>
+      </div>
+      <div class="cap" id="cap" aria-hidden="true"></div>
+      <div class="beats" id="beats" aria-hidden="true"></div>
+    </div>
+    <div class="transport">
+      <button type="button" id="play">Pause</button>
+      <input type="range" id="scrub" min="0" max="8.4" step="0.0333" value="0" aria-label="Time in the film">
+      <output id="tc" for="scrub">0.00 s</output>
+    </div>
+    <p class="note">Every frame is drawn from the time alone, by <code>renderAt(t)</code>: the same page plays here and renders to video frame by frame. The sentence is drawn by tsubu with the <code>appear</code> preset; the field, the ink grain and the large reading follow the state tsubu reports for that time. The times are set to a beat, not measured from a recording.</p>
+  </section>
+
+  <section class="loupe-sec" aria-labelledby="loupe-title">
+    <h2 class="label" id="loupe-title"><span class="kanji">透</span>Under the loupe</h2>
+    <div class="loupe" id="loupe" tabindex="0" aria-describedby="loupe-help">
+      <div class="layer base" id="base"></div>
+      <div class="layer top" id="top" aria-hidden="true"><svg class="guides" id="guides"></svg></div>
+      <div class="ui" id="ui" aria-hidden="true"><div class="h" id="uh"></div><div class="v" id="uv"></div><div class="ring" id="ring"></div><div class="tag" id="utag"></div></div>
+    </div>
+    <div class="loupe-note" id="loupe-help">
+      <p><b>Move over the sentence</b> to read its furigana, with each segment's box and its time. On a phone, tap a word; with the keyboard, focus the sentence and use the arrow keys.</p>
+      <p>The sentence is drawn twice from the same HTML, once with furigana off and once with them on. The two layers line up exactly because switching furigana in tsubu moves nothing.</p>
+    </div>
+  </section>
+
+  <footer>tsubu · MIT licence · Colours: 白練, 濃藍, 瑠璃, 紺青, 朱, 山吹, 白藍, 銀鼠, 群青</footer>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><path id="grainpath" d="M0 -46 C26 -46 36 -16 34 10 C32 36 16 48 -2 48 C-22 48 -34 30 -34 6 C-34 -6 -31 -14 -26 -20 C-21 -18 -16 -20 -14 -26 C-12 -40 -8 -46 0 -46 Z"/></svg>
+
+<script src="tsubu.js"></script>
+<script>
+"use strict";
+(async function () {
+const css = getComputedStyle(document.documentElement);
+const C = Object.fromEntries(["shironeri", "koiai", "ruri", "konjo", "shu", "yamabuki", "shirooi", "ginnezu", "gunjo"].map((k) => [k, css.getPropertyValue("--" + k).trim()]));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- small maths ---------- */
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+// cubic-bezier(x1, y1, x2, y2) as an easing function
+function bez(x1, y1, x2, y2) {
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const sx = (t) => ((ax * t + bx) * t + cx) * t, sy = (t) => ((ay * t + by) * t + cy) * t;
+  return (x) => { if (x <= 0) return 0; if (x >= 1) return 1; let lo = 0, hi = 1, t = x;
+    for (let i = 0; i < 40; i++) { const v = sx(t); if (Math.abs(v - x) < 1e-7) break; if (v < x) lo = t; else hi = t; t = (lo + hi) / 2; } return sy(t); };
+}
+const EASE = bez(0.7, 0, 0.3, 1);      // fastest in the middle: wipes and morphs
+const OUT = bez(0.2, 0.7, 0.2, 1);     // settles: arrivals
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, u) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(lerp(v, B[i], u))).join(",")})`; };
+function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+/* ---------- the film's sentence and its beat sheet ---------- */
+// 一粒ずつ、声に合わせて読む。 "Grain by grain, read in time with the voice." Times are set to a beat.
+const FILM = { segments: [
+  { parts: [{ text: "一粒", ruby: "ひとつぶ" }, { text: "ずつ" }], start: 2.0, end: 2.8 },
+  { parts: [{ text: "、" }], kind: "punct" },
+  { parts: [{ text: "声", ruby: "こえ" }, { text: "に" }], start: 3.2, end: 3.8 },
+  { parts: [{ text: "合", ruby: "あ" }, { text: "わせて" }], start: 3.8, end: 4.6 },
+  { parts: [{ text: "読", ruby: "よ" }, { text: "む" }], start: 4.8, end: 5.6 },
+  { parts: [{ text: "。" }], kind: "punct" },
+] };
+const GLOSS = { 0: ["ひとつぶずつ", "hitotsubu-zutsu", "grain by grain"], 2: ["こえに", "koe ni", "to the voice"], 3: ["あわせて", "awasete", "in time with"], 4: ["よむ", "yomu", "read"] };
+const SPOKEN = [0, 2, 3, 4];
+const DURATION = 8.4, WIPE = 0.34;
+// each field lands on a beat: the wipe ends as the segment begins
+const FIELDS = [{ t: 0, f: "shironeri" }, { t: 2.0, f: "ruri" }, { t: 3.2, f: "koiai" }, { t: 3.8, f: "shu" }, { t: 4.8, f: "konjo" }, { t: 5.9, f: "shironeri" }];
+const CAPTION = { shironeri: C.koiai, ruri: C.shironeri, koiai: C.shironeri, konjo: C.shironeri, shu: C.koiai };
+
+const stage = document.getElementById("stage"), cv = document.getElementById("fx"), ctx = cv.getContext("2d");
+const line = document.getElementById("line");
+const film = Tsubu.sentence(FILM, { motion: "appear", announceRuby: false });
+line.innerHTML = film.html;
+const root = line.querySelector(".tsubu");
+const tagline = Tsubu.sentence({ segments: [{ parts: [{ text: "一粒", ruby: "ひとつぶ" }, { text: "ずつ" }] }, { parts: [{ text: "、" }], kind: "punct" }, { parts: [{ text: "読", ruby: "よ" }, { text: "む" }] }, { parts: [{ text: "。" }], kind: "punct" }] });
+document.getElementById("endtag").innerHTML = tagline.html;
+const enddots = document.getElementById("enddots");
+enddots.innerHTML = "<i></i>".repeat(11);
+const letters = [...document.querySelectorAll("#word span")];
+const beats = document.getElementById("beats");
+beats.innerHTML = "<i></i>".repeat(SPOKEN.length);
+const cap = document.getElementById("cap");
+
+/* ---------- shapes for the morph: one grain, a circle, the highlight's rounded box ---------- */
+const N = 128;
+const grainPath = document.getElementById("grainpath");
+const GRAIN = (() => { const L = grainPath.getTotalLength(); return Array.from({ length: N }, (_, i) => { const p = grainPath.getPointAtLength((i / N) * L); return [p.x, p.y]; }); })();
+const circle = (r) => Array.from({ length: N }, (_, i) => { const a = -Math.PI / 2 + (i / N) * Math.PI * 2; return [r * Math.cos(a), r * Math.sin(a)]; });
+function roundBox(w, h, r) { // perimeter from top centre, clockwise, by arc length
+  r = Math.min(r, w / 2, h / 2); const sw = w - 2 * r, sh = h - 2 * r, arc = (Math.PI / 2) * r, P = 2 * sw + 2 * sh + 4 * arc;
+  const at = (d) => { d = ((d % P) + P) % P;
+    const segs = [[sw / 2, (u) => [u, -h / 2]], [arc, (u) => { const a = -Math.PI / 2 + (u / r); return [sw / 2 + r * Math.cos(a), -sh / 2 + r * Math.sin(a)]; }],
+      [sh, (u) => [w / 2, -sh / 2 + u]], [arc, (u) => { const a = u / r; return [sw / 2 + r * Math.cos(a), sh / 2 + r * Math.sin(a)]; }],
+      [sw, (u) => [sw / 2 - u, h / 2]], [arc, (u) => { const a = Math.PI / 2 + u / r; return [-sw / 2 + r * Math.cos(a), sh / 2 + r * Math.sin(a)]; }],
+      [sh, (u) => [-w / 2, sh / 2 - u]], [arc, (u) => { const a = Math.PI + u / r; return [-sw / 2 + r * Math.cos(a), -sh / 2 + r * Math.sin(a)]; }],
+      [sw / 2, (u) => [-sw / 2 + u, -h / 2]]];
+    for (const [len, f] of segs) { if (d <= len) return f(d); d -= len; } return [0, -h / 2]; };
+  return Array.from({ length: N }, (_, i) => at((i / N) * P));
+}
+const blend = (A, B, u) => A.map((a, i) => [lerp(a[0], B[i][0], u), lerp(a[1], B[i][1], u)]);
+function fillShape(P, cx, cy, sx, sy, rot, colour) {
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(sx, sy);
+  ctx.beginPath(); P.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
+  ctx.fillStyle = colour; ctx.fill(); ctx.restore();
+}
+
+/* ---------- paper grain: seeded, so every render of a frame is the same ---------- */
+const grain = document.createElement("canvas"); grain.width = grain.height = 256;
+{ const g = grain.getContext("2d"), img = g.createImageData(256, 256), r = rng(7);
+  for (let i = 0; i < img.data.length; i += 4) { const v = r() < 0.5 ? 0 : 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = r() < 0.3 ? 46 : 0; }
+  g.putImageData(img, 0, 0); }
+let grainPattern = null;
+
+await document.fonts.load('700 100px "Shippori Mincho B1"', "ひとつぶずつこえにあわせてよむ一粒声合読");
+await document.fonts.load('800 40px "Shippori Mincho B1"', "こえにあわせてよむひとつぶずつ");
+await document.fonts.ready;
+
+let W = 0, H = 0, DPR = 1;
+function size() {
+  const r = stage.getBoundingClientRect(); DPR = Math.min(2, window.devicePixelRatio || 1);
+  // drawn in whole device pixels, so every frame covers the canvas exactly and nothing of the
+  // frame before can show through at an edge
+  cv.width = Math.round(r.width * DPR); cv.height = Math.round(r.height * DPR); W = cv.width / DPR; H = cv.height / DPR;
+  grainPattern = ctx.createPattern(grain, "repeat");
+}
+
+function fieldAt(t) {
+  let k = 0; FIELDS.forEach((f, i) => { if (t >= f.t) k = i; });
+  const next = FIELDS[k + 1], wipe = next && t > next.t - WIPE ? EASE((t - (next.t - WIPE)) / WIPE) : 0;
+  let theme = 0; FIELDS.forEach((f, i) => { if (t >= f.t - WIPE / 2) theme = i; });
+  return { base: FIELDS[k].f, next: next && next.f, wipe, theme: FIELDS[theme].f };
+}
+
+function drawBase(fa) { ctx.fillStyle = C[fa.base]; ctx.fillRect(0, 0, W, H); }
+function drawWipe(fa) {
+  if (!fa.wipe) return;
+  // a diagonal edge sweeping left to right, led by a thin bar of the accent
+  const slant = Math.tan((14 * Math.PI) / 180) * H, edge = lerp(-slant - 0.04 * W, W + 0.04 * W, fa.wipe);
+  const bar = 0.014 * W, accent = fa.next === "shu" ? C.yamabuki : C.shu;
+  ctx.fillStyle = C[fa.next];
+  ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(edge + slant, 0); ctx.lineTo(edge, H); ctx.lineTo(-2, H); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = accent;
+  ctx.beginPath(); ctx.moveTo(edge + slant, 0); ctx.lineTo(edge + slant + bar, 0); ctx.lineTo(edge + bar, H); ctx.lineTo(edge, H); ctx.closePath(); ctx.fill();
+}
+
+function boxOf(el) { const a = el.getBoundingClientRect(), s = stage.getBoundingClientRect(); return { x: a.left - s.left, y: a.top - s.top, w: a.width, h: a.height }; }
+
+// The em box of a segment's glyphs: from the font's own metrics, measured once per size, since the
+// element's box is the font's whole line box.
+let metrics = null;
+function bandRect(i) {
+  const fs = parseFloat(getComputedStyle(line).fontSize);
+  if (!metrics || metrics.fs !== fs) {
+    ctx.save(); ctx.font = `700 ${fs}px "Shippori Mincho B1"`; const m = ctx.measureText("国粒"); ctx.restore();
+    metrics = { fs, ascent: m.fontBoundingBoxAscent, ink: m.actualBoundingBoxAscent, below: m.actualBoundingBoxDescent };
+  }
+  const b = boxOf(root.querySelector(`[data-index="${i}"]`)), baseline = b.y + metrics.ascent, pad = 0.07 * fs;
+  const top = baseline - metrics.ink - pad, bottom = baseline + metrics.below + pad;
+  return { x: b.x - pad + (b.w + 2 * pad) / 2, y: (top + bottom) / 2, w: b.w + 2 * pad, h: bottom - top, r: 0.14 * fs, fs };
+}
+const GIANT = { ruri: "shirooi", koiai: "shu", shu: "koiai", konjo: "yamabuki" };
+const BAND = { shironeri: "ruri", ruri: "yamabuki", koiai: "yamabuki", konjo: "yamabuki", shu: "koiai" };
+const dotOf = (R) => ({ x: R.x + R.w / 2 - 0.2 * R.fs, y: R.y + R.h / 2 - 0.16 * R.fs, w: 0.26 * R.fs, h: 0.26 * R.fs, r: 0.13 * R.fs, fs: R.fs });
+const between = (A, B, u) => ({ x: lerp(A.x, B.x, u), y: lerp(A.y, B.y, u), w: lerp(A.w, B.w, u), h: lerp(A.h, B.h, u), r: lerp(A.r, B.r, u), fs: A.fs });
+const union = (A, B, u, from) => { // grow from A to cover B (u: 0 to 1), or shrink from the union onto B
+  const l = Math.min(A.x - A.w / 2, B.x - B.w / 2), rr = Math.max(A.x + A.w / 2, B.x + B.w / 2);
+  const L = from ? lerp(l, B.x - B.w / 2, u) : A.x - A.w / 2, R = from ? rr : lerp(A.x + A.w / 2, rr, u);
+  return { x: (L + R) / 2, y: lerp(A.y, B.y, from ? u : 0), w: R - L, h: Math.max(A.h, B.h), r: A.r, fs: A.fs };
+};
+
+// The band: where it is at t, as a box and a squash (stretch along its travel).
+function bandAt(t, fa) {
+  const S = SPOKEN.map((i) => ({ i, start: FILM.segments[i].start, end: FILM.segments[i].end, R: bandRect(i) }));
+  const colour = C[BAND[fa.theme]];
+  const r0 = 0.13 * H, c0 = { x: W / 2, y: H * 0.47, w: 2 * r0, h: 2 * r0, r: r0, fs: S[0].R.fs };
+  if (t < 1.6) { const u = EASE((t - 1.05) / 0.55); return { box: between(c0, S[0].R, u), stretch: Math.sin(Math.PI * u) * 0.1, colour: C.koiai }; }
+  if (t < S[0].start) { const pop = t >= 1.66 ? Math.sin(Math.PI * clamp((t - 1.66) / 0.16)) * 0.06 : 0;
+    return { box: S[0].R, stretch: -pop, colour: t < 1.66 ? C.koiai : C.yamabuki }; }
+  for (let k = 0; k < S.length; k++) {
+    const a = S[k], b = S[k + 1];
+    if (t < a.end) {
+      // arriving by a stretch from the previous segment, when there was no pause
+      const p = S[k - 1];
+      if (p && a.start - p.end < 0.15 && t < a.start + 0.12) return { box: union(p.R, a.R, EASE((t - a.start) / 0.12), true), stretch: 0, colour };
+      return { box: a.R, stretch: 0, colour };
+    }
+    if (!b) { const u = EASE((t - a.end) / 0.15); return t < a.end + 0.3 ? { box: between(a.R, dotOf(a.R), u), stretch: 0, colour, alpha: 1 - clamp((t - a.end - 0.15) / 0.15) } : null; }
+    if (b.start - a.end < 0.15) { // no pause: reach over to the next segment just before it begins
+      if (t < b.start - 0.12) return { box: a.R, stretch: 0, colour };
+      if (t < b.start) return { box: union(a.R, b.R, EASE((t - (b.start - 0.12)) / 0.12), false), stretch: 0, colour };
+      continue;
+    }
+    // a pause: shrink to a grain, wait, then open out under the next segment as it begins
+    const gap = b.start - a.end, shrink = Math.min(0.12, gap * 0.4), open = Math.min(0.2, gap - shrink);
+    if (t < b.start - open) return { box: between(a.R, dotOf(a.R), EASE((t - a.end) / shrink)), stretch: 0, colour };
+    if (t < b.start) { const u = EASE((t - (b.start - open)) / open); return { box: between(dotOf(a.R), b.R, u), stretch: Math.sin(Math.PI * u) * 0.12, colour }; }
+  }
+  return null;
+}
+
+function drawGrain(t, fa) {
+  if (t >= 5.9) return;
+  if (t >= 1.05) {
+    const band = bandAt(t, fa); if (!band) return;
+    const { box } = band, k = band.stretch;
+    ctx.save(); ctx.globalAlpha = band.alpha === undefined ? 1 : band.alpha;
+    fillShape(roundBox(box.w, box.h, box.r), box.x, box.y, 1 + k, 1 - k, 0, band.colour); ctx.restore();
+    return;
+  }
+  const scale = (0.3 * H) / 94, cx0 = W / 2, cy0 = H * 0.47;
+  let P = GRAIN, cx = cx0, cy = cy0, sx = scale, sy = scale, rot = (-18 * Math.PI) / 180, groove = 1;
+  if (t < 0.45) { const u = t / 0.45; cy = lerp(-0.3 * H, cy0, u * u); rot = lerp(-34, -18, u) * Math.PI / 180; }
+  else if (t < 0.62) { const k = Math.sin(Math.PI * (t - 0.45) / 0.17) * 0.12; sx = scale * (1 + k); sy = scale * (1 - k); cy = cy0 + 47 * scale * k; }
+  else { const u = EASE((t - 0.62) / 0.43), r = 0.13 * H / scale; P = blend(GRAIN, circle(r), u); rot = lerp(-18, 0, u) * Math.PI / 180; groove = 1 - clamp(u * 3);
+    const k = Math.sin(Math.PI * u) * 0.1; sx = scale * (1 - k); sy = scale * (1 + k); }
+  fillShape(P, cx, cy, sx, sy, rot, C.koiai);
+  if (groove > 0) { // the light stroke of the logo's grain
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(sx, sy); ctx.globalAlpha = 0.55 * groove;
+    ctx.strokeStyle = C.shironeri; ctx.lineWidth = 3.2; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(7, -36); ctx.bezierCurveTo(15, -14, 15, 14, 6, 38); ctx.stroke(); ctx.restore(); }
+}
+
+function spokenAt(s) { let at = null; SPOKEN.forEach((i) => { if (s.segments[i].state !== "future") at = i; }); return at; }
+
+function drawReading(t, s, fa) {
+  if (t < 2.0 || t > 6.3) return;
+  const now = spokenAt(s); if (now === null) return;
+  const k = SPOKEN.indexOf(now), since = t - FILM.segments[now].start, prev = k > 0 ? SPOKEN[k - 1] : null;
+  // the reading in a colour set hard against its field, as on a poster; on paper it stays quiet
+  const tone = fa.base === "shironeri" ? mix(C.shironeri, C.koiai, 0.13) : C[GIANT[fa.base]];
+  const out = t > 5.9 ? EASE((t - 5.9) / 0.4) : 0;
+  const draw = (i, dy, alpha) => {
+    const kana = GLOSS[i][0], size = Math.min(0.4 * H, 0.16 * W, (0.78 * H) / kana.length);
+    ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = tone; ctx.font = `800 ${size}px "Shippori Mincho B1"`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    [...kana].forEach((ch, j) => ctx.fillText(ch, W * 0.86, H * 0.05 + dy + j * size * 0.98)); ctx.restore();
+  };
+  const e = OUT(clamp(since / 0.32));
+  if (prev !== null && e < 1) draw(prev, e * 0.4 * H, 1 - e);
+  draw(now, (1 - e) * -0.35 * H + out * 0.5 * H, Math.min(e, 1 - out));
+}
+
+function drawTexture() { ctx.save(); ctx.globalCompositeOperation = "soft-light"; ctx.globalAlpha = 0.9; ctx.fillStyle = grainPattern; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+
+// a class set from t alone: on, or no class attribute at all, whatever frame came before
+const mark = (el, name, on) => (on ? el.setAttribute("class", name) : el.removeAttribute("class"));
+function overlays(t, s, fa) {
+  // the sentence leaves before the end card
+  line.style.opacity = String(1 - EASE(clamp((t - 5.95) / 0.35)));
+  line.dataset.field = fa.theme;
+  const capColour = CAPTION[fa.theme];
+  stage.style.setProperty("--cap", capColour);
+  const now = t >= 2.0 && t < 5.9 ? spokenAt(s) : null;
+  if (now === null) { cap.innerHTML = ""; }
+  else { const [kana, romaji, gloss] = GLOSS[now], n = SPOKEN.indexOf(now) + 1;
+    cap.innerHTML = `<span class="no">${String(n).padStart(2, "0")} / ${String(SPOKEN.length).padStart(2, "0")}</span><span class="kana">${kana}</span><span class="romaji">${romaji}</span><span class="gloss">${gloss}</span>`; }
+  [...beats.children].forEach((d, i) => mark(d, "on", t < 5.9 && s.segments[SPOKEN[i]].state !== "future"));
+  beats.style.opacity = t >= 1.6 && t < 5.9 ? "1" : "0";
+  // end card: the grains line up as an underline, then the word, then the tagline
+  [...enddots.children].forEach((d, i) => { const u = OUT(clamp((t - 6.25 - i * 0.045) / 0.25)); d.style.transform = `scale(${u})`;
+    mark(d, "lit", t > 7.1 && Math.floor((t - 7.1) * 7) % 11 === i); });
+  letters.forEach((l, i) => { const u = OUT(clamp((t - 6.45 - i * 0.07) / 0.4)); l.style.opacity = String(u); l.style.transform = `translateY(${(1 - u) * 0.35}em)`; });
+  const tg = document.getElementById("endtag"); tg.style.opacity = String(OUT(clamp((t - 7.0) / 0.4)));
+}
+
+let current = 0;
+window.renderAt = (t) => {
+  t = clamp(t, 0, DURATION - 1e-6); current = t;
+  const s = film.apply(root, t), fa = fieldAt(t);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawBase(fa); drawReading(t, s, fa); drawWipe(fa); drawGrain(t, fa); drawTexture();
+  overlays(t, s, fa);
+  document.getElementById("tc").textContent = `${t.toFixed(2)} s`;
+  document.getElementById("scrub").value = String(t);
+  return s;
+};
+
+/* ---------- playback: the clock only chooses t; the frame is renderAt(t) ---------- */
+const play = document.getElementById("play"), scrub = document.getElementById("scrub");
+let playing = !reduce, origin = 0, from = reduce ? 4.2 : 0;
+function tick(now) { if (!playing) return; if (!origin) origin = now - from * 1000; renderAt(((now - origin) / 1000) % DURATION); requestAnimationFrame(tick); }
+function setPlaying(on) { playing = on; play.textContent = on ? "Pause" : "Play"; if (on) { origin = 0; from = current; requestAnimationFrame(tick); } }
+play.addEventListener("click", () => setPlaying(!playing));
+scrub.addEventListener("input", () => { if (playing) setPlaying(false); renderAt(Number(scrub.value)); });
+size(); renderAt(from);
+new ResizeObserver(() => { size(); renderAt(current); }).observe(stage);
+if (playing) requestAnimationFrame(tick); else play.textContent = "Play";
+
+/* ---------- the loupe ---------- */
+// 夏休みには、海の近くの小さな町で、祖母と一緒に一週間を過ごしました。
+// "In the summer holidays I spent a week with my grandmother in a small town by the sea."
+const LOUPE = { segments: [
+  { parts: [{ text: "夏休", ruby: "なつやす" }, { text: "みには" }], start: 7.0, end: 7.6 }, { parts: [{ text: "、" }], kind: "punct" },
+  { parts: [{ text: "海", ruby: "うみ" }, { text: "の" }], start: 7.75, end: 8.05 }, { parts: [{ text: "近", ruby: "ちか" }, { text: "くの" }], start: 8.05, end: 8.4 },
+  { parts: [{ text: "小", ruby: "ちい" }, { text: "さな" }], start: 8.4, end: 8.8 }, { parts: [{ text: "町", ruby: "まち" }, { text: "で" }], start: 8.8, end: 9.15 },
+  { parts: [{ text: "、" }], kind: "punct" }, { parts: [{ text: "祖母", ruby: "そぼ" }, { text: "と" }], start: 9.3, end: 9.7 },
+  { parts: [{ text: "一緒", ruby: "いっしょ" }, { text: "に" }], start: 9.7, end: 10.15 }, { parts: [{ text: "一週間", ruby: "いっしゅうかん" }, { text: "を" }], start: 10.15, end: 10.9 },
+  { parts: [{ text: "過", ruby: "す" }, { text: "ごしました" }], start: 10.9, end: 11.8 }, { parts: [{ text: "。" }], kind: "punct" },
+] };
+const loupe = document.getElementById("loupe"), baseL = document.getElementById("base"), topL = document.getElementById("top"), guides = document.getElementById("guides");
+const L = Tsubu.sentence(LOUPE);
+baseL.innerHTML = Tsubu.sentence(LOUPE, { ruby: false }).html;
+topL.insertAdjacentHTML("afterbegin", L.html);
+const segsTop = [...topL.querySelectorAll(".tsubu-seg")];
+const uh = document.getElementById("uh"), uv = document.getElementById("uv"), ring = document.getElementById("ring"), utag = document.getElementById("utag");
+const NS = "http://www.w3.org/2000/svg";
+let centres = [];
+function layoutGuides() {
+  const box = topL.getBoundingClientRect(), fs = parseFloat(getComputedStyle(topL).fontSize);
+  guides.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`); guides.setAttribute("width", box.width); guides.setAttribute("height", box.height);
+  guides.innerHTML = "";
+  const add = (tag, attrs) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); guides.append(el); return el; };
+  const lines = new Map();
+  centres = segsTop.map((el, i) => {
+    const r = el.getBoundingClientRect(), x = r.left - box.left, y = r.top - box.top;
+    add("rect", { x: x + 0.5, y: y + 0.5, width: Math.max(0, r.width - 1), height: Math.max(0, r.height - 1), fill: "none", stroke: C.shu, "stroke-width": 1, "stroke-dasharray": "2 3" });
+    const key = Math.round(y); if (!lines.has(key)) lines.set(key, { y, h: r.height, rt: Infinity });
+    const rt = el.querySelector("rt"); if (rt) { const q = rt.getBoundingClientRect(); lines.get(key).rt = Math.min(lines.get(key).rt, q.top - box.top); }
+    const span = L.span(i);
+    if (span) { const t = add("text", { x: x + 2, y: y + r.height + fs * 0.34, fill: C.shu, "font-family": "IBM Plex Mono, ui-monospace, monospace", "font-size": Math.max(9, fs * 0.17) });
+      t.textContent = `${span.start.toFixed(2)}–${span.end.toFixed(2)}`; }
+    return { x: x + r.width / 2, y: y + r.height / 2 - fs * 0.12, i };
+  });
+  for (const { y, h, rt } of lines.values()) {
+    add("line", { x1: 0, x2: box.width, y1: y + h * 0.86, y2: y + h * 0.86, stroke: C.ruri, "stroke-width": 1, opacity: 0.6 });
+    if (rt !== Infinity) add("line", { x1: 0, x2: box.width, y1: rt, y2: rt, stroke: C.ruri, "stroke-width": 1, "stroke-dasharray": "1 4", opacity: 0.7 });
+  }
+}
+let at = { x: 0, y: 0 }, parked = 9;
+function place(x, y) {
+  const lb = loupe.getBoundingClientRect(), tb = topL.getBoundingClientRect(), fs = parseFloat(getComputedStyle(topL).fontSize), R = Math.max(70, fs * 1.75);
+  at = { x, y };
+  topL.style.setProperty("--x", `${x}px`); topL.style.setProperty("--y", `${y}px`); topL.style.setProperty("--r", `${R}px`);
+  const ox = tb.left - lb.left, oy = tb.top - lb.top, X = x + ox, Y = y + oy;
+  uh.style.top = `${Y}px`; uv.style.left = `${X}px`;
+  Object.assign(ring.style, { left: `${X - R}px`, top: `${Y - R}px`, width: `${2 * R}px`, height: `${2 * R}px` });
+  const near = centres.reduce((a, c) => (Math.hypot(c.x - x, c.y - y) < Math.hypot(a.x - x, a.y - y) ? c : a), centres[0]);
+  const seg = LOUPE.segments[near.i], reading = seg.parts.filter((p) => p.ruby).map((p) => p.ruby).join("") || "—", span = L.span(near.i);
+  utag.textContent = `${String(near.i).padStart(2, "0")}  ${reading}${span ? `  ${span.start.toFixed(2)}–${span.end.toFixed(2)} s` : ""}`;
+  const right = X + R * 0.72 + 6, fits = right + utag.offsetWidth < lb.width;
+  utag.style.left = `${fits ? right : Math.max(0, X - R * 0.72 - 6 - utag.offsetWidth)}px`; utag.style.top = `${Math.max(0, Y - R * 0.72 - 22)}px`;
+  return near.i;
+}
+function parkOn(i) { parked = (i + centres.length) % centres.length; place(centres[parked].x, centres[parked].y); }
+function local(e) { const tb = topL.getBoundingClientRect(); return [e.clientX - tb.left, e.clientY - tb.top]; }
+loupe.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse") place(...local(e)); });
+loupe.addEventListener("pointerdown", (e) => { parked = place(...local(e)); });
+loupe.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") parkOn(parked); });
+loupe.addEventListener("keydown", (e) => { if (e.key === "ArrowRight" || e.key === "ArrowDown") { parkOn(parked + 1); e.preventDefault(); } if (e.key === "ArrowLeft" || e.key === "ArrowUp") { parkOn(parked - 1); e.preventDefault(); } });
+function relayout() { layoutGuides(); parkOn(parked); }
+relayout();
+new ResizeObserver(relayout).observe(loupe);
+window.__ready = true;
+})().catch((e) => console.error("tsubu site:", e));
+</script>
