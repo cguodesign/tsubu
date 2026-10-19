@@ -26,14 +26,13 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_captured_frames_are_the_same_in_any_order(tmp_path):
-    pytest.importorskip("playwright.sync_api", reason="the capture example needs Playwright")
+def test_captured_frames_are_the_same_in_any_order(tmp_path, browser):
     capture = load_capture()
     times = capture.frame_times(SENTENCE, 10, 0.2)
     assert len(times) == 31 and times[0] == pytest.approx(-0.2) and times[-1] == pytest.approx(2.8)
-    forward = capture.render(SENTENCE, tmp_path / "forward", fps=10, width=640, height=360, pad=0.2, motion="underline-draw")
-    backward = capture.render(SENTENCE, tmp_path / "backward", fps=10, width=640, height=360, pad=0.2, motion="underline-draw",
-                              order=list(reversed(range(len(times)))))
+    shot = dict(fps=10, width=640, height=360, pad=0.2, motion="underline-draw", browser=browser)
+    forward = capture.render(SENTENCE, tmp_path / "forward", **shot)
+    backward = capture.render(SENTENCE, tmp_path / "backward", order=list(reversed(range(len(times)))), **shot)
     assert [digest(p) for p in forward] == [digest(p) for p in backward]
     assert not (tmp_path / "forward" / "page.html").exists()
     # and the highlight really moves: the frames are not all alike

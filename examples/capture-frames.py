@@ -43,9 +43,10 @@ def frame_times(sentence, fps, pad):
     return [first + i / fps for i in range(math.floor((last - first) * fps + 1e-6) + 1)]
 
 
-def render(sentence, out, *, fps=30, width=1280, height=720, theme="media", motion=None, pad=0.5, order=None):
+def render(sentence, out, *, fps=30, width=1280, height=720, theme="media", motion=None, pad=0.5, order=None, browser=None):
     """Writes frame_00000.png ... into `out` and returns their paths. `order` renders the frames in
-    another order (a list of frame indexes), which must not change a single pixel."""
+    another order (a list of frame indexes), which must not change a single pixel. `browser` is a
+    Playwright Chromium to use instead of launching one."""
     out.mkdir(parents=True, exist_ok=True)
     times = frame_times(sentence, fps, pad)
     page_file = out / "page.html"
@@ -54,31 +55,41 @@ def render(sentence, out, *, fps=30, width=1280, height=720, theme="media", moti
                          encoding="utf-8")
     options = {"theme": theme, **({"motion": motion} if motion else {})}
     paths = [out / f"frame_{i:05d}.png" for i in range(len(times))]
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
-        try:
-            page = browser.new_page(viewport={"width": width, "height": height})
-            page.goto(page_file.as_uri())
-            page.evaluate("""([input, options]) => {
-              window.S = Tsubu.sentence(input, options);
-              document.getElementById("frame").innerHTML = S.html;
-              return document.fonts.ready.then(() => true);
-            }""", [sentence, options])
-            for i in (order if order is not None else range(len(times))):
-                # A fresh copy of the sentence for every frame: then Chromium paints the whole of it
-                # anew. Reusing one and only applying t is the same state, but Chromium repaints only
-                # what changed, and where a highlight's rounded corner lies over the translucent plate
-                # a few edge pixels then depend on which frame came before.
-                page.evaluate("""(t) => {
-                  const frame = document.getElementById("frame");
-                  frame.innerHTML = S.html;
-                  S.apply(frame.querySelector(".tsubu"), t);
-                }""", times[i])
-                page.screenshot(path=str(paths[i]))
-        finally:
-            browser.close()
+    if browser is None:
+        with sync_playwright() as playwright:
+            launched = playwright.chromium.launch(headless=True)
+            try:
+                draw(launched, page_file, sentence, options, times, paths, order, width, height)
+            finally:
+                launched.close()
+    else:
+        draw(browser, page_file, sentence, options, times, paths, order, width, height)
     page_file.unlink()
     return paths
+
+
+def draw(browser, page_file, sentence, options, times, paths, order, width, height):
+    page = browser.new_page(viewport={"width": width, "height": height})
+    try:
+        page.goto(page_file.as_uri())
+        page.evaluate("""([input, options]) => {
+          window.S = Tsubu.sentence(input, options);
+          document.getElementById("frame").innerHTML = S.html;
+          return document.fonts.ready.then(() => true);
+        }""", [sentence, options])
+        for i in (order if order is not None else range(len(times))):
+            # A fresh copy of the sentence for every frame: then Chromium paints the whole of it
+            # anew. Reusing one and only applying t is the same state, but Chromium repaints only
+            # what changed, and where a highlight's rounded corner lies over the translucent plate
+            # a few edge pixels then depend on which frame came before.
+            page.evaluate("""(t) => {
+              const frame = document.getElementById("frame");
+              frame.innerHTML = S.html;
+              S.apply(frame.querySelector(".tsubu"), t);
+            }""", times[i])
+            page.screenshot(path=str(paths[i]))
+    finally:
+        page.close()
 
 
 def main():
