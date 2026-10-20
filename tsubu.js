@@ -38,6 +38,11 @@
    * under (below, at the left). */
   const ANNOTATIONS = Object.freeze(["ruby", "romaji", "none"]);
   const SIDES = Object.freeze(["over", "under"]);
+  /* Where loanwords' origins are drawn: over the text, in the furigana's row, or not at all. */
+  const ORIGINS = Object.freeze(["over", "none"]);
+  /* A language tag as BCP 47 writes one: a language of two to eight letters, then subtags of
+   * letters and digits ("pt", "en-GB", "zh-Hant"). Only its shape is checked. */
+  const LANGUAGE_TAG = /^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/;
 
   /* The smallest contrast ratio each layer must have against what is behind it, after WCAG 2.2:
    * text and furigana as normal-size text (1.4.3, AA), the underline and the highlight as
@@ -144,12 +149,17 @@
       if (!segment || typeof segment !== "object") fail(`${where} must be an object`);
       if (segment.kind !== undefined && segment.kind !== "punct") fail(`${where}: unknown kind ${JSON.stringify(segment.kind)}`);
       if (!Array.isArray(segment.parts) || segment.parts.length === 0) fail(`${where} needs a non-empty \`parts\` array`);
+      const punct = segment.kind === "punct";
       const parts = segment.parts.map((part, j) => {
         if (!part || typeof part.text !== "string" || part.text === "") fail(`${where}, part ${j} needs non-empty \`text\``);
         if (part.ruby !== undefined && (typeof part.ruby !== "string" || part.ruby === "")) fail(`${where}, part ${j}: \`ruby\` must be a non-empty string`);
-        return part.ruby === undefined ? { text: part.text } : { text: part.text, ruby: part.ruby };
+        const made = part.ruby === undefined ? { text: part.text } : { text: part.text, ruby: part.ruby };
+        if (part.origin !== undefined) {
+          if (punct) fail(`${where}, part ${j}: punctuation carries no origin`);
+          made.origin = originOf(part.origin, `${where}, part ${j}`);
+        }
+        return made;
       });
-      const punct = segment.kind === "punct";
       const timed = segment.start !== undefined || segment.end !== undefined;
       if (punct && timed) fail(`${where}: punctuation carries no time of its own`);
       if (timed) checkSpan(segment.start, segment.end, where);
@@ -199,6 +209,18 @@
     return { lang: input.lang || "ja", segments, timing, start, end };
   }
 
+  /* A loanword's origin, as the caller gives it: the source word, the language it comes from, and
+   * whether it is a pseudo-loanword coined in Japanese (wasei-eigo, such as サラリーマン). It is the
+   * caller's, from a dictionary such as JMdict or from its own knowledge: tsubu never guesses one. */
+  function originOf(origin, where) {
+    if (!origin || typeof origin !== "object" || Array.isArray(origin)) fail(`${where}: \`origin\` must be an object, { text, lang, wasei? }`);
+    if (typeof origin.text !== "string" || origin.text === "") fail(`${where}: \`origin.text\` must be a non-empty string, the source word`);
+    if (typeof origin.lang !== "string" || !LANGUAGE_TAG.test(origin.lang))
+      fail(`${where}: \`origin.lang\` must be a language tag, such as "pt" or "en", not ${JSON.stringify(origin.lang)}`);
+    if (origin.wasei !== undefined && typeof origin.wasei !== "boolean") fail(`${where}: \`origin.wasei\` must be true or false`);
+    return origin.wasei ? { text: origin.text, lang: origin.lang, wasei: true } : { text: origin.text, lang: origin.lang };
+  }
+
   /* A part's text as HTML, with each run of half-width characters no longer than `upright` in a
    * span that vertical text sets upright (tsubu.css). In horizontal text the span has no style,
    * so it changes nothing there. */
@@ -208,6 +230,19 @@
       .split(HALF_WIDTH_RUN)
       .map((piece, i) => (i % 2 === 1 && piece.length <= upright ? `<span class="tsubu-upright">${escapeHTML(piece)}</span>` : escapeHTML(piece)))
       .join("");
+  }
+
+  /* An origin's reading: the source word in its own language, so that a screen reader says it in
+   * that language, then the language's code, which the stylesheet sets smaller; a pseudo-loanword's
+   * is preceded by 和製 ("made in Japan"), in text rather than in the stylesheet, so that it is read
+   * and survives where the stylesheet does not. The comma between word and code is for what cannot
+   * draw ruby, which shows パン（pão, pt）; the stylesheet hides it. The body is what the stylesheet
+   * moves off the text. */
+  function originHTML(origin, hidden) {
+    const wasei = origin.wasei ? '<span class="tsubu-origin-wasei" lang="ja">和製</span> ' : "";
+    const lang = escapeHTML(origin.lang);
+    return `<rp${hidden}>（</rp><rt lang="${lang}"${hidden}><span class="tsubu-origin-body">${wasei}${escapeHTML(origin.text)}` +
+      `<span class="tsubu-origin-sep">, </span><span class="tsubu-origin-lang">${lang}</span></span></rt><rp${hidden}>）</rp>`;
   }
 
   /* The attributes apply() writes for a state, as HTML (in the order Chromium serialises them,
@@ -237,7 +272,11 @@
       let inner = segment.parts
         .map((p) => {
           const base = textHTML(p.text, upright);
-          return p.ruby === undefined || !drawn("ruby") ? base : `<ruby>${base}${open}${escapeHTML(p.ruby)}${close}</ruby>`;
+          if (p.ruby !== undefined) return drawn("ruby") ? `<ruby>${base}${open}${escapeHTML(p.ruby)}${close}</ruby>` : base;
+          // A loanword's origin is a ruby of its own over the part, in the row the furigana use: a
+          // loanword is mostly katakana, which has no furigana, so the row is free there. A part
+          // with furigana (a loanword written in kanji, 珈琲) keeps them and has no origin drawn.
+          return p.origin !== undefined && look.origin === "over" ? `<ruby class="tsubu-origin">${base}${originHTML(p.origin, hidden)}</ruby>` : base;
         })
         .join("");
       // The romaji annotate the whole segment: a ruby around its parts, furigana and all, whose
@@ -279,7 +318,9 @@
     // is written only where it differs from furigana over and nothing under.
     const layers = (look.over === "ruby" ? "" : ` data-over-layer="${look.over}"`) +
       (look.under === "none" ? "" : ` data-under-layer="${look.under}" data-under="${shown.under ? "on" : "off"}"`);
-    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${shown.over ? "on" : "off"}"${layers}${theme}${speaker}${motion}${writing}${state}>${joined}</span>`;
+    // data-origin shows or hides the origins, and is written only where they are drawn.
+    const origin = look.origin === "over" ? ' data-origin="on"' : "";
+    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${shown.over ? "on" : "off"}"${layers}${origin}${theme}${speaker}${motion}${writing}${state}>${joined}</span>`;
   }
 
   /* The state of the sentence and of each segment at t (seconds, on the same clock as the
@@ -432,9 +473,10 @@
 
   /**
    * Tsubu.sentence(input, options) -> { html, timing, stateAt(t), htmlAt(t), apply(root, t), span(i), find(id) }
-   *   input:   { lang?, start?, end?, segments: [{ parts: [{ text, ruby? }], romaji?, start?, end?, kind?, id?, tags? }] }
+   *   input:   { lang?, start?, end?, segments: [{ parts: [{ text, ruby?, origin?: { text, lang, wasei? } }], romaji?, start?, end?, kind?, id?, tags? }] }
    *   options: { ruby: true | false (default true), announceRuby: true | false (default true),
    *              over: "ruby" | "romaji" | "none" (default "ruby"), under: the same (default "none"),
+   *              origin: "over" | "none" (default "none"), not "over" with over: "romaji",
    *              theme?: name, speaker?: name, motion?: names from MOTIONS,
    *              writing?: "horizontal" | "vertical", combineUpright: 0 to 4 (default 2) }
    * `ruby` says whether the over side starts out shown; the under side always starts out shown.
@@ -451,13 +493,18 @@
       if (opts[key] !== undefined && !ANNOTATIONS.includes(opts[key])) fail(`options.${key} must be "ruby", "romaji" or "none"`);
     const over = opts.over === undefined ? "ruby" : opts.over, under = opts.under === undefined ? "none" : opts.under;
     if (over === under && over !== "none") fail(`options.over and options.under are both ${JSON.stringify(over)}: a layer can be drawn on one side only`);
+    if (opts.origin !== undefined && !ORIGINS.includes(opts.origin)) fail('options.origin must be "over" or "none"');
+    const origin = opts.origin === undefined ? "none" : opts.origin;
+    // Romaji over the text take the row the origins would be drawn in.
+    if (origin === "over" && over === "romaji")
+      fail('options.origin "over" and options.over "romaji" would both be drawn over the text: draw the romaji under it (under: "romaji") or the origins not at all');
     const upright = opts.combineUpright === undefined ? 2 : opts.combineUpright;
     if (!Number.isInteger(upright) || upright < 0 || upright > UPRIGHT_MAX)
       fail(`options.combineUpright must be a whole number of characters from 0 to ${UPRIGHT_MAX}`);
     const normalised = normalise(input);
     const shown = { over: opts.ruby !== false, under: true };
     const look = { theme: opts.theme, speaker: opts.speaker, announceRuby: opts.announceRuby, motion: motionNames(opts.motion),
-      writing: opts.writing, combineUpright: upright, over, under };
+      writing: opts.writing, combineUpright: upright, over, under, origin };
     return Object.freeze({
       html: renderHTML(normalised, shown, look),
       timing: normalised.timing,
@@ -516,13 +563,17 @@
     return segment ? Number(segment.getAttribute("data-index")) : null;
   }
 
-  /* Shows or hides one side's annotations of a drawn sentence: "over" (the furigana, unless
-   * options.over named another layer) or "under". Each <rt> keeps its place in the layout either
-   * way, so no character moves. */
+  /* Shows or hides one side's annotations of a drawn sentence, "over" (the furigana, unless
+   * options.over named another layer) or "under", or the loanwords' origins ("origin"), which have a
+   * switch of their own although they are drawn over the text. Each <rt> keeps its place in the
+   * layout either way, so no character moves. data-origin also tells the stylesheet that origins
+   * are drawn, and gives them room, so on a sentence drawn without them it is not written. */
+  const SWITCHES = Object.freeze({ over: "data-ruby", under: "data-under", origin: "data-origin" });
   function setAnnotation(root, side, on) {
     if (!root || !root.classList || !root.classList.contains("tsubu")) fail('setAnnotation needs the element with class "tsubu"');
-    if (!SIDES.includes(side)) fail('setAnnotation: the side must be "over" or "under"');
-    root.setAttribute(side === "over" ? "data-ruby" : "data-under", on ? "on" : "off");
+    if (!Object.prototype.hasOwnProperty.call(SWITCHES, side)) fail('setAnnotation: what is switched must be "over", "under" or "origin"');
+    if (side === "origin" && !root.hasAttribute("data-origin")) return;
+    root.setAttribute(SWITCHES[side], on ? "on" : "off");
   }
 
   /* The over side, by its old name. */
@@ -615,9 +666,11 @@
   }
 
   const LAYERS = Object.freeze(["text", "ruby", "underline", "highlight"]);
-  /* A segment's readings: the furigana of its parts, and its romaji (see renderHTML). */
-  const FURIGANA = "ruby:not(.tsubu-romaji) > rt";
+  /* A segment's readings: the furigana of its parts, its romaji, and its loanwords' origins (see
+   * renderHTML). */
+  const FURIGANA = "ruby:not(.tsubu-romaji, .tsubu-origin) > rt";
   const ROMAJI = ".tsubu-romaji > rt";
+  const ORIGIN = ".tsubu-origin > rt";
 
   /* The colour of a highlight's band: the stylesheet paints it as a one-colour gradient (its first
    * colour, read up to the first comma outside parentheses), or, should a theme set a background
@@ -640,11 +693,11 @@
    * Tsubu.checkContrast(root, options) -> { ok, checks, failures }
    * Measures the colours the browser computes for a drawn sentence in every state ("static",
    * before any apply and with timing "none", then each of STATES), for each layer (text,
-   * furigana, romaji, underline, and the highlight against what surrounds it), against each
-   * backdrop. A layer is measured against the highlight when the highlight covers its middle:
+   * furigana, romaji, origins, underline, and the highlight against what surrounds it), against
+   * each backdrop. A layer is measured against the highlight when the highlight covers its middle:
    * readings sit above or below the highlighted em box (to its right or left in vertical text),
-   * so they are measured against the plate and the backdrop. Romaji are small text, as furigana
-   * are, and are held to the furigana's threshold (`ruby`).
+   * so they are measured against the plate and the backdrop. Romaji and origins are small text, as
+   * furigana are, and are held to the furigana's threshold (`ruby`).
    *   options: { backdrop?: colour | [colours] | "any", thresholds?: { text, ruby, underline, highlight } }
    * It works on a copy of the sentence, which it removes again: the page is left as it was.
    */
@@ -676,6 +729,7 @@
       // revealed.)
       copy.setAttribute("data-ruby", "on");
       if (copy.hasAttribute("data-under")) copy.setAttribute("data-under", "on");
+      if (copy.hasAttribute("data-origin")) copy.setAttribute("data-origin", "on");
       // Where each segment's highlight and underline lie is measured on probes that take their
       // geometry from the same rules as its ::before and ::after (see the stylesheet).
       const probes = new Map();
@@ -727,8 +781,12 @@
             const [top, bottom] = axis.span(el.getBoundingClientRect());
             const onBand = (top + bottom) / 2 >= from && (top + bottom) / 2 <= to;
             if (style.visibility !== "hidden") layers.push(["text", style.color, onBand ? behind : base, fade(el)]);
-            // The first reading of each layer: the readings of a segment share their colours.
-            for (const [layer, rt] of [["ruby", el.querySelector(FURIGANA)], ["romaji", el.querySelector(ROMAJI)]]) {
+            // The first reading of each layer: the readings of a segment share their colours. An
+            // origin's language code and 和製 mark are measured too, should a theme colour them.
+            const origin = el.querySelector(ORIGIN);
+            const readings = [["ruby", el.querySelector(FURIGANA)], ["romaji", el.querySelector(ROMAJI)], ["origin", origin]];
+            if (origin) for (const label of origin.querySelectorAll(".tsubu-origin-lang, .tsubu-origin-wasei")) readings.push(["origin", label]);
+            for (const [layer, rt] of readings) {
               const rtStyle = rt && getComputedStyle(rt);
               if (!rt || rtStyle.visibility === "hidden") continue;
               const [a, b] = axis.span(rt.getBoundingClientRect());
@@ -750,7 +808,7 @@
               if (paint[3] === 0) continue;
               const fg = layer === "highlight" ? over(paint, base) : over(paint, under);
               const bg = layer === "highlight" ? base : under;
-              const ratio = ratioOf(fg, bg), minimum = thresholds[layer === "romaji" ? "ruby" : layer];
+              const ratio = ratioOf(fg, bg), minimum = thresholds[layer === "romaji" || layer === "origin" ? "ruby" : layer];
               const key = [state, layer, colour, alpha, bg.join(), backdrop].join("|");
               if (!seen.has(key)) {
                 const hex = (c) => "#" + c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
@@ -774,13 +832,13 @@
    * Measures whether a drawn sentence fits where it is drawn: in its container (options.container,
    * else the root's parent element), at the size, font and width it has there. It works on a copy
    * of the sentence the same size as the root, with every segment shown and the readings on both
-   * sides on, and removes it again: the page is left as it was. A sentence paged by t is checked
-   * page by page. Each issue is { kind, segment, page, by, message }:
+   * sides and the origins on, and removes it again: the page is left as it was. A sentence paged
+   * by t is checked page by page. Each issue is { kind, segment, page, by, message }:
    *   "overflow"        a segment or its furigana reach past the container's padding box (by px);
    *   "too-wide"        a unit of segments that may not be parted is longer than a line, so it can
    *                     only overflow: shorten the segment, or make the text smaller;
-   *   "ruby-clipped"    a reading, furigana or romaji, reaches past the container's padding box
-   *                     (above or below the text, or beside it in vertical text): raise
+   *   "ruby-clipped"    a reading, furigana, romaji or origin, reaches past the container's
+   *                     padding box (above or below the text, or beside it in vertical text): raise
    *                     --tsubu-ruby-reserve (over) or --tsubu-under-reserve (under), or give the
    *                     container room;
    *   "too-many-lines"  more lines than --tsubu-max-lines in a sentence that cannot be paged (one
@@ -800,6 +858,7 @@
     copy.setAttribute("aria-hidden", "true");
     copy.setAttribute("data-ruby", "on");
     if (copy.hasAttribute("data-under")) copy.setAttribute("data-under", "on");
+    if (copy.hasAttribute("data-origin")) copy.setAttribute("data-origin", "on");
     copy.removeAttribute("data-measuring");
     copy.removeAttribute("data-greedy");
     // The same box as the root: its width (and in vertical text its height, the length of a
@@ -871,8 +930,13 @@
           if (by > 0.5) issues.push({ kind: "overflow", segment: i, page: paged ? page : null, by: round(by),
             message: `segment ${i}, ${JSON.stringify(name(el))}, reaches ${round(by)}px past its container` });
           el.querySelectorAll("rt").forEach((rt) => {
-            const q = shift(rt.getBoundingClientRect()), out = past(q);
-            const what = rt.matches(ROMAJI) ? "romaji" : "furigana";
+            // An origin's body is moved off the text, past the <rt>'s box in some engines (see the
+            // stylesheet): both are measured.
+            const body = rt.matches(ORIGIN) && rt.querySelector(".tsubu-origin-body");
+            const own = rt.getBoundingClientRect(), moved = body ? body.getBoundingClientRect() : own;
+            const q = shift({ left: Math.min(own.left, moved.left), right: Math.max(own.right, moved.right),
+              top: Math.min(own.top, moved.top), bottom: Math.max(own.bottom, moved.bottom) }), out = past(q);
+            const what = rt.matches(ROMAJI) ? "romaji" : rt.matches(ORIGIN) ? "origin" : "furigana";
             if (out > 0.5) issues.push({ kind: "ruby-clipped", segment: i, page: paged ? page : null, by: round(out),
               message: `the ${what} ${JSON.stringify(rt.textContent)} of segment ${i} reach ${round(out)}px past the container` });
           });

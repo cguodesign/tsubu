@@ -17,7 +17,7 @@ export declare const SPEAKERS: typeof Tsubu.SPEAKERS;
 export declare const CONTRAST: typeof Tsubu.CONTRAST;
 export declare const MOTIONS: typeof Tsubu.MOTIONS;
 export type {
-  Part, Segment, Input, Writing, Annotation, Side, Options, Timing, State, Revealed, SegmentState, Frame, AppliedFrame,
+  Part, Origin, Segment, Input, Writing, Annotation, Side, OriginPlace, Switch, Options, Timing, State, Revealed, SegmentState, Frame, AppliedFrame,
   Span, Sentence, Layer, Thresholds, ContrastOptions, ContrastCheck, ContrastResult, FitOptions,
   FitIssue, FitResult, MotionParameter, Motion, API,
 } from "./tsubu.js";

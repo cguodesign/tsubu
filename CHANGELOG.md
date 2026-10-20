@@ -8,6 +8,26 @@ All notable changes to tsubu are recorded here. The format follows
 
 ### Added
 
+- Loanwords' origins, drawn over the text. A part may carry `origin: { text, lang, wasei? }`: the
+  source word, its language as a BCP 47 tag, and `wasei: true` for a pseudo-loanword coined in
+  Japanese. The caller supplies it (JMdict's `lsource` is one source, whose licence requires
+  attribution); tsubu bundles no dictionary and never guesses one. A malformed origin, and an origin
+  on punctuation, are refused. `options.origin` (`"over"` or `"none"`, the default) says whether
+  origins are drawn: each part with an origin and no furigana becomes a ruby of its own
+  (`.tsubu-origin`) whose reading is the source word, then its language code, smaller, and for a
+  pseudo-loanword 和製 before them, in the row the furigana use; a part with furigana (a loanword
+  in kanji) keeps them and has no origin drawn. `origin: "over"` with `over: "romaji"` is refused,
+  since both would take that row. `Tsubu.setAnnotation(root, "origin", on)` switches them by the
+  root's `data-origin`, apart from the over side's switch; hidden origins keep their room, so nothing
+  moves, in horizontal and vertical text and over several lines. With `origin: "none"` the HTML is
+  unchanged, origins or not. Each origin's `<rt>` carries its `lang`, and what cannot draw ruby shows
+  パン（pão, pt）. Origins are moved off the text by `--tsubu-reading-gap`, so their descenders clear
+  the highlight; with readings under the text the lines get the room for both. New custom
+  properties: `--tsubu-origin-size` and `--tsubu-origin-label-size`. Origins take the furigana's
+  colours, are measured by `checkContrast` as layer `"origin"` against the furigana's threshold and
+  by `checkFit`, are treated as furigana by the motion presets and forced colours, and are hidden
+  from screen readers with `announceRuby: false`. The exporters and importers accept origins in
+  their input and carry none. The guide and the playground have a live example with a switch.
 - Romaji, and a choice of what is drawn over and under the text. A segment may carry `romaji`,
   the romanised reading of the whole segment, which tsubu never makes itself; it is refused on
   punctuation and when it is not a non-empty string. `options.over` (default `"ruby"`) and

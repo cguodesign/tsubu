@@ -203,10 +203,13 @@ LAYERS = """() => {
   }
   const readings = [...root.querySelectorAll("rt")].map((rt) => {
     const range = document.createRange(); range.selectNodeContents(rt);
-    return {layer: rt.parentElement.classList.contains("tsubu-romaji") ? "romaji" : "ruby", text: rt.textContent,
-            seg: segs.indexOf(rt.closest(".tsubu-seg")), hidden: !!rt.closest("[data-off-page]"),
+    const classes = rt.parentElement.classList, ink = box(range.getBoundingClientRect());
+    const layer = classes.contains("tsubu-romaji") ? "romaji" : classes.contains("tsubu-origin") ? "origin" : "ruby";
+    // An origin is moved off the text by relative positioning, past its <rt>'s box (see the
+    // stylesheet), so its box is where its text is drawn (tests/test_origin.py).
+    return {layer, text: rt.textContent, seg: segs.indexOf(rt.closest(".tsubu-seg")), hidden: !!rt.closest("[data-off-page]"),
             visibility: getComputedStyle(rt).visibility, size: parseFloat(getComputedStyle(rt).fontSize),
-            box: box(rt.getBoundingClientRect()), ink: box(range.getBoundingClientRect())};
+            box: layer === "origin" ? ink : box(rt.getBoundingClientRect()), ink};
   });
   const segments = segs.map((el) => ({punct: el.dataset.kind === "punct", offPage: el.hasAttribute("data-off-page"),
     box: box(el.getBoundingClientRect()), band: probe(el, "band"), line: probe(el, "line"),
@@ -226,7 +229,8 @@ def layers(at, t=None, over=None, under=None):
 
 
 def side_of(layer, over, under):
-    return "over" if layer == over else "under" if layer == under else None
+    # origins are always over the text (tests/test_origin.py)
+    return "over" if layer in (over, "origin") else "under" if layer == under else None
 
 
 def frozen(found):
@@ -292,7 +296,7 @@ def test_set_ruby_is_set_annotation_over(drawn):
     errors = page.evaluate("""() => ['left', 'Over', undefined].map((side) => {
       try { Tsubu.setAnnotation(document.querySelector('.tsubu'), side, true); } catch (e) { return e.message; } })
       .concat([(() => { try { Tsubu.setAnnotation(document.body, 'under', true); } catch (e) { return e.message; } })()])""")
-    assert errors == ['tsubu: setAnnotation: the side must be "over" or "under"'] * 3 + ['tsubu: setAnnotation needs the element with class "tsubu"']
+    assert errors == ['tsubu: setAnnotation: what is switched must be "over", "under" or "origin"'] * 3 + ['tsubu: setAnnotation needs the element with class "tsubu"']
 
 
 @pytest.mark.parametrize("over, under", LAYOUTS, ids=LAYOUT_IDS)

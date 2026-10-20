@@ -10,6 +10,21 @@ declare namespace Tsubu {
   interface Part {
     text: string;
     ruby?: string;
+    /**
+     * Where a loanword comes from, drawn over the part with options.origin "over"; tsubu never
+     * guesses one. A part with `ruby` keeps its furigana and has no origin drawn. Not on punctuation.
+     */
+    origin?: Origin;
+  }
+
+  /** A loanword's origin, such as { text: "pão", lang: "pt" } for パン. */
+  interface Origin {
+    /** The source word. */
+    text: string;
+    /** The source language, as a BCP 47 tag such as "pt" or "en". */
+    lang: string;
+    /** A pseudo-loanword coined in Japanese (wasei-eigo, such as サラリーマン); drawn with 和製. */
+    wasei?: boolean;
   }
 
   /** One unit of reading. Times are in seconds on the caller's clock. */
@@ -43,16 +58,22 @@ declare namespace Tsubu {
   type Annotation = "ruby" | "romaji" | "none";
   /** Over: above the text (at its right in vertical text); under: below it (at its left). */
   type Side = "over" | "under";
+  /** Where loanwords' origins are drawn: over the text, or not at all. */
+  type OriginPlace = "over" | "none";
+  /** What setAnnotation switches: a side, or the origins, which have a switch of their own. */
+  type Switch = Side | "origin";
 
   interface Options {
     /** Whether the over side (the furigana, by default) starts out shown. Default true. */
     ruby?: boolean;
-    /** Whether screen readers read each reading, furigana and romaji. Default true. */
+    /** Whether screen readers read each reading, furigana, romaji and origins. Default true. */
     announceRuby?: boolean;
     /** What is drawn over the text. Default "ruby". Not the same layer as `under`. */
     over?: Annotation;
     /** What is drawn under the text. Default "none". Not the same layer as `over`. */
     under?: Annotation;
+    /** Whether loanwords' origins are drawn over the text. Default "none". Not with over "romaji". */
+    origin?: OriginPlace;
     /** A preset from THEMES, or a lower-case name of your own. */
     theme?: string;
     /** A speaker from SPEAKERS, or a lower-case name of your own. */
@@ -106,8 +127,8 @@ declare namespace Tsubu {
     find(id: string): number | null;
   }
 
-  /** "romaji" is measured against the `ruby` threshold. */
-  type Layer = "text" | "ruby" | "romaji" | "underline" | "highlight";
+  /** "romaji" and "origin" are measured against the `ruby` threshold. */
+  type Layer = "text" | "ruby" | "romaji" | "origin" | "underline" | "highlight";
 
   interface Thresholds {
     text: number;
@@ -182,7 +203,7 @@ declare namespace Tsubu {
     readonly version: string;
     sentence(input: Input, options?: Options): Sentence;
     setRuby(root: Element, on: boolean): void;
-    setAnnotation(root: Element, side: Side, on: boolean): void;
+    setAnnotation(root: Element, side: Switch, on: boolean): void;
     setRevealed(root: Element, which: Revealed): number[];
     segmentOf(node: Node | null | undefined): number | null;
     contrast(foreground: string, background: string, backdrop?: string): number;

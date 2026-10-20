@@ -7,17 +7,21 @@
  * Layout
  *   --tsubu-line-height              1.75
  *   --tsubu-ruby-reserve             0.3em    room above the first line for its furigana
- *                                             (at the right of the first column in vertical text)
+ *                                             (at the right of the first column in vertical text);
+ *                                             with origins drawn, --tsubu-reading-gap more
  *   --tsubu-ruby-size                0.5em
- *   --tsubu-ruby-weight              400      (romaji too)
+ *   --tsubu-ruby-weight              400      (romaji and origins too)
  *   --tsubu-romaji-size              --tsubu-ruby-size
+ *   --tsubu-origin-size              --tsubu-ruby-size   loanwords' origins
+ *   --tsubu-origin-label-size        0.75em   an origin's language code and 和製 mark, in em of
+ *                                             the origin
  *   --tsubu-under-reserve            0.5em    room below the last line for the readings under it
  *                                             (at the left of the last column in vertical text)
  *   --tsubu-reading-gap              0.2em    between the text and the readings under it (twice
- *                                             that past them), and the romaji over it, in em of the
- *                                             reading: the underline runs clear of the one, the
- *                                             highlight of the other's descenders (furigana over
- *                                             the text have none)
+ *                                             that past them), and the romaji and origins over it,
+ *                                             in em of the reading: the underline runs clear of the
+ *                                             one, the highlight of the other's descenders
+ *                                             (furigana over the text have none)
  *   --tsubu-underline-style          dotted
  *   --tsubu-underline-width          0.06em
  *   --tsubu-underline-offset         0.02em   below the bottom of the text's em box (left of it in
@@ -60,7 +64,7 @@
  *
  *   --tsubu-progress                 written by apply(); read it, do not set it
  *
- * Romaji take the furigana's colours in every group.
+ * Romaji and origins take the furigana's colours in every group.
  *
  * No box changes size with the state, the switch of either side's readings, the theme or the
  * speaker: these change colours and the background of one positioned layer only, and hidden
@@ -294,6 +298,13 @@
 .tsubu[data-under-layer][data-over-layer="romaji"]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg { --tsubu-seg-over: calc(var(--tsubu-seg-romaji) + var(--tsubu-seg-gap)); }
 .tsubu[data-under-layer][data-over-layer="none"]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg { --tsubu-seg-over: 0px; }
 .tsubu[data-under-layer="romaji"]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg { --tsubu-seg-under: calc(var(--tsubu-seg-romaji) + 2 * var(--tsubu-seg-gap)); }
+/* Origins are over the text, in the furigana's row: that side's room is the larger of the two. */
+.tsubu[data-under-layer][data-origin]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg {
+  --tsubu-seg-origin: calc(1.5 * var(--tsubu-origin-size, var(--tsubu-ruby-size, 0.5em)) + var(--tsubu-seg-gap));
+  --tsubu-seg-half: calc(0.5em + max(var(--tsubu-seg-ruby), var(--tsubu-seg-origin)) + var(--tsubu-seg-romaji) + 2 * var(--tsubu-seg-gap));
+  --tsubu-seg-over: max(var(--tsubu-seg-ruby), var(--tsubu-seg-origin));
+}
+.tsubu[data-under-layer][data-over-layer="none"][data-origin]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg { --tsubu-seg-over: var(--tsubu-seg-origin); }
 .tsubu[data-under-layer]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-romaji ruby {
   line-height: 1;
 }
@@ -361,7 +372,7 @@
 .tsubu-stack {
   display: inline-block;
 }
-.tsubu[data-under-layer="ruby"] ruby:not(.tsubu-romaji),
+.tsubu[data-under-layer="ruby"] ruby:not(.tsubu-romaji, .tsubu-origin),
 .tsubu[data-under-layer="romaji"] .tsubu-romaji {
   ruby-position: under;
 }
@@ -370,7 +381,7 @@
  * Twice as much past the readings under the text keeps them apart from the next line's readings,
  * which the lines otherwise only just make room for, so that it is clear which line each belongs
  * to. */
-.tsubu[data-under-layer="ruby"] ruby:not(.tsubu-romaji) > rt,
+.tsubu[data-under-layer="ruby"] ruby:not(.tsubu-romaji, .tsubu-origin) > rt,
 .tsubu[data-under-layer="romaji"] .tsubu-romaji > rt {
   padding-block: var(--tsubu-reading-gap, 0.2em) calc(2 * var(--tsubu-reading-gap, 0.2em));
 }
@@ -385,13 +396,77 @@
   padding-block-end: var(--tsubu-under-reserve, 0.5em);
 }
 
+/*
+ * Loanwords' origins (options.origin "over"): a part with an origin and no furigana is a ruby of its
+ * own, .tsubu-origin, whose reading is the source word, its language code and, for a pseudo-loanword
+ * coined in Japanese, 和製 before them. It is drawn over the text, in the furigana's row, which a
+ * loanword in katakana leaves free, and the lines make room for it as they do for furigana. Origins
+ * take the furigana's colours in every group, so they meet the same threshold; the code and the
+ * mark are set apart by size alone, since a lighter colour would fall below it. The comma between
+ * word and code is for what cannot draw ruby. Romaji over the text are refused with origins, so
+ * the origins never share their row with romaji; with readings under the text, the romaji's ruby
+ * holds the origin's as it holds the furigana's.
+ */
+.tsubu .tsubu-origin > rt {
+  font-size: var(--tsubu-origin-size, var(--tsubu-ruby-size, 0.5em));
+}
+/* As far from the text as romaji over it are, and for the same reason: the descenders of the
+ * source word (the p of pão, the g of glas) stay clear of the highlight, into which they reached.
+ * Moved by relative positioning of the reading's body, which moves it the same in every engine,
+ * horizontally and vertically, where padding on the <rt> (as for romaji) does not in Chromium,
+ * vertical-align does not in Chromium's vertical text, and relative positioning of the <rt> itself
+ * does not in WebKit (all measured). It takes no room, so the room is given where the origins could
+ * meet something: above the first line, and between lines with readings under the text (both below). */
+.tsubu-origin-body {
+  position: relative;
+  inset-block-start: calc(-1 * var(--tsubu-reading-gap, 0.2em));
+}
+.tsubu[data-origin] {
+  padding-block-start: calc(var(--tsubu-ruby-reserve, 0.3em) + var(--tsubu-reading-gap, 0.2em));
+}
+.tsubu-origin-lang,
+.tsubu-origin-wasei {
+  font-size: var(--tsubu-origin-label-size, 0.75em);
+}
+.tsubu-origin-lang {
+  margin-inline-start: 0.3em;
+}
+.tsubu-origin-sep {
+  display: none;
+}
+/* With readings under the text, a line's readings under it and the next line's origins over it
+ * can meet: with the furigana under the text they are on different parts, and Firefox and WebKit
+ * do not move the lines apart for them; with the romaji, whose ruby holds the origins', the lines
+ * make room for both, but not for the origins' move off the text, by which they reached into the
+ * room past the romaji in Chromium and Firefox (all measured). So the lines are given the room
+ * themselves: each holds its text, the readings over it, its origins moved off it, and the readings
+ * under it, with the sizes counted half again for fonts whose content area is taller than their em
+ * box and the gaps in em of the text, as columns are in vertical text, and never less than
+ * --tsubu-line-height. WebKit, which gives the side of a nested reading more room of its own, sets
+ * lines with romaji under the text further apart than that. Vertical text gives each column the
+ * room already (see the vertical rules above). */
+.tsubu[data-origin][data-under-layer] {
+  --tsubu-room-over: max(var(--tsubu-ruby-size, 0.5em), var(--tsubu-origin-size, var(--tsubu-ruby-size, 0.5em)));
+  --tsubu-room-under: var(--tsubu-ruby-size, 0.5em);
+  line-height: max(calc(var(--tsubu-line-height, 1.75) * 1em),
+    calc(1em + 1.5 * var(--tsubu-room-over) + 1.5 * var(--tsubu-room-under) + 3 * var(--tsubu-reading-gap, 0.2em)));
+}
+.tsubu[data-origin][data-under-layer="romaji"] {
+  --tsubu-room-under: var(--tsubu-romaji-size, var(--tsubu-ruby-size, 0.5em));
+}
+.tsubu[data-origin][data-under-layer]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) {
+  line-height: var(--tsubu-line-height, 1.75);
+}
+
 /* Hidden, not removed: display: none would let a word whose reading is wider than its base
  * narrow, and every character after it would move. data-ruby shows or hides the over side,
- * data-under the under side. */
-.tsubu[data-ruby="off"]:not([data-over-layer]) ruby:not(.tsubu-romaji) > rt,
+ * data-under the under side, and data-origin the origins, which are over the text but are not
+ * switched with it. */
+.tsubu[data-ruby="off"]:not([data-over-layer]) ruby:not(.tsubu-romaji, .tsubu-origin) > rt,
 .tsubu[data-ruby="off"][data-over-layer="romaji"] .tsubu-romaji > rt,
-.tsubu[data-under="off"][data-under-layer="ruby"] ruby:not(.tsubu-romaji) > rt,
-.tsubu[data-under="off"][data-under-layer="romaji"] .tsubu-romaji > rt {
+.tsubu[data-under="off"][data-under-layer="ruby"] ruby:not(.tsubu-romaji, .tsubu-origin) > rt,
+.tsubu[data-under="off"][data-under-layer="romaji"] .tsubu-romaji > rt,
+.tsubu[data-origin="off"] .tsubu-origin > rt {
   visibility: hidden;
 }
 

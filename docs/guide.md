@@ -17,14 +17,16 @@ input = {
   segments: [                  // required, in reading order
     { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], romaji: "ie de", start: 0.9, end: 1.3 },
     { parts: [{ text: "、" }], kind: "punct" },
+    { parts: [{ text: "パン", origin: { text: "pão", lang: "pt" } }, { text: "を" }], start: 1.4, end: 1.8 },
     // ...
   ],
 }
 options = {                    // all optional
   over: "ruby",                // what is drawn over the text: "ruby" (default), "romaji" or "none"
   under: "none",               // what is drawn under it: "ruby", "romaji" or "none" (default)
+  origin: "none",              // whether loanwords' origins are drawn over the text: "over" or "none" (default)
   ruby: true,                  // whether the over side (the furigana, by default) starts out shown (default true)
-  announceRuby: true,          // whether screen readers read each reading, furigana and romaji (default true)
+  announceRuby: true,          // whether screen readers read each reading, furigana, romaji and origins (default true)
   theme: "light",              // a preset: "light", "dark", "media", or a name of your own
   speaker: "a",                // whose line this is, for colours per speaker: "a", "b" or your own
   motion: "mask",              // motion presets from Tsubu.MOTIONS, a name, a list or an array
@@ -42,8 +44,12 @@ options = {                    // all optional
   not to a part. tsubu never makes romaji from kana (particles and long vowels make it more than a
   mapping), so a segment without `romaji` simply has none. `options.over` and `options.under` choose
   where the furigana and the romaji are drawn; see [Romaji and the two sides](#romaji-and-the-two-sides).
+- A part may carry `origin`, `{ text, lang, wasei? }`: where a loanword comes from, its source word
+  (`"pão"`), the source language as a BCP 47 tag (`"pt"`), and `wasei: true` for a pseudo-loanword
+  coined in Japanese (サラリーマン). tsubu never guesses one. `options.origin: "over"` draws them over
+  the text; see [Loanword origins](#loanword-origins).
 - `kind: "punct"` marks punctuation: it has no underline, is never the segment being spoken and
-  may not carry a time or romaji.
+  may not carry a time, romaji or an origin.
 - Times are in seconds on the caller's clock, and `t` uses the same clock.
 - A segment may carry an `id` (a non-empty string, unique in the sentence) and `tags` (lower-case
   names, such as `["new-word"]`). They are the caller's: tsubu writes them as `data-id` and
@@ -66,13 +72,18 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
 - segment times that overlap or are out of order, an `end` before its `start`, a time that is not
   a finite number, or only one of `start`/`end`;
 - segment times outside the sentence's `start`/`end`;
-- punctuation with a time or with romaji, no segment that is not punctuation;
+- punctuation with a time, romaji or an origin, no segment that is not punctuation;
 - an empty `segments`, `parts`, `text`, `ruby`, `romaji` or `lang`, an unknown `kind`, an `options.ruby` or
   `options.announceRuby` that is not a boolean, an `options.theme` or `options.speaker` that is not a lower-case name
   (`a-z`, digits and `-`, starting with a letter), or an `options.motion` naming a preset that is
   not in `Tsubu.MOTIONS`;
 - an `options.over` or `options.under` other than `"ruby"`, `"romaji"` and `"none"`, or both
   naming the same layer;
+- an `origin` that is not an object, whose `text` is not a non-empty string, whose `lang` is not
+  shaped like a language tag (letters, then subtags of letters and digits after hyphens: `pt`,
+  `en-GB`), or whose `wasei` is not a boolean; an `options.origin` other than `"over"` and
+  `"none"`, or `"over"` together with `options.over: "romaji"`, which would draw both in the same
+  row;
 - an `options.writing` other than `"horizontal"` and `"vertical"`, an `options.combineUpright`
   that is not a whole number from 0 to 4, or an `options.motion` that is not a name, a
   space-separated list or an array;
@@ -102,7 +113,8 @@ indexes.
   `data-tags`, and, unless the sentence is horizontal by its own option, short runs of half-width
   characters are in `<span class="tsubu-upright">` (see [Vertical writing](#vertical-writing)). With other layers than furigana over the text
   and nothing under it, it carries `data-over-layer`, `data-under-layer` and `data-under` (see
-  [Romaji and the two sides](#romaji-and-the-two-sides)). Punctuation segments carry `data-kind="punct"`.
+  [Romaji and the two sides](#romaji-and-the-two-sides)), and with `options.origin: "over"`
+  `data-origin` (see [Loanword origins](#loanword-origins)). Punctuation segments carry `data-kind="punct"`.
   Segments are grouped in units, and a line breaks only between units (see
   [Several lines](#several-lines)): a segment is never split across lines, and a segment that may
   not begin a line (one that starts with a closing mark, `ー` or a small kana) shares a unit with
@@ -158,7 +170,9 @@ Also on `Tsubu`:
   root's `data-ruby` to `"on"` or `"off"`. It is `setAnnotation(root, "over", on)`: with another
   layer over the text, it switches that layer.
 - **`Tsubu.setAnnotation(root, side, on)`** shows or hides one side's readings: `side` is `"over"`
-  (the root's `data-ruby`) or `"under"` (its `data-under`). Hidden readings keep their room, so
+  (the root's `data-ruby`) or `"under"` (its `data-under`), or the loanwords' origins, `"origin"`
+  (its `data-origin`), which have a switch of their own although they are over the text; on a
+  sentence drawn without origins that switch changes nothing. Hidden readings keep their room, so
   nothing moves.
 - **`Tsubu.setRevealed(root, which)`** reveals segments that a motion preset hides while they are
   unheard: `which` is an array of segment indexes, `"all"` or `"none"`, and replaces the previous
@@ -171,14 +185,14 @@ Also on `Tsubu`:
 - **`Tsubu.checkFit(root, options)`** measures whether a drawn sentence fits where it is drawn:
   in its container (`options.container`, else the root's parent element), at the size, font and
   width it has there. It works on a hidden copy with every segment shown and the readings on both
-  sides on, and checks a sentence paged by `t` page by page. It returns `{ ok, issues, lines, pages }`; each
+  sides and the origins on, and checks a sentence paged by `t` page by page. It returns `{ ok, issues, lines, pages }`; each
   issue is `{ kind, segment, page, by, message }`, `by` in pixels:
   - `"overflow"`: a segment reaches past the container's padding box;
   - `"too-wide"`: segments that may not be parted are longer than a line (or column), so they can
     only overflow: shorten the segment or make the text smaller;
-  - `"ruby-clipped"`: a reading, furigana or romaji (the message says which), reaches past the
-    container: raise `--tsubu-ruby-reserve` (over the text) or `--tsubu-under-reserve` (under it),
-    or give the container room;
+  - `"ruby-clipped"`: a reading, furigana, romaji or origin (the message says which), reaches past
+    the container: raise `--tsubu-ruby-reserve` (over the text) or `--tsubu-under-reserve` (under
+    it), or give the container room;
   - `"too-many-lines"`: more lines than `--tsubu-max-lines` in a sentence that cannot be paged.
 
   The library's own guarantees are tested over a grid of widths (see below); `checkFit` is for the
@@ -187,7 +201,7 @@ Also on `Tsubu`:
   colours (hex, `rgb()`, `rgba()`). A translucent foreground is painted over the background, and a
   translucent background over `backdrop` (default white). Works in Node too.
 - **`Tsubu.CONTRAST`**: the thresholds, `{ text: 4.5, ruby: 4.5, underline: 3, highlight: 3 }`;
-  romaji are held to `ruby`'s.
+  romaji and origins are held to `ruby`'s.
 - **`Tsubu.THEMES`**: `["light", "dark", "media"]`; **`Tsubu.SPEAKERS`**: `["a", "b"]`.
 - **`Tsubu.version`**: `"0.1.0"`.
 - **`Tsubu.STATES`**: `["future", "current", "past"]`.
@@ -213,10 +227,12 @@ Layout and shape:
 | `--tsubu-line-height` | `1.75` | line height |
 | `--tsubu-ruby-reserve` | `0.3em` | room above the first line for its furigana (for whatever is over the text) |
 | `--tsubu-ruby-size` | `0.5em` | furigana size, relative to the text |
-| `--tsubu-ruby-weight` | `400` | furigana weight, and the romaji's |
+| `--tsubu-ruby-weight` | `400` | furigana weight, and the romaji's and origins' |
 | `--tsubu-romaji-size` | `--tsubu-ruby-size` | romaji size, relative to the text |
+| `--tsubu-origin-size` | `--tsubu-ruby-size` | loanwords' origins' size, relative to the text |
+| `--tsubu-origin-label-size` | `0.75em` | an origin's language code and 和製 mark, relative to the origin |
 | `--tsubu-under-reserve` | `0.5em` | room below the last line for the readings under the text (only with `options.under`) |
-| `--tsubu-reading-gap` | `0.2em` | between the text and the readings under it (and twice that past them), and between the text and romaji over it; in em of the reading |
+| `--tsubu-reading-gap` | `0.2em` | between the text and the readings under it (and twice that past them), and between the text and romaji or origins over it; in em of the reading |
 | `--tsubu-underline-style` | `dotted` | underline style (any `border-style`) |
 | `--tsubu-underline-width` | `0.06em` | underline thickness |
 | `--tsubu-underline-offset` | `0.02em` | distance below the em box of the text |
@@ -244,7 +260,7 @@ enough to recolour everything.
 | speaker *name* | `--tsubu-speaker-`*name*`-color` | `--tsubu-speaker-`*name*`-ruby-color` | `--tsubu-speaker-`*name*`-underline-color` | `--tsubu-speaker-`*name*`-bg` |
 | plate | | | | `--tsubu-plate-bg` (transparent), behind the whole sentence |
 
-Romaji take the furigana's colours in every group, on whichever side they are drawn.
+Romaji and origins take the furigana's colours in every group, on whichever side they are drawn.
 
 A speaker's group replaces the current group in a sentence whose root has that `data-speaker`;
 where the theme defines no colour for that speaker, the current group applies. `tsubu.css` maps
@@ -327,6 +343,90 @@ furigana (`under: "romaji"`), over the text with the furigana under it (`over: "
   in their input, which `Tsubu.sentence()` checks, but subtitles carry no romaji, and nothing is
   imported as romaji.
 
+## Loanword origins
+
+```js
+const s = Tsubu.sentence({ segments: [
+  { parts: [{ text: "パン", origin: { text: "pão", lang: "pt" } }, { text: "と" }], start: 0, end: 0.4 },
+  { parts: [{ text: "コーヒー", origin: { text: "koffie", lang: "nl" } }, { text: "と" }], start: 0.4, end: 0.9 },
+  { parts: [{ text: "煙草", ruby: "たばこ", origin: { text: "tabaco", lang: "pt" } }, { text: "を" }], start: 0.9, end: 1.4 },
+  { parts: [{ text: "サラリーマン", origin: { text: "salaried man", lang: "en", wasei: true } }], start: 1.4, end: 2.0 },
+] }, { origin: "over" });                          // origins over the text, furigana too
+Tsubu.setAnnotation(root, "origin", false);       // hide the origins; nothing moves
+```
+
+A part may say where a loanword comes from: `origin: { text, lang, wasei? }`, the source word, its
+language as a BCP 47 tag, and `wasei: true` for a pseudo-loanword coined in Japanese (*wasei-eigo*,
+such as サラリーマン, from "salaried man"). With `options.origin: "over"` each origin is drawn over
+its part: above it, at its right in vertical text, in the row the furigana use. Loanwords are mostly
+written in katakana, which have no furigana, so the row is free there.
+
+- **The data is the caller's.** tsubu bundles no dictionary and never guesses an origin: a part
+  without `origin` has none. One source is the `lsource` element of
+  [JMdict](https://www.edrdg.org/jmdict/j_jmdict.html), which records a loanword's source word, its
+  language and a *wasei* flag. JMdict is licensed under
+  [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) by the Electronic Dictionary
+  Research and Development Group: **anyone who uses that data must give attribution** as the
+  [EDRDG licence](https://www.edrdg.org/edrdg/licence.html) requires, and share-alike terms apply to
+  the data. `lang` is checked for its shape only (`pt`, `en-GB`, `zh-Hant`). JMdict writes ISO
+  639-2 codes (`por`, `ger`): give the BCP 47 tag instead (`pt`, `de`), which is what is shown and
+  what screen readers recognise; tsubu does not convert them.
+- **A loanword written in kanji keeps its furigana.** A part with both `ruby` and `origin` (煙草,
+  たばこ, from *tabaco*) is drawn with its furigana and without its origin, whichever side the
+  furigana are on, or none. So a part never has two readings in one row.
+- **What is written.** With `origin: "none"`, the default, nothing is written: the HTML is byte for
+  byte the same with or without `origin` in the input. With `"over"` the root carries
+  `data-origin="on"`, and each part with an origin and no furigana is a ruby of its own:
+  `<ruby class="tsubu-origin">パン<rp>（</rp><rt lang="pt"><span class="tsubu-origin-body">pão<span class="tsubu-origin-sep">, </span><span class="tsubu-origin-lang">pt</span></span></rt><rp>）</rp></ruby>`.
+  A pseudo-loanword's body begins with `<span class="tsubu-origin-wasei" lang="ja">和製</span>` and a
+  space. With romaji under the text, the romaji's ruby holds the origin's as it holds the
+  furigana's. An origin wider than its part widens the part, as a wide furigana does.
+- **What it looks like.** The source word, then its language code, smaller
+  (`--tsubu-origin-label-size`, `0.75em` of the origin) and a little apart; a pseudo-loanword has
+  和製 ("made in Japan") before it at the same small size. The mark is text, not a style, so screen
+  readers read it and it survives where the stylesheet does not; a theme can restyle it through
+  `.tsubu-origin-wasei` (and the code through `.tsubu-origin-lang`). Origins are
+  `--tsubu-origin-size` (the furigana's size by default) and take the furigana's colours in every
+  state and for every speaker: the code and the mark are set apart by size, not by a lighter colour,
+  which would fall below the 4.5:1 that small text needs. The comma between word and code is hidden
+  by the stylesheet; it is there for what cannot draw ruby.
+- **Over the text, not with romaji there.** `options.over: "romaji"` puts the romaji in the row the
+  origins would use, so `origin: "over"` with it is refused; put the romaji under the text
+  (`under: "romaji"`). Origins work with `over: "ruby"` or `"none"` and with any `under`.
+- **Switching.** `options.origin` says whether origins are drawn at all;
+  `Tsubu.setAnnotation(root, "origin", on)` shows or hides them by the root's `data-origin`. They
+  have their own switch: the over side's (`setRuby`, `setAnnotation(root, "over", on)`) leaves them
+  alone, and theirs leaves the furigana alone. Hidden origins get `visibility: hidden` and keep their
+  room, so switching moves no character, in horizontal and vertical text and over several lines
+  (measured in every engine).
+- **Across a line.** Origins are moved `--tsubu-reading-gap` off the text, as romaji over it are, so
+  that the descenders of the source word (the p of *pão*, the g of *glas*) stay clear of the
+  highlight. The move is relative positioning of the body, which moves it alike in every engine and
+  takes no room; with origins drawn, the room above the first line (at the right of the first
+  column) is `--tsubu-ruby-reserve` plus `--tsubu-reading-gap`. With readings under the text, a
+  line's readings under it and the next line's origins over it would meet (measured: furigana under
+  the text in Firefox and WebKit, which do not move the lines apart for readings on different parts;
+  romaji in Chromium and Firefox, which make no room for the move), so the lines are given the room
+  themselves: a line height of at least 1em, half again the larger of the furigana and origin sizes,
+  half again the size of the readings under the text, and three reading gaps (2.9em with the
+  defaults), and never less than `--tsubu-line-height`. WebKit sets lines with romaji under the
+  text further apart still, as it does without origins.
+- **Vertical text.** Origins are at the right of the characters, lie on their side as other Latin
+  text does, and are never set upright (`combineUpright` applies to the parts only). With readings
+  under the text, each column holds the origins' room on its right as it holds the furigana's.
+- **Checks.** `checkContrast` measures origins as layer `"origin"`, their language codes and 和製
+  marks too, against the furigana's threshold (`Tsubu.CONTRAST.ruby`); `checkFit` reports an origin
+  past the container as `"ruby-clipped"`, with "the origin" in its message.
+- **Motion, forced colours, screen readers.** The motion presets treat origins as furigana: `appear`
+  hides them and `mask` and `blur` blank and blur them while their segment is unheard;
+  `underline-draw` leaves them alone. Under forced colours the origin of the segment being spoken
+  takes `CanvasText`. Each origin's `<rt>` carries `lang`, so a screen reader says the source word
+  in its own language (and 和製 in Japanese); with `announceRuby: false` origins are `aria-hidden`.
+- **Without ruby.** The origin sits between the same full-width `<rp>` parentheses, after its part,
+  with a comma before the language code: パン（pão, pt）, サラリーマン（和製 salaried man, en）.
+- **Not here:** the exporters and importers accept origins in their input and carry none: subtitles
+  have no row for them, and nothing is imported as an origin.
+
 ## Themes and contrast
 
 Set a preset with `options.theme`, or with `data-tsubu-theme` on any ancestor (one attribute on
@@ -354,8 +454,9 @@ it (1.4.11, graphics needed to follow the reading).
 
 **`Tsubu.checkContrast(root, options)`** measures what the browser computes for a drawn sentence,
 in every state: `"static"` (before any `apply`, and timing `"none"`), `"future"`, `"current"` and
-`"past"`. For each segment it checks the text, the furigana, the romaji (layer `"romaji"`, against
-the `ruby` threshold) and the underline against what is behind them, painting translucent colours over what is beneath, and the highlight against the
+`"past"`. For each segment it checks the text, the furigana, the romaji (layer `"romaji"`) and the
+origins (layer `"origin"`, with their language codes and 和製 marks), both against the `ruby`
+threshold, and the underline against what is behind them, painting translucent colours over what is beneath, and the highlight against the
 plate and backdrop around it. A layer counts as on the highlight when the highlight covers its
 middle, so the furigana above a highlighted segment are checked against the page. It works on a
 hidden copy of the sentence and removes it again, so the page is left as it was.
@@ -596,8 +697,8 @@ such as Remotion, see [Using tsubu with other tools](#using-tsubu-with-other-too
 An optional script, `tsubu-export.js`, turns the same input into subtitles. Load it after
 `tsubu.js` (it defines `TsubuExport`), or `require("./tsubu-export.js")` in Node. Input is checked
 by `Tsubu.sentence()`, so it is refused with the same errors. A sentence without times cannot be
-exported, and nothing is estimated. Romaji are accepted and left out: the subtitles carry the
-furigana only.
+exported, and nothing is estimated. Romaji and loanwords' origins are accepted and left out: the
+subtitles carry the furigana only.
 
 - **`TsubuExport.toWebVTT(input, { ruby = true, offset = 0, id })`** returns a WebVTT file with
   one cue spanning the sentence. Each segment is a class span, `<c.tsubu-seg>`
@@ -694,20 +795,21 @@ Node against `htmlAt`.
 
 - **Forced colours.** In forced-colours mode (Windows contrast themes and the like) browsers
   replace backgrounds, which would leave the segment being spoken looking like every other. tsubu keeps a highlight on that segment alone, in the user's own colours for
-  selected text (`Highlight` and `HighlightText`); its furigana and romaji take `CanvasText`, since
-  they sit on the page. Everything else is left to the browser.
+  selected text (`Highlight` and `HighlightText`); its furigana, romaji and origins take
+  `CanvasText`, since they sit on the page. Everything else is left to the browser.
 - **Screen readers.** A reading is read after its base by default (Chromium exposes
-  「雨 あめ が 降る」), and romaji after their segment. With `options.announceRuby: false`, every
-  `<rt>` and `<rp>`, romaji included, gets `aria-hidden="true"`, so the sentence is read once; the
+  「雨 あめ が 降る」), romaji after their segment, and an origin after its part, in its own
+  language (its `<rt>` carries `lang`). With `options.announceRuby: false`, every `<rt>` and `<rp>`,
+  romaji and origins included, gets `aria-hidden="true"`, so the sentence is read once; the
   readings are still drawn and still switch. Hidden readings, on either side, are never read, since
   they are `visibility: hidden`.
 - The segment being spoken carries `aria-current="true"`, and segments on other pages are hidden
   from assistive technology along with the page (see [Paging by t](#paging-by-t)).
 - **Without ruby.** Each reading is wrapped in full-width `<rp>` parentheses. Browsers that draw
   ruby hide them (`tsubu.css` keeps them hidden even where a page's own styles would show them),
-  so they move nothing and are not read; whatever cannot draw ruby shows 雨（あめ）, and romaji
-  after their segment, 雨（あめ）が（ame ga）.
+  so they move nothing and are not read; whatever cannot draw ruby shows 雨（あめ）, romaji after
+  their segment, 雨（あめ）が（ame ga）, and origins after their part, パン（pão, pt）.
 
 `tests/test_a11y.py` checks forced colours and screen readers in a real browser,
-`tests/test_fallback.py` the `<rp>` parentheses, and `tests/test_romaji.py` romaji in both; see
-[docs/testing.md](testing.md).
+`tests/test_fallback.py` the `<rp>` parentheses, and `tests/test_romaji.py` and
+`tests/test_origin.py` romaji and origins in both; see [docs/testing.md](testing.md).
