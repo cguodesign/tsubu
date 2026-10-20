@@ -73,8 +73,15 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
   not in `Tsubu.MOTIONS`;
 - an `options.over` or `options.under` other than `"ruby"`, `"romaji"` and `"none"`, or both
   naming the same layer;
+- an `options.writing` other than `"horizontal"` and `"vertical"`, an `options.combineUpright`
+  that is not a whole number from 0 to 4, or an `options.motion` that is not a name, a
+  space-separated list or an array;
 - an empty or non-string `id`, an `id` used twice, or `tags` that are not an array of lower-case
   names.
+
+Later calls refuse a `t` that is not a finite number, a `span(i)` index out of range, and a
+`revealed` (or `setRevealed`'s `which`) that is not `"all"`, `"none"` or an array of segment
+indexes.
 
 ## Output
 
@@ -89,8 +96,11 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
   </span>
   ```
 
-  (without the whitespace). With `options.theme` the root also carries `data-tsubu-theme`, and
-  with `options.speaker` it carries `data-speaker`. With other layers than furigana over the text
+  (without the whitespace). With `options.theme` the root also carries `data-tsubu-theme`, with
+  `options.speaker` `data-speaker`, with `options.motion` `data-tsubu-motion`, and with
+  `options.writing` `data-tsubu-writing`; a segment with an `id` or `tags` carries `data-id` or
+  `data-tags`, and, unless the sentence is horizontal by its own option, short runs of half-width
+  characters are in `<span class="tsubu-upright">` (see [Vertical writing](#vertical-writing)). With other layers than furigana over the text
   and nothing under it, it carries `data-over-layer`, `data-under-layer` and `data-under` (see
   [Romaji and the two sides](#romaji-and-the-two-sides)). Punctuation segments carry `data-kind="punct"`.
   Segments are grouped in units, and a line breaks only between units (see
@@ -184,7 +194,10 @@ Also on `Tsubu`:
 
 Because the frame for a given `t` never depends on which `t` came before, you can call
 `apply(root, t)` from a video renderer's per-frame callback, from a headless browser that captures
-frame by frame, or from a media element's time updates, and get the same picture. If you want a
+frame by frame, or from your own `requestAnimationFrame` loop that reads a media element's
+`currentTime` (`requestVideoFrameCallback` for a video), and get the same picture. Do not drive it
+from `timeupdate`: browsers fire it only every 15 to 250 ms, so the highlight would step behind
+the voice. If you want a
 fade or other easing, compute it from `progress` in your own CSS (`--tsubu-progress`) rather than
 with a transition.
 
@@ -207,6 +220,8 @@ Layout and shape:
 | `--tsubu-underline-style` | `dotted` | underline style (any `border-style`) |
 | `--tsubu-underline-width` | `0.06em` | underline thickness |
 | `--tsubu-underline-offset` | `0.02em` | distance below the em box of the text |
+| `--tsubu-em-lead` | `0.62` | the share of the line's extra height (content area minus em box) above the em box, from which the highlight and the underline are placed; exact for Hiragino Sans and the Noto family, set it with `--tsubu-em-trail` for a font whose metrics split differently |
+| `--tsubu-em-trail` | `0.38` | the share below the em box; with `--tsubu-em-lead` it makes 1 |
 | `--tsubu-underline-inset` | `0.12em` | inset from each end, so neighbouring underlines stay apart |
 | `--tsubu-current-spread` | `0.06em` | how far the highlight reaches past the em box of the text (a positioned layer, so it takes no room) |
 | `--tsubu-current-radius` | `0.18em` | highlight corner radius (0 with timing `"sentence"`, so the sentence reads as one band per line) |
@@ -389,8 +404,12 @@ Chromium), so a segment moves to the next line together with the comma after it.
 
 The sentence has `text-wrap: balance` (change it with `--tsubu-wrap`), so the lines of a sentence
 that takes several are kept close in length and the last line does not hold a lone segment.
-Balancing is the browser's: Chromium balances a block of up to six lines and leaves a longer one
-as it breaks greedily (measured in Chromium 139); per MDN, Firefox balances up to ten. Paging (below) keeps each page short enough.
+Balancing is the browser's, and the engines differ (measured; see
+[docs/testing.md](testing.md#browser-support)): Chromium balances a block of up to six lines and
+leaves a longer one as it breaks greedily; Firefox does not balance tsubu's lines, whose only
+break opportunities are between nowrap units, and breaks them greedily; WebKit balances but can
+add a line, so where that would overfill a page, `apply` marks the root `data-greedy` and the page
+keeps its greedy lines. Paging (below) keeps each page short enough.
 
 ### A size that follows the container
 

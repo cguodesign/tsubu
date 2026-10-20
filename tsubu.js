@@ -12,7 +12,7 @@
  * text or adds and removes nodes, so a change of highlight cannot move a character. With a
  * maximum number of lines it also hides the segments that are not on the page being read; which
  * page that is depends on t and the sentence's own layout, never on earlier calls. The input
- * and output contract is described in README.md.
+ * and output contract is described in docs/guide.md and on the website's API page.
  *
  * Colours come from tsubu.css: custom properties, and theme presets selected with
  * data-tsubu-theme. checkContrast() measures them in the browser against the thresholds in

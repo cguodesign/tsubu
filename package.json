@@ -51,6 +51,8 @@
     "tsubu-import.mjs",
     "tsubu-import.d.ts",
     "tsubu-import.d.mts",
+    "docs/guide.md",
+    "docs/testing.md",
     "docs/agents/segmenting.md",
     "docs/agents/validate.mjs",
     "CHANGELOG.md",

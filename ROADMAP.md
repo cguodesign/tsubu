@@ -5,9 +5,10 @@ are left out on purpose.
 
 ## Principles every step keeps
 
-- **Every frame is a function of `t`.** `stateAt(t)` and `apply(root, t)` stay pure; no
-  `requestAnimationFrame`, no timers, no CSS transitions. Live playback and frame-by-frame capture
-  draw the same thing.
+- **Every frame is a function of `t`.** `stateAt(t)` stays pure and `apply(root, t)` draws only
+  what it returns; the library has no `requestAnimationFrame`, no timers, no CSS transitions (a
+  caller's own playback loop is the caller's). Live playback and frame-by-frame capture draw the
+  same thing.
 - **No segmentation, no estimated times.** Segments and times come from the caller; a partly timed
   sentence is refused.
 - **Switching an annotation layer never moves a character**, and a test that measures the page in

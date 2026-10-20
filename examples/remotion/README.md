@@ -41,9 +41,10 @@ without a JSX compiler. In a `.tsx` file they work the same as JSX.
    ```
 
 `tsubu.js` and `tsubu-frames.js` are plain scripts. Remotion's bundler reads their
-`module.exports`, so `import Tsubu from ".../tsubu.js"` works. They have no type declarations,
-which is why the imports carry `// @ts-ignore`. Importing `sentence.json` from TypeScript needs
-`resolveJsonModule` in `tsconfig.json`.
+`module.exports`, so `import Tsubu from ".../tsubu.js"` works, and TypeScript takes its types from
+`tsubu.d.ts` beside it. `tsubu-frames.js` has no type declarations, which is why its import
+carries `// @ts-ignore`. Importing `sentence.json` from TypeScript needs `resolveJsonModule` in
+`tsconfig.json`.
 
 ## Not confirmed
 

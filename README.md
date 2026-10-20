@@ -19,7 +19,7 @@ already cut into segments (*bunsetsu*), and tsubu draws:
 - themes whose contrast is measured, several lines broken by Japanese rules, vertical writing,
   motion presets, and WebVTT, ASS and SRT export.
 
-It is one classic script (`tsubu.js`, about 21 KB unminified) and one stylesheet (`tsubu.css`),
+It is one classic script (`tsubu.js`, about 50 KB unminified, 16 KB gzipped) and one stylesheet (`tsubu.css`),
 and it loads from a `file://` page, from any web page, and from Node.
 
 What tsubu does **not** do: split text into words, align audio to text, estimate times, play
@@ -46,9 +46,13 @@ audio, draw a speech bubble or lay out more than one sentence. Those belong to t
   line.innerHTML = s.html;
   const root = line.querySelector(".tsubu");
 
-  // Drive it from any clock: an <audio> element, a video timeline, a frame counter.
+  // Drive it from any clock: an <audio> element, a video timeline, a frame counter. tsubu
+  // keeps no timers; the loop is yours. Read the time on every frame: "timeupdate" fires only
+  // every 15 to 250 ms, so a highlight driven by it lags behind the voice.
   const audio = document.querySelector("audio");
-  audio?.addEventListener("timeupdate", () => s.apply(root, audio.currentTime));
+  const frame = () => { s.apply(root, audio.currentTime); if (!audio.paused) requestAnimationFrame(frame); };
+  audio?.addEventListener("play", frame);
+  audio?.addEventListener("seeked", frame);
   s.apply(root, 1.0);            // the frame at t = 1.0 s: 家で is highlighted
 
   Tsubu.setRuby(root, false);    // hide the furigana; nothing moves
@@ -104,8 +108,9 @@ Or copy `tsubu.js` and `tsubu.css` next to your page: that is all a page needs, 
 breaks callers raises the minor version (0.1 to 0.2) and anything else the patch version. Breaking
 means a change to the input format or what it refuses, the HTML (elements, classes, `data-*` and
 `aria-*` attributes), the names of the `--tsubu-*` properties, themes and motion presets, the
-names and signatures on `Tsubu` and `TsubuExport`, the shape of what `stateAt`, `apply`,
-`checkContrast` and `checkFit` return, or the text the exporters write. `Tsubu.version` is the
+names and signatures on `Tsubu`, `TsubuExport` and `TsubuImport`, the shape of what `stateAt`,
+`apply`, `checkContrast` and `checkFit` return, the text the exporters write, or what the
+importers return or refuse. `Tsubu.version` is the
 version of the script in hand; [CHANGELOG.md](CHANGELOG.md) lists every change.
 
 ## Input
@@ -207,8 +212,8 @@ node docs/agents/validate.mjs input.json --text sentence.txt
 Every frame is a function of `t`; switching the readings on either side, the highlight, the theme
 or the speaker moves no character; lines break only between segments and by the line-breaking
 rules; nothing overflows over a grid of widths and sentence lengths. Each of these is measured in a real browser, in
-Chromium, Firefox and WebKit. All hold in Chromium; Firefox and WebKit do not balance lines in
-every case. Details, and how each guarantee is tested, are in [docs/testing.md](docs/testing.md).
+Chromium, Firefox and WebKit. All hold in Chromium; Firefox breaks lines greedily instead of
+balancing them, and WebKit does not balance them in every case. Details, and how each guarantee is tested, are in [docs/testing.md](docs/testing.md).
 
 ## Development
 
@@ -236,8 +241,8 @@ the site.
 | `package.json` | the npm package: its exports, the files it publishes, the pinned TypeScript |
 | `docs/agents/` | the versioned guide for agents preparing tsubu's input, with its validator (also in the package) |
 | `examples/` | recording video: PNG frames through Playwright, HTML frames from Node; `tsubu-frames.js`, the frame arithmetic, with Remotion and HyperFrames examples |
-| `site/` | the project's website: a home page whose film is drawn from `t`, getting started, a guide, the API reference, a playground and a gallery, in English and 简体中文. The pages load the library from sibling files (symlinks in the checkout), so they open straight from disk |
-| `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker, a dialogue and a fluid, paged frame; accepts `?t=seconds&ruby=off&theme=dark&frame=320&lines=2` |
+| `site/` | the project's website: a home page whose film is drawn from `t`, getting started, a guide, the API reference, a playground and a gallery, in English, 简体中文 and 日本語. The pages load the library from sibling files (symlinks in the checkout), so they open straight from disk |
+| `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker, a dialogue and a fluid, paged frame; accepts `?t=seconds&ruby=off&theme=dark&frame=320&lines=2&motion=mask` |
 | `tests/` | the test suite (pytest; Node for the state, Playwright for the layout, in Chromium, Firefox or WebKit) |
 | `.github/workflows/` | CI on every push; on a version tag, the tests, then `npm publish` with provenance, then the site on GitHub Pages |
 | `docs/guide.md` | the guide: input, output, CSS custom properties and every feature, in detail |

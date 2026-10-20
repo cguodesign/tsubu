@@ -9,9 +9,8 @@ import { createElement } from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import "../../../tsubu.css";
 import { FONT_FAMILY } from "./load-font";
-// @ts-ignore: tsubu.js is a plain script without type declarations
 import Tsubu from "../../../tsubu.js";
-// @ts-ignore: as is tsubu-frames.js
+// @ts-ignore: tsubu-frames.js is a plain script without type declarations
 import TsubuFrames from "../../tsubu-frames.js";
 import input from "../../sentence.json";
 

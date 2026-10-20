@@ -76,6 +76,11 @@ says which hold where:
 - **Forced colours and screen readers** (`tests/test_a11y.py`): under emulated forced colours the
   segment being spoken has the system highlight in every theme and timing, and nothing moves; with
   `announceRuby` off the accessibility tree holds no reading.
+- **The `<rp>` parentheses show only where ruby cannot be drawn** (`tests/test_fallback.py`): every
+  reading is wrapped in full-width `<rp>` parentheses, which take no room, move nothing and are not
+  read in a browser that draws ruby, stay hidden where a page's own styles would show `rp`, are
+  hidden with the reading when `announceRuby` is off, and read 雨（あめ） when tags are dropped or
+  ruby is laid out inline.
 - **Romaji in the checks, motion and accessibility** (`tests/test_romaji.py`): `checkContrast`
   measures them in every state and theme against the furigana's threshold, on the page rather than
   the highlight; `checkFit` reports romaji past the container; `appear`, `mask` and `blur` treat
@@ -158,10 +163,11 @@ only measures differently, the test checks the same guarantee in that engine's t
 - Balanced lines use `text-wrap: balance` (Chrome 114, Firefox 121, Safari 17.5); without it,
   lines break greedily. The fluid size uses container queries and `cqi` units (Chrome 105,
   Firefox 110, Safari 16).
-- The script uses ES2015+ syntax (`const`, arrow functions, template literals) and the `:scope`
-  selector.
-- No `<rp>` fallback parentheses are written yet, so a browser without ruby support shows the
-  reading inline after its base.
+- `tsubu.js` needs ES2019 (`Array.prototype.flatMap`) and the `:scope` selector;
+  `tsubu-export.js` ES2017 (`padStart`); `tsubu-import.js` ES2020 (`??`) with Unicode property
+  escapes in regular expressions (ES2018).
+- Where ruby cannot be drawn at all (a reader view, a feed reader, a text browser), the full-width
+  `<rp>` parentheses show each reading after its base: 雨（あめ）.
 
 Known limitation: when a reading is much wider than its base (いっしゅうかん over 一週間), the
 ruby box takes the reading's width, so a visible gap appears around the base; Chromium and Firefox

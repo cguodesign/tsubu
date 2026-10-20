@@ -42,6 +42,17 @@ All notable changes to tsubu are recorded here. The format follows
 
 ### Changed
 
+- The playback examples (README, getting started) read the media element's `currentTime` in a
+  `requestAnimationFrame` loop instead of on `timeupdate`, which browsers fire only every 15 to
+  250 ms, so the highlight no longer steps behind the voice.
+- The package also ships `docs/guide.md` and `docs/testing.md`, which the README links to.
+- The website: getting started installs from npm and names the importer; the guide has live
+  sections on romaji and on importing, and the home page a card for each; the API tables stack on
+  a phone; the not-found page's home link stays on the site.
+- Documentation corrected: the size of `tsubu.js` (about 50 KB, 16 KB gzipped), which engines
+  balance lines, the underline offset (from the em box), the `<rp>` fallback in the testing
+  notes, the HTML attributes and refusals in full, the language versions each script needs, and
+  `--tsubu-em-lead` and `--tsubu-em-trail`, now documented.
 - The HyperFrames example has been rendered with HyperFrames 0.8.181: the frame source registers,
   every frame matches `htmlAt(t)` at its time, and the folder renders with its links. Its README
   records what was checked, and that the CLI sends telemetry unless `HYPERFRAMES_NO_TELEMETRY=1`

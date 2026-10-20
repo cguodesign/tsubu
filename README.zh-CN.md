@@ -13,7 +13,7 @@
 - 正在读的那一段的高亮，而且是**时间的纯函数**：`apply(root, t)` 不用计时器、不用 `requestAnimationFrame`、不用过渡，所以实时播放和逐帧录视频画出来的完全一样；
 - 实测对比度的主题、按日语禁则断开的多行、竖排、动效预设，以及 WebVTT、ASS、SRT 导出。
 
-它只有一个普通脚本（`tsubu.js`，未压缩约 21 KB）和一个样式表（`tsubu.css`），可以从 `file://` 页面、任何网页和 Node 里加载。
+它只有一个普通脚本（`tsubu.js`，未压缩约 50 KB，gzip 压缩后约 16 KB）和一个样式表（`tsubu.css`），可以从 `file://` 页面、任何网页和 Node 里加载。
 
 tsubu **不做**的事：把文本切成词、把音频和文本对齐、估算时间、播放音频、画对话气泡、排多句话。这些由调用方负责。
 
@@ -38,9 +38,13 @@ tsubu **不做**的事：把文本切成词、把音频和文本对齐、估算�
   line.innerHTML = s.html;
   const root = line.querySelector(".tsubu");
 
-  // 用任何时钟驱动：<audio> 元素、视频时间轴、帧计数器都可以。
+  // 用任何时钟驱动：<audio> 元素、视频时间轴、帧计数器都可以。tsubu 自己不带计时器，
+  // 循环由你来写。每一帧都读一次时间："timeupdate" 事件每 15 到 250 毫秒才触发一次，
+  // 用它驱动的高亮会落后于声音。
   const audio = document.querySelector("audio");
-  audio?.addEventListener("timeupdate", () => s.apply(root, audio.currentTime));
+  const frame = () => { s.apply(root, audio.currentTime); if (!audio.paused) requestAnimationFrame(frame); };
+  audio?.addEventListener("play", frame);
+  audio?.addEventListener("seeked", frame);
   s.apply(root, 1.0);            // t = 1.0 秒那一帧：高亮「家で」
 
   Tsubu.setRuby(root, false);    // 隐藏注音；什么都不动
@@ -89,8 +93,8 @@ import "tsubu-js/tsubu.css";                           // 打包工具能处理 
 
 **版本。** tsubu 遵循[语义化版本](https://semver.org/lang/zh-CN/)。1.0 之前，会破坏调用方的改动升次版本号
 （0.1 到 0.2），其他改动升修订号。破坏性改动指：输入格式或它拒绝的内容，HTML（元素、class、`data-*` 和
-`aria-*` 属性），`--tsubu-*` 属性、主题和动效预设的名字，`Tsubu` 和 `TsubuExport` 上的名字和签名，
-`stateAt`、`apply`、`checkContrast`、`checkFit` 返回值的结构，以及导出器写出的文本。`Tsubu.version`
+`aria-*` 属性），`--tsubu-*` 属性、主题和动效预设的名字，`Tsubu`、`TsubuExport` 和 `TsubuImport` 上的名字和签名，
+`stateAt`、`apply`、`checkContrast`、`checkFit` 返回值的结构，导出器写出的文本，以及导入器返回或拒绝的内容。`Tsubu.version`
 是手上这份脚本的版本；每次改动都记在 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 输入
@@ -165,7 +169,7 @@ node docs/agents/validate.mjs input.json --text sentence.txt
 
 ## 保证与浏览器支持
 
-每一帧都是 `t` 的函数；开关任一侧的注音或罗马字、切换高亮、换主题或说话人都不会让任何字移动；只在段与段之间、按禁则断行；在一组宽度和句长下都不溢出。每一条都在真实浏览器里测量，覆盖 Chromium、Firefox 和 WebKit。Chromium 里全部成立；Firefox 和 WebKit 并非在所有情况下都均衡换行。细节和每条怎么测，见 [docs/testing.md](docs/testing.md)（英文）。
+每一帧都是 `t` 的函数；开关任一侧的注音或罗马字、切换高亮、换主题或说话人都不会让任何字移动；只在段与段之间、按禁则断行；在一组宽度和句长下都不溢出。每一条都在真实浏览器里测量，覆盖 Chromium、Firefox 和 WebKit。Chromium 里全部成立；Firefox 不均衡换行，而是按贪心方式断行，WebKit 并非在所有情况下都均衡换行。细节和每条怎么测，见 [docs/testing.md](docs/testing.md)（英文）。
 
 ## 开发
 
@@ -191,8 +195,8 @@ python -m pytest -q                    # 加 --engine firefox 或 --engine webki
 | `package.json` | npm 包：导出、发布哪些文件、锁定版本的 TypeScript |
 | `docs/agents/` | 给 agent 的版本化指南，讲怎么准备 tsubu 的输入，附校验器（也在包里） |
 | `examples/` | 录制视频：用 Playwright 生成 PNG 帧，用 Node 生成 HTML 帧；帧换算 `tsubu-frames.js`，以及 Remotion 和 HyperFrames 示例 |
-| `site/` | 项目网站：首页（短片由 `t` 绘制）、快速开始、指南、API 参考、试验场和画廊，中英双语。页面从同级文件加载库（检出里是符号链接），所以从磁盘直接打开就能看 |
-| `demo/index.html` | 演示页：拖动时间、开关注音、选主题，有一段对话和一个流式、会翻页的框；地址可带 `?t=秒数&ruby=off&theme=dark&frame=320&lines=2` |
+| `site/` | 项目网站：首页（短片由 `t` 绘制）、快速开始、指南、API 参考、试验场和画廊，有英文、简体中文和日文三种语言。页面从同级文件加载库（检出里是符号链接），所以从磁盘直接打开就能看 |
+| `demo/index.html` | 演示页：拖动时间、开关注音、选主题，有一段对话和一个流式、会翻页的框；地址可带 `?t=秒数&ruby=off&theme=dark&frame=320&lines=2&motion=mask` |
 | `tests/` | 测试（pytest；状态用 Node，版面用 Playwright，在 Chromium、Firefox 或 WebKit 里） |
 | `.github/workflows/` | 每次推送跑 CI；打版本 tag 时先测试，再带来源证明 `npm publish`，再把网站部署到 GitHub Pages |
 | `docs/guide.md` | 指南（英文）：输入、输出、CSS 自定义属性和每项功能的细节 |
