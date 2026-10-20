@@ -108,7 +108,7 @@ import Tsubu, { sentence } from "tsubu-js";         <span class="c">// ES module
     <p class="en">An agent that writes pages or templates with tsubu needs the contract, not the whole guide. The block below is that contract, in the guide's words; paste it into the agent's instructions. The API page and <code>Tsubu.MOTIONS</code> (the motion catalogue as data: each preset's purpose, what it needs, its parameters) are the references it can read on its own.</p>
     <p class="zh" lang="zh-CN">用 tsubu 写页面或模板的 agent 需要的是契约，不是整份指南。下面这段就是契约，措辞与指南一致；把它贴进 agent 的指令里。API 页和 <code>Tsubu.MOTIONS</code>（动效目录的数据形式：每个预设的用途、需要什么、参数）是它可以自己读的参考。</p><p class="ja" lang="ja">tsubu でページやテンプレートを書くエージェントに必要なのは、ガイド全体ではなく契約です。下のブロックがその契約で、文言はガイドのままです。エージェントの指示に貼り付けてください。API ページと <code>Tsubu.MOTIONS</code>（モーションカタログのデータ版：各プリセットの目的、必要なもの、パラメータ）は、エージェントが自分で読める参照先です。</p>
 <pre><code class="plain" id="agent-brief">tsubu draws ONE sentence, already cut into segments, for read-along use.
-- Input: { segments: [{ parts: [{ text, ruby? }], kind?: "punct", start?, end?, id?, tags?, romaji? }], start?, end?, lang? }.
+- Input: { segments: [{ parts: [{ text, ruby?, origin? }], kind?: "punct", start?, end?, id?, tags?, romaji? }], start?, end?, lang? }.
   Times are seconds on the caller's clock. tsubu never segments text, never estimates times and never plays audio.
 - Timing: every spoken segment timed → "segments" (one segment lights at a time); only the sentence timed → "sentence"
   (the whole sentence lights; the span is NOT divided among segments); no times → "none" (static; stateAt/apply throw).
@@ -119,6 +119,9 @@ import Tsubu, { sentence } from "tsubu-js";         <span class="c">// ES module
 - Furigana: Tsubu.setRuby(root, on) switches them without moving any character. Keep that: never set display: none on rt.
 - Romaji: the caller's own, per segment (segments[].romaji). options.over and options.under each name "ruby", "romaji"
   or "none" (default: furigana over, nothing under). Tsubu.setAnnotation(root, "over" | "under", on) switches a side.
+- Loanword origins: the caller's own, per part (parts[].origin = { text, lang, wasei? }), never guessed. With
+  options.origin "over" they are drawn over the text (not with over "romaji"); a part with ruby shows its furigana
+  instead. Tsubu.setAnnotation(root, "origin", on) switches them. JMdict's lsource data requires attribution.
 - Themes: options.theme "light" | "dark" | "media"; speakers "a" | "b". Verify colours with Tsubu.checkContrast(root):
   4.5 for text and furigana, 3 for the underline and the highlight. The unthemed defaults are not a preset and fail.
 - Motion: choose from Tsubu.MOTIONS only, to show what is being read, never to decorate. Plain read-along: none.
@@ -136,7 +139,7 @@ import Tsubu, { sentence } from "tsubu-js";         <span class="c">// ES module
 
     <h2 class="label"><span class="kanji" data-ruby="つぎ">次</span><span class="en">Next</span><span class="zh" lang="zh-CN">接下来</span><span class="ja" lang="ja">次へ</span></h2>
     <div class="grid">
-      <a class="pointer" href="guide.html"><b class="en">Guide</b><b class="zh" lang="zh-CN">指南</b><b class="ja" lang="ja">ガイド</b><span class="en">Timing, several lines, romaji, themes, motion, vertical text, video, subtitles, importing and accessibility, each with a live example.</span><span class="zh" lang="zh-CN">时间、多行、罗马字、主题、动效、竖排、录视频、字幕、导入和无障碍，每节都有活的示例。</span><span class="ja" lang="ja">タイミング、複数行、ローマ字、テーマ、モーション、縦書き、動画、字幕、読み込み、アクセシビリティ。各節に動く例があります。</span></a>
+      <a class="pointer" href="guide.html"><b class="en">Guide</b><b class="zh" lang="zh-CN">指南</b><b class="ja" lang="ja">ガイド</b><span class="en">Timing, several lines, romaji, loanword origins, themes, motion, vertical text, video, subtitles, importing and accessibility, each with a live example.</span><span class="zh" lang="zh-CN">时间、多行、罗马字、外来语词源、主题、动效、竖排、录视频、字幕、导入和无障碍，每节都有活的示例。</span><span class="ja" lang="ja">タイミング、複数行、ローマ字、外来語の由来、テーマ、モーション、縦書き、動画、字幕、読み込み、アクセシビリティ。各節に動く例があります。</span></a>
       <a class="pointer" href="api.html"><b class="en">API</b><b class="zh" lang="zh-CN">API</b><b class="ja" lang="ja">API</b><span class="en">The whole surface: input, options, output, functions, CSS properties.</span><span class="zh" lang="zh-CN">全部接口：输入、选项、输出、函数、CSS 属性。</span><span class="ja" lang="ja">API のすべて：入力、オプション、出力、関数、CSS プロパティ。</span></a>
       <a class="pointer" href="playground.html"><b class="en">Playground</b><b class="zh" lang="zh-CN">试验场</b><b class="ja" lang="ja">プレイグラウンド</b><span class="en">Your own sentence with every switch and the contrast check.</span><span class="zh" lang="zh-CN">用你自己的句子，所有开关和对比度检查都在。</span><span class="ja" lang="ja">自分の文で、すべてのスイッチとコントラスト検査を試せます。</span></a>
     </div>

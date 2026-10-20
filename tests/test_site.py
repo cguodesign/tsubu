@@ -380,3 +380,34 @@ def test_the_guide_reveals_on_a_click_and_exports_subtitles(site):
     page.uncheck("#ax-announce")
     assert 'aria-hidden="true"' in page.locator("#ax-html").text_content()
     assert page.errors == []
+
+
+def test_the_guide_and_the_playground_switch_the_origins_on_their_own(site):
+    page = site("guide.html")
+    root = "document.querySelector('#og .tsubu')"
+    shown = f"""() => [...{root}.querySelectorAll('rt')].map((rt) => [rt.parentElement.classList.contains('tsubu-origin') ? 'origin' : 'ruby',
+      rt.textContent, getComputedStyle(rt).visibility])"""
+    assert page.evaluate(shown) == [["origin", "pão, pt", "visible"], ["origin", "koffie, nl", "visible"], ["ruby", "たばこ", "visible"], ["ruby", "か", "visible"]]
+    page.uncheck("#og-on")
+    assert page.evaluate(f"() => {root}.dataset.origin") == "off"
+    assert [v for layer, _, v in page.evaluate(shown) if layer == "origin"] == ["hidden", "hidden"]
+    assert [v for layer, _, v in page.evaluate(shown) if layer == "ruby"] == ["visible", "visible"]
+    page.check("#og-on")
+    page.uncheck("#og-over-on")  # the over side's switch leaves the origins alone
+    assert {(layer, v) for layer, _, v in page.evaluate(shown)} == {("origin", "visible"), ("ruby", "hidden")}
+    page.select_option("#og-under", "romaji")
+    assert page.locator("#og-err").text_content() == ""
+    assert page.evaluate(f"() => [{root}.dataset.underLayer, {root}.dataset.origin]") == ["romaji", "on"]
+    assert page.errors == []
+
+    page = site("playground.html")
+    root = "document.querySelector('#stage .tsubu')"
+    assert page.evaluate(f"() => [{root}.dataset.origin, {root}.querySelector('.tsubu-origin > rt').textContent]") == ["on", "hotel, en"]
+    page.uncheck("#origin-shown")
+    assert page.evaluate(f"() => [{root}.dataset.origin, getComputedStyle({root}.querySelector('.tsubu-origin > rt')).visibility]") == ["off", "hidden"]
+    page.select_option("#over", "romaji")  # romaji over the text take the origins' row: refused
+    assert page.locator("#err").text_content().startswith('tsubu: options.origin "over" and options.over "romaji"')
+    page.select_option("#origin", "none")
+    assert page.locator("#err").text_content() == ""
+    assert page.evaluate(f"() => [{root}.hasAttribute('data-origin'), {root}.querySelectorAll('.tsubu-origin').length]") == [False, 0]
+    assert page.errors == []

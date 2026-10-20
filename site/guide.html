@@ -40,6 +40,7 @@ section.g .label { margin-top: 18px; }
   <ul class="toc">
     <li><a href="#timing"><span class="en">Input and timing</span><span class="zh" lang="zh-CN">输入与时间</span><span class="ja" lang="ja">入力とタイミング</span></a></li>
     <li><a href="#romaji"><span class="en">Romaji over and under</span><span class="zh" lang="zh-CN">上下的罗马字</span><span class="ja" lang="ja">上と下のローマ字</span></a></li>
+    <li><a href="#origins"><span class="en">Loanword origins</span><span class="zh" lang="zh-CN">外来语词源</span><span class="ja" lang="ja">外来語の由来</span></a></li>
     <li><a href="#lines"><span class="en">Several lines and paging</span><span class="zh" lang="zh-CN">多行与翻页</span><span class="ja" lang="ja">複数行とページ送り</span></a></li>
     <li><a href="#themes"><span class="en">Themes and contrast</span><span class="zh" lang="zh-CN">主题与对比度</span><span class="ja" lang="ja">テーマとコントラスト</span></a></li>
     <li><a href="#motion"><span class="en">Motion and revealing</span><span class="zh" lang="zh-CN">动效与揭示</span><span class="ja" lang="ja">モーションと明かし</span></a></li>
@@ -96,6 +97,31 @@ s.span(2)           // segment 2's own { start, end }, or null: where to seek on
         <div class="stage" data-tsubu-theme="light" id="rj" style="margin-top: 8px"></div>
         <p class="err" id="rj-err"></p>
         <div class="transport"><button type="button" id="rj-play">Play</button><input type="range" id="rj-t" aria-label="t"><output id="rj-out">0.00 s</output></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="g" id="origins">
+    <h2 class="label"><span class="kanji" data-ruby="げん">源</span><span class="en">Loanword origins</span><span class="zh" lang="zh-CN">外来语词源</span><span class="ja" lang="ja">外来語の由来</span></h2>
+    <div class="cols">
+      <div class="prose">
+        <p class="lead en">Where a loanword comes from, over the word: パン from Portuguese <i>pão</i>. They switch on their own, and nothing moves.</p>
+        <p class="lead zh" lang="zh-CN">外来语从哪里来，标在词的上方：パン 来自葡萄牙语 <i>pão</i>。词源单独开关，什么都不会动。</p><p class="lead ja" lang="ja">外来語がどこから来たかを、その語の上に。パンはポルトガル語の <i>pão</i> から。由来は単独で切り替えられ、何も動きません。</p>
+        <p class="en">A part may carry <code>origin: { text, lang, wasei? }</code>: the source word, its language as a BCP 47 tag, and <code>wasei: true</code> for a pseudo-loanword coined in Japanese, which is drawn with 和製 before it. With <code>options.origin: "over"</code> each origin sits over its part, in the furigana's row, which a loanword in katakana leaves free. A loanword written in kanji (煙草, たばこ, from <i>tabaco</i>) keeps its furigana and has no origin drawn. <code>Tsubu.setAnnotation(root, "origin", on)</code> switches the origins; the over side's switch leaves them alone. Romaji over the text take the same row, so <code>origin: "over"</code> is refused with <code>over: "romaji"</code>; put the romaji under the text.</p>
+        <p class="zh" lang="zh-CN">片段可以带 <code>origin: { text, lang, wasei? }</code>：原词、用 BCP 47 标签表示的语言，日语自造的和制外来语加 <code>wasei: true</code>，画的时候前面加「和製」。<code>options.origin: "over"</code> 时每个词源画在它的片段上方、注音那一行；片假名写的外来语没有注音，那一行正好空着。用汉字写的外来语（煙草，たばこ，来自 <i>tabaco</i>）保留注音，不画词源。<code>Tsubu.setAnnotation(root, "origin", on)</code> 开关词源；上方的开关不影响词源。上方的罗马字也用这一行，所以 <code>origin: "over"</code> 不能和 <code>over: "romaji"</code> 一起用；把罗马字放到下方即可。</p><p class="ja" lang="ja">パーツには <code>origin: { text, lang, wasei? }</code> を付けられます。原語、BCP 47 タグで表した言語、日本で作られた和製語には <code>wasei: true</code> で、その前に「和製」と描かれます。<code>options.origin: "over"</code> のとき、由来はパーツの上、ふりがなの行に置かれます。カタカナの外来語にはふりがながないので、その行は空いています。漢字で書く外来語（煙草、たばこ、<i>tabaco</i> から）はふりがなを残し、由来は描きません。<code>Tsubu.setAnnotation(root, "origin", on)</code> で由来を切り替え、上側の切り替えは由来に影響しません。上側のローマ字も同じ行を使うので、<code>origin: "over"</code> と <code>over: "romaji"</code> は一緒に使えません。ローマ字は下側に置いてください。</p>
+        <p class="en">tsubu never guesses an origin and bundles no dictionary. JMdict's <code>lsource</code> is one source; it is licensed CC BY-SA 4.0 by the Electronic Dictionary Research and Development Group, and whoever uses that data must give attribution. Each origin's <code>&lt;rt&gt;</code> carries its <code>lang</code>, so screen readers say it in its language, and without ruby it reads パン（pão, pt）.</p>
+        <p class="zh" lang="zh-CN">tsubu 从不猜测词源，也不附带词典。JMdict 的 <code>lsource</code> 是一个来源，由 Electronic Dictionary Research and Development Group 以 CC BY-SA 4.0 授权，使用这些数据的人必须署名。每个词源的 <code>&lt;rt&gt;</code> 带着自己的 <code>lang</code>，读屏软件会用那种语言读；画不出 ruby 时显示为 パン（pão, pt）。</p><p class="ja" lang="ja">tsubu は由来を推測せず、辞書も同梱しません。JMdict の <code>lsource</code> が出典の一つで、Electronic Dictionary Research and Development Group により CC BY-SA 4.0 で提供されており、そのデータを使う人は帰属を表示しなければなりません。由来の <code>&lt;rt&gt;</code> はそれぞれの <code>lang</code> を持つので、スクリーンリーダーはその言語で読み上げます。ルビを描けない環境ではパン（pão, pt）と表示されます。</p>
+      </div>
+      <div>
+        <div class="ctl">
+          <label>over <select id="og-over"><option selected>ruby</option><option>none</option></select></label>
+          <label>under <select id="og-under"><option selected>none</option><option>ruby</option><option>romaji</option></select></label>
+          <label><input type="checkbox" id="og-on" checked> <span class="en">origins shown</span><span class="zh" lang="zh-CN">显示词源</span><span class="ja" lang="ja">由来を表示</span></label>
+          <label><input type="checkbox" id="og-over-on" checked> <span class="en">over shown</span><span class="zh" lang="zh-CN">显示上方</span><span class="ja" lang="ja">上を表示</span></label>
+        </div>
+        <div class="stage" data-tsubu-theme="light" id="og" style="margin-top: 8px"></div>
+        <p class="err" id="og-err"></p>
+        <div class="transport"><button type="button" id="og-play">Play</button><input type="range" id="og-t" aria-label="t"><output id="og-out">0.00 s</output></div>
       </div>
     </div>
   </section>
@@ -343,6 +369,26 @@ $("rj-over").addEventListener("change", rjDraw); $("rj-under").addEventListener(
 $("rj-over-on").addEventListener("change", rjShow); $("rj-under-on").addEventListener("change", rjShow);
 Site.clock({ duration: 3.0, render: (t) => { rjT = t; if (rj) rj.s.apply(rj.root, t); }, play: $("rj-play"), scrub: $("rj-t"), out: $("rj-out"), start: 1.0, autoplay: false });
 
+// 1c. loanwords' origins over the text; their switch is their own, and changes only an attribute
+// けさ、パンとコーヒーと煙草を買いました。 "This morning I bought bread, coffee and tobacco."
+const loan = (text, origin) => ({ text, origin });
+const LOANS = { segments: [
+  { ...seg(["けさ"], 0.0, 0.5), romaji: "kesa" }, punct("、"),
+  { parts: [loan("パン", { text: "pão", lang: "pt" }), { text: "と" }], start: 0.7, end: 1.1, romaji: "pan to" },
+  { parts: [loan("コーヒー", { text: "koffie", lang: "nl" }), { text: "と" }], start: 1.1, end: 1.7, romaji: "kōhii to" },
+  { parts: [{ text: "煙草", ruby: "たばこ", origin: { text: "tabaco", lang: "pt" } }, { text: "を" }], start: 1.8, end: 2.3, romaji: "tabako o" },
+  { ...seg([["買", "か"], "いました"], 2.3, 3.0), romaji: "kaimashita" }, punct("。")] };
+let og = null, ogT = 1.0;
+const ogShow = () => { if (!og) return; Tsubu.setAnnotation(og.root, "origin", $("og-on").checked); Tsubu.setAnnotation(og.root, "over", $("og-over-on").checked); };
+function ogDraw() {
+  try { og = Site.draw($("og"), LOANS, { announceRuby: false, origin: "over", over: $("og-over").value, under: $("og-under").value }); $("og-err").textContent = ""; }
+  catch (e) { $("og-err").textContent = e.message; return; }
+  ogShow(); og.s.apply(og.root, ogT);
+}
+$("og-over").addEventListener("change", ogDraw); $("og-under").addEventListener("change", ogDraw);
+$("og-on").addEventListener("change", ogShow); $("og-over-on").addEventListener("change", ogShow);
+Site.clock({ duration: 3.2, render: (t) => { ogT = t; if (og) og.s.apply(og.root, t); }, play: $("og-play"), scrub: $("og-t"), out: $("og-out"), start: 1.0, autoplay: false });
+
 // 2. lines and paging in a fluid frame
 const ln = Site.draw($("ln"), BREAD, { announceRuby: false });
 let lnT = 1.0;
@@ -414,7 +460,7 @@ Site.clock({ duration: 3.0, render: (t) => { imT = t; if (im && im.s.timing !== 
 const ax = () => { const s = Tsubu.sentence(RAIN, { announceRuby: $("ax-announce").checked }); $("ax").innerHTML = s.html; s.apply($("ax").querySelector(".tsubu"), 1.0); $("ax-html").textContent = s.htmlAt(1.0).replace(/></g, ">\n<"); };
 $("ax-announce").addEventListener("change", ax);
 
-document.fonts.ready.then(() => { rjDraw(); lnBox(); thDraw(); rvShow([]); moDraw(); vtDraw(); sb(); imReset(); ax(); window.__ready = true; });
+document.fonts.ready.then(() => { rjDraw(); ogDraw(); lnBox(); thDraw(); rvShow([]); moDraw(); vtDraw(); sb(); imReset(); ax(); window.__ready = true; });
 </script>
 </body>
 </html>
