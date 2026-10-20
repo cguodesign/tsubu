@@ -146,7 +146,7 @@
       <li><span class="sent" lang="ja" data-fact="3"></span><b class="en">Measured colours</b><b class="zh" lang="zh-CN">实测的颜色</b><b class="ja" lang="ja">計測済みの配色</b><span class="en">Themes for a light page, a dark page and text over video, colours per speaker, and <code>checkContrast</code>, which measures every state against WCAG-based thresholds.</span><span class="zh" lang="zh-CN">浅色页、深色页和叠在视频上的三套主题，按说话人上色，以及按 WCAG 阈值测量每个状态的 <code>checkContrast</code>。</span><span class="ja" lang="ja">明るいページ、暗いページ、動画の上の三つのテーマ、話者ごとの配色、そして WCAG に基づくしきい値で全状態を計測する <code>checkContrast</code>。</span></li>
       <li><span class="sent" lang="ja" data-fact="4"></span><b class="en">Japanese lines</b><b class="zh" lang="zh-CN">日语的行</b><b class="ja" lang="ja">日本語の行</b><span class="en">Lines break only between segments and by Japanese line-breaking rules, stay close in length, take their size from the container, and are paged by <code>t</code>. Vertical writing too.</span><span class="zh" lang="zh-CN">只在段与段之间、按禁则断行，各行长度接近，字号随容器变化，超长时按 <code>t</code> 翻页。也支持竖排。</span><span class="ja" lang="ja">改行は文節の間だけ、禁則処理つき。行の長さは揃い、文字サイズはコンテナに追従し、長い文は <code>t</code> でページ送りされます。縦書きにも対応。</span></li>
       <li><span class="sent" lang="ja" data-fact="5"></span><b class="en">Motion that shows the reading</b><b class="zh" lang="zh-CN">表现朗读的动效</b><b class="ja" lang="ja">読みを見せるモーション</b><span class="en">Presets <code>appear</code>, <code>mask</code>, <code>blur</code> and <code>underline-draw</code>, each drawn from the state at <code>t</code>, and revealing on the learner's own events.</span><span class="zh" lang="zh-CN">预设 <code>appear</code>、<code>mask</code>、<code>blur</code>、<code>underline-draw</code>，都由 <code>t</code> 时刻的状态画出；也能按学习者的操作揭示。</span><span class="ja" lang="ja">プリセット <code>appear</code>、<code>mask</code>、<code>blur</code>、<code>underline-draw</code> はいずれも時刻 <code>t</code> の状態から描かれ、学習者の操作で明かすこともできます。</span></li>
-      <li><span class="sent" lang="ja" data-fact="6"></span><b class="en">Romaji over or under</b><b class="zh" lang="zh-CN">罗马字在上或在下</b><b class="ja" lang="ja">ローマ字を上にも下にも</b><span class="en">Your own romaji per segment. Choose what goes over the text and what under it, furigana or romaji; either side switches without moving a character.</span><span class="zh" lang="zh-CN">每段由你提供罗马字。字的上方和下方各放注音还是罗马字由你选；任何一侧开关，字都不动。</span><span class="ja" lang="ja">文節ごとのローマ字は呼び出し側が用意します。文字の上と下にふりがなとローマ字のどちらを置くかを選べ、どちらの側を切り替えても文字は動きません。</span></li>
+      <li><span class="sent" lang="ja" data-fact="6"></span><b class="en">Romaji and loanword origins</b><b class="zh" lang="zh-CN">罗马字与外来语词源</b><b class="ja" lang="ja">ローマ字と外来語の語源</b><span class="en">Your own romaji per segment, and where a loanword comes from (パン, from <i>pão</i>). Choose what goes over the text and what under it; each switches without moving a character.</span><span class="zh" lang="zh-CN">每段由你提供罗马字，外来语还能标出词源（パン 来自 <i>pão</i>）。字的上方和下方各放什么由你选；每一样开关，字都不动。</span><span class="ja" lang="ja">文節ごとのローマ字と、外来語の語源（パンは <i>pão</i> から）は呼び出し側が用意します。文字の上と下に何を置くかを選べ、どれを切り替えても文字は動きません。</span></li>
       <li><span class="sent" lang="ja" data-fact="7"></span><b class="en">Subtitles in and out</b><b class="zh" lang="zh-CN">字幕进出</b><b class="ja" lang="ja">字幕の書き出しと読み込み</b><span class="en">The same input becomes WebVTT, ASS karaoke or SRT; WebVTT, SRT, Remotion captions and kuroshiro's furigana come back as input, with no segment or time guessed.</span><span class="zh" lang="zh-CN">同样的输入可以导出成 WebVTT、ASS 卡拉 OK 或 SRT；WebVTT、SRT、Remotion 字幕和 kuroshiro 的注音也能转回输入，不猜任何段或时间。</span><span class="ja" lang="ja">同じ入力から WebVTT、ASS カラオケ、SRT を書き出せます。WebVTT、SRT、Remotion のキャプション、kuroshiro のふりがなは入力に戻せ、文節も時刻も推測しません。</span></li>
     </ul>
     <p class="small muted en" style="margin: 14px 0 0; max-width: 72ch">What tsubu does not do: split text into segments, align audio, estimate times, play audio, draw a speech bubble or lay out more than one sentence. Those belong to the caller.</p>
@@ -566,12 +566,18 @@ const RAIN = { segments: [
   { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], start: 0.9, end: 1.3 }, { parts: [{ text: "お" }, { text: "茶", ruby: "ちゃ" }, { text: "を" }], start: 1.3, end: 1.8 },
   { parts: [{ text: "飲", ruby: "の" }, { text: "みます" }], start: 1.85, end: 2.6 }, { parts: [{ text: "。" }], kind: "punct" },
 ] };
-// the same sentence with romaji, the caller's own, for the romaji card
-const ROMAJI = { segments: RAIN.segments.map((s, i) => ({ ...s, ...({ 0: { romaji: "ame no hi wa" }, 2: { romaji: "ie de" }, 3: { romaji: "ocha o" }, 4: { romaji: "nomimasu" } }[i] || {}) })) };
+// 毎朝パンとコーヒーを飲みます… "Every morning, bread and coffee": loanwords with their origins
+// (the caller's own, as JMdict records them), for the same card
+const LOAN = { segments: [
+  { parts: [{ text: "毎朝", ruby: "まいあさ" }], romaji: "maiasa", start: 0.0, end: 0.6 },
+  { parts: [{ text: "パン", origin: { text: "pão", lang: "pt" } }, { text: "と" }], romaji: "pan to", start: 0.6, end: 1.2 },
+  { parts: [{ text: "コーヒー", origin: { text: "koffie", lang: "nl" } }], romaji: "kōhī", start: 1.2, end: 1.9 },
+  { parts: [{ text: "。" }], kind: "punct" },
+] };
 const facts = [...document.querySelectorAll(".facts .sent")];
 const factRoots = facts.map((el, i) => {
-  const options = [{}, { ruby: i % 2 === 0 }, {}, { theme: "light" }, {}, { motion: "mask" }, { over: "romaji", under: "ruby" }, {}][i];
-  const s = Tsubu.sentence(i === 6 ? ROMAJI : i === 7 ? TsubuImport.fromWebVTT(TsubuExport.toWebVTT(RAIN))[0] : RAIN, { announceRuby: false, ...options });
+  const options = [{}, { ruby: i % 2 === 0 }, {}, { theme: "light" }, {}, { motion: "mask" }, { origin: "over", under: "romaji" }, {}][i];
+  const s = Tsubu.sentence(i === 6 ? LOAN : i === 7 ? TsubuImport.fromWebVTT(TsubuExport.toWebVTT(RAIN))[0] : RAIN, { announceRuby: false, ...options });
   el.innerHTML = s.html; const r = el.querySelector(".tsubu");
   if (i === 1) Tsubu.setRuby(r, false);
   if (i === 2 || i === 3 || i === 5 || i === 6 || i === 7) s.apply(r, i === 7 ? 1.5 : 1.0);
