@@ -11,6 +11,8 @@ already cut into segments (*bunsetsu*), and tsubu draws:
 
 - a dotted underline under each segment;
 - furigana that switch on and off **without moving any character**;
+- romaji, the caller's own, over or under each segment: the caller chooses what goes above the
+  text and what below it, and either side switches on and off without moving any character;
 - a highlight on the segment being spoken, as a **pure function of time**: `apply(root, t)` has no
   timer, no `requestAnimationFrame` and no transition, so live playback and frame-by-frame video
   capture draw the same thing;
@@ -115,13 +117,15 @@ input = {
   lang: "ja",                  // optional, default "ja"; written to the root's lang attribute
   start: 4.0, end: 6.0,        // optional: the whole sentence's start and end, in seconds
   segments: [                  // required, in reading order
-    { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], start: 0.9, end: 1.3 },
+    { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], romaji: "ie de", start: 0.9, end: 1.3 },
     { parts: [{ text: "、" }], kind: "punct" },
     // ...
   ],
 }
 options = {                    // all optional
-  ruby: true,                  // whether furigana start out shown (default true)
+  over: "ruby",                // what is drawn over the text: "ruby" (default), "romaji" or "none"
+  under: "romaji",             // what is drawn under it: "ruby", "romaji" or "none" (default)
+  ruby: true,                  // whether the over side starts out shown (default true)
   announceRuby: true,          // whether screen readers read each reading (default true)
   theme: "light",              // a preset: "light", "dark", "media", or a name of your own
   speaker: "a",                // whose line this is, for colours per speaker: "a", "b" or your own
@@ -131,8 +135,10 @@ options = {                    // all optional
 }
 ```
 
-A segment's `parts` are pieces of text; a part with `ruby` is drawn as `<ruby>`. `kind: "punct"`
-marks punctuation, which is never spoken and never timed. The times decide the sentence's
+A segment's `parts` are pieces of text; a part with `ruby` is drawn as `<ruby>`. A segment's
+`romaji` is the romanised reading of the whole segment, which tsubu never makes itself; `over` and
+`under` choose which layer is drawn on which side. `kind: "punct"` marks punctuation, which is
+never spoken and never timed. The times decide the sentence's
 **timing**:
 
 | `timing` | When | What lights up |
@@ -155,7 +161,7 @@ throw an `Error` whose message starts with `tsubu:`. The full contract is in the
   text or nodes; `htmlAt(t)`, the same frame as HTML, for servers and renderers;
 - `span(i)` and `find(id)`, for click-to-seek.
 
-`Tsubu` also has `setRuby`, `setRevealed`, `segmentOf`, `checkContrast`, `checkFit`, `contrast`
+`Tsubu` also has `setRuby` and `setAnnotation` (show or hide either side's readings), `setRevealed`, `segmentOf`, `checkContrast`, `checkFit`, `contrast`
 and the catalogues `THEMES`, `SPEAKERS`, `MOTIONS`, `CONTRAST` and `STATES`. Every name, option and
 CSS custom property is in the [guide](docs/guide.md#output) and on the website's
 [API page](https://chong.works/tsubu/api.html).
@@ -164,6 +170,8 @@ CSS custom property is in the [guide](docs/guide.md#output) and on the website's
 
 Each item links to its section of the guide:
 
+- [**Romaji, over or under**](docs/guide.md#romaji-and-the-two-sides): furigana and romaji on
+  either side of the text, each side switched on its own, in horizontal and vertical text.
 - [**Themes and contrast**](docs/guide.md#themes-and-contrast): `light`, `dark` and `media`
   presets, colours per speaker, and `checkContrast`, which measures a drawn sentence against
   WCAG-based thresholds.
@@ -196,9 +204,9 @@ node docs/agents/validate.mjs input.json --text sentence.txt
 
 ## Guarantees and browser support
 
-Every frame is a function of `t`; switching furigana, the highlight, the theme or the speaker moves
-no character; lines break only between segments and by the line-breaking rules; nothing overflows
-over a grid of widths and sentence lengths. Each of these is measured in a real browser, in
+Every frame is a function of `t`; switching the readings on either side, the highlight, the theme
+or the speaker moves no character; lines break only between segments and by the line-breaking
+rules; nothing overflows over a grid of widths and sentence lengths. Each of these is measured in a real browser, in
 Chromium, Firefox and WebKit. All hold in Chromium; Firefox and WebKit do not balance lines in
 every case. Details, and how each guarantee is tested, are in [docs/testing.md](docs/testing.md).
 

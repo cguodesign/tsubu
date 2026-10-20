@@ -9,6 +9,7 @@
 
 - 每段下面一条点状下划线；
 - 可以开关的注音，**开关时任何一个字都不移动**；
+- 由调用方提供的罗马字，标在每段的上方或下方：上面标什么、下面标什么由调用方决定，两侧各自开关，同样不移动任何字；
 - 正在读的那一段的高亮，而且是**时间的纯函数**：`apply(root, t)` 不用计时器、不用 `requestAnimationFrame`、不用过渡，所以实时播放和逐帧录视频画出来的完全一样；
 - 实测对比度的主题、按日语禁则断开的多行、竖排、动效预设，以及 WebVTT、ASS、SRT 导出。
 
@@ -101,14 +102,16 @@ input = {
   lang: "ja",                  // 可选，默认 "ja"；写到根元素的 lang 属性上
   start: 4.0, end: 6.0,        // 可选：整句的开始和结束，单位秒
   segments: [                  // 必填，按朗读顺序
-    { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], start: 0.9, end: 1.3 },
+    { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], romaji: "ie de", start: 0.9, end: 1.3 },
     { parts: [{ text: "、" }], kind: "punct" },
     // ...
   ],
 }
 options = {                    // 都是可选的
-  ruby: true,                  // 注音一开始是否显示（默认 true）
-  announceRuby: true,          // 读屏软件是否朗读注音（默认 true）
+  over: "ruby",                // 文字上方标什么："ruby"（默认）、"romaji" 或 "none"
+  under: "romaji",             // 文字下方标什么："ruby"、"romaji" 或 "none"（默认）
+  ruby: true,                  // 上方的标注一开始是否显示（默认 true）
+  announceRuby: true,          // 读屏软件是否朗读注音和罗马字（默认 true）
   theme: "light",              // 预设："light"、"dark"、"media"，或你自己起的名字
   speaker: "a",                // 这句话是谁说的，用于按说话人上色："a"、"b" 或你自己起的名字
   motion: "mask",              // Tsubu.MOTIONS 里的动效预设：一个名字、空格分隔的列表或数组
@@ -117,7 +120,7 @@ options = {                    // 都是可选的
 }
 ```
 
-段的 `parts` 是文字片段，带 `ruby` 的片段画成 `<ruby>`。`kind: "punct"` 表示标点，它不会被朗读，也不能带时间。时间决定句子的 **timing**：
+段的 `parts` 是文字片段，带 `ruby` 的片段画成 `<ruby>`。段的 `romaji` 是整段的罗马字读音，tsubu 自己从不生成；`over` 和 `under` 决定哪一层画在哪一侧。`kind: "punct"` 表示标点，它不会被朗读，也不能带时间。时间决定句子的 **timing**：
 
 | `timing` | 条件 | 高亮什么 |
 |---|---|---|
@@ -136,12 +139,13 @@ tsubu 从不猜测：只有部分段带时间、时间重叠或倒序、输入�
 - `apply(root, t)`：把这个状态以属性的形式写到画好的句子上，从不改文字或节点；`htmlAt(t)`：同一帧的 HTML，给服务器和渲染器用；
 - `span(i)` 和 `find(id)`：点击跳转用。
 
-`Tsubu` 上还有 `setRuby`、`setRevealed`、`segmentOf`、`checkContrast`、`checkFit`、`contrast`，以及目录 `THEMES`、`SPEAKERS`、`MOTIONS`、`CONTRAST`、`STATES`。所有名字、选项和 CSS 自定义属性都在[指南](docs/guide.md#output)（英文）和网站的 [API 页面](https://chong.works/tsubu/api.html)（有中文）里。
+`Tsubu` 上还有 `setRuby` 和 `setAnnotation`（显示或隐藏任一侧的标注）、`setRevealed`、`segmentOf`、`checkContrast`、`checkFit`、`contrast`，以及目录 `THEMES`、`SPEAKERS`、`MOTIONS`、`CONTRAST`、`STATES`。所有名字、选项和 CSS 自定义属性都在[指南](docs/guide.md#output)（英文）和网站的 [API 页面](https://chong.works/tsubu/api.html)（有中文）里。
 
 ## 其他功能
 
 每一项都链接到指南（英文）里对应的一节；网站上有同样内容的中文版和现场示例：
 
+- [**罗马字，标在上方或下方**](docs/guide.md#romaji-and-the-two-sides)：注音和罗马字可以放在文字的任一侧，两侧各自开关，横排竖排都行。
 - [**主题与对比度**](docs/guide.md#themes-and-contrast)：`light`、`dark`、`media` 三套预设，按说话人上色，以及 `checkContrast`：按基于 WCAG 的阈值测量画好的句子。
 - [**多行**](docs/guide.md#several-lines)：日语禁则、均衡换行、字号随容器变化、超过最大行数时按 `t` 翻页。`checkFit` 判断句子在所画的位置是否放得下。
 - [**竖排**](docs/guide.md#vertical-writing)，短的半角字符串直立显示。
@@ -161,7 +165,7 @@ node docs/agents/validate.mjs input.json --text sentence.txt
 
 ## 保证与浏览器支持
 
-每一帧都是 `t` 的函数；开关注音、切换高亮、换主题或说话人都不会让任何字移动；只在段与段之间、按禁则断行；在一组宽度和句长下都不溢出。每一条都在真实浏览器里测量，覆盖 Chromium、Firefox 和 WebKit。Chromium 里全部成立；Firefox 和 WebKit 并非在所有情况下都均衡换行。细节和每条怎么测，见 [docs/testing.md](docs/testing.md)（英文）。
+每一帧都是 `t` 的函数；开关任一侧的注音或罗马字、切换高亮、换主题或说话人都不会让任何字移动；只在段与段之间、按禁则断行；在一组宽度和句长下都不溢出。每一条都在真实浏览器里测量，覆盖 Chromium、Firefox 和 WebKit。Chromium 里全部成立；Firefox 和 WebKit 并非在所有情况下都均衡换行。细节和每条怎么测，见 [docs/testing.md](docs/testing.md)（英文）。
 
 ## 开发
 

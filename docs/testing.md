@@ -15,6 +15,21 @@ says which hold where:
   character, segment and reading, then switches the furigana and moves `t` back and forth, and
   requires every box to stay exactly where it was, on one line and on two.
 - **Highlighting moves nothing.** Same test: boxes are compared across many values of `t`.
+- **Romaji, and switching either side, move nothing** (`tests/test_romaji.py`). With romaji under
+  the furigana, romaji over the furigana, romaji over the text alone and romaji under it alone, in
+  horizontal and vertical text, on one line and on two (columns): the boxes of every character,
+  segment and reading, and the sentence's own, stay where they are while `t` moves and the over
+  and under sides are switched on and off, each and both; a sentence drawn with a side hidden is
+  laid out as one with it shown. With furigana over and nothing under, the HTML is byte for byte
+  that of the same sentence without romaji.
+- **Each reading is on its side and clear of everything else** (`tests/test_romaji.py`): above or
+  below its segment's text (at its right or left in vertical text), inside the sentence's box, its
+  text clear of the underline (or side line), which runs between the text and the readings under
+  it, and no reading overlapping another reading or a character, on its own line or the next. The
+  same holds in a face with Noto Sans JP's metrics, measured by the em boxes of text and readings;
+  in vertical text the highlight and the side line stay on the em box of the text whatever
+  readings a segment has. Pages with readings under the text keep to their number of lines, and
+  switching either side does not reflow them.
 - **Changing the theme or the speaker moves nothing** (`tests/test_theme.py`): every preset and
   speaker, set on the root and on an ancestor, at several values of `t`, against the boxes of the
   unthemed sentence. The `media` plate is a positioned layer behind the sentence and takes no room.
@@ -61,6 +76,12 @@ says which hold where:
 - **Forced colours and screen readers** (`tests/test_a11y.py`): under emulated forced colours the
   segment being spoken has the system highlight in every theme and timing, and nothing moves; with
   `announceRuby` off the accessibility tree holds no reading.
+- **Romaji in the checks, motion and accessibility** (`tests/test_romaji.py`): `checkContrast`
+  measures them in every state and theme against the furigana's threshold, on the page rather than
+  the highlight; `checkFit` reports romaji past the container; `appear`, `mask` and `blur` treat
+  them as furigana and no preset moves them; under forced colours the spoken segment's romaji take
+  `CanvasText`; with `announceRuby` off the accessibility tree holds none; `htmlAt` equals `apply`;
+  without ruby layout they follow their segment in parentheses.
 - **Motion presets** (`tests/test_motion.py`): each draws what it says for unheard segments only,
   a revealed segment is drawn as without the preset, nothing moves with any preset or reveal,
   frames are byte-identical screenshots whatever order `t` and reveals come in, every theme meets
@@ -119,6 +140,18 @@ only measures differently, the test checks the same guarantee in that engine's t
     content area into the line of a base that has a reading, whatever the line height, and sets
     the reading past it; the segment's line is 2em across to hold it, and the column grows only
     as far as the reading needs.
+- **Romaji (nested ruby).** A segment with romaji is a ruby whose base holds the parts' own ruby.
+  Chromium, Firefox and WebKit all draw it, with the readings on the side `ruby-position` says, in
+  horizontal and vertical text (probed in each engine before relying on it). Measured in
+  WebKit: a line of such segments, with readings on both sides, is laid out again with the
+  segments wider than they are, and so on more lines, when a reading gets a filter, an opacity or
+  a text shadow (the `blur` preset) or a positioned box is added to a segment; its first layout is
+  right. The ruby is therefore drawn in an inline-block (`.tsubu-stack`), whose layout stays the
+  same in every engine (tested with `blur` and an added box). WebKit also gives the side of a
+  nested reading the room of the inner reading's line, so its lines with readings on both sides
+  are further apart than Chromium's and Firefox's (in vertical text tsubu gives the inner ruby a
+  line height of 1, which the other engines do not read there, so that the columns match); and it
+  does not grow the last line for the readings under it, which `--tsubu-under-reserve` holds.
 - `ruby-align` is needed for the "wide reading does not spread its base" guarantee. Per MDN it is
   supported from **Chrome 128** and **Safari 18.2**. In older browsers the furigana still switch
   without reflow, but a reading wider than its base spreads the base characters apart.
