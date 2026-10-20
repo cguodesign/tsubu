@@ -10,7 +10,7 @@
 - 每段下面一条点状下划线；
 - 可以开关的注音，**开关时任何一个字都不移动**；
 - 由调用方提供的罗马字，标在每段的上方或下方：上面标什么、下面标什么由调用方决定，两侧各自开关，同样不移动任何字；
-- 由调用方提供的外来语词源，标在词的上方（パン，*pão*，pt），单独开关，同样不移动任何字；
+- 由调用方提供的外来语词源，标在词的上方（パン，*pão*，pt），单独开关，同样不移动任何字；写成片假名的外来语显示词源（コーヒー，*koffie*），写成汉字的则只显示注音（珈琲，コーヒー）；
 - 正在读的那一段的高亮，而且是**时间的纯函数**：`apply(root, t)` 不用计时器、不用 `requestAnimationFrame`、不用过渡，所以实时播放和逐帧录视频画出来的完全一样；
 - 实测对比度的主题、按日语禁则断开的多行、竖排、动效预设，以及 WebVTT、ASS、SRT 导出。
 
@@ -79,13 +79,13 @@ import "tsubu-js/tsubu.css";                           // 打包工具能处理 
 页面就只会运行它所针对的那个文件：
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tsubu-js@0.1.0/tsubu.css"
-      integrity="sha384-SlfIuFrZo0yor05+BcMvDiAP3WJ0dkZmH8a9JUHnmAUI9BGNU+oQ9dDy+5n1PKoG" crossorigin="anonymous">
-<script src="https://cdn.jsdelivr.net/npm/tsubu-js@0.1.0/tsubu.js"
-        integrity="sha384-KqOxfytJPFgoafKyYmfGSraqQPzpMAopz/++pPUH412E94z3r9qWDgy+b/aoryAE" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tsubu-js@0.2.0/tsubu.css"
+      integrity="sha384-x3n1SAJIWVplNrcCXTB3JQy5trP+zLSqRK9ED+7oF/pKg6oL+oSfLKFoZmH22DXn" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/tsubu-js@0.2.0/tsubu.js"
+        integrity="sha384-YEkJH/3ey8GoAS8rFP1Tsndo8K+ncyhFgLVIxzQhzHK5+zY89iWSDVR9JBffY3Oy" crossorigin="anonymous"></script>
 ```
 
-`https://unpkg.com/tsubu-js@0.1.0/tsubu.js` 提供同一个文件。文件的哈希是
+`https://unpkg.com/tsubu-js@0.2.0/tsubu.js` 提供同一个文件。文件的哈希是
 `openssl dgst -sha384 -binary tsubu.js | openssl base64 -A`，从包（`npm pack`）或 CDN 上的副本算；
 向 CDN 要文件本身，不要它压缩过的版本，那个哈希不同。不用打包工具的页面也可以用
 `<script type="module">` 从同样的地址导入 `tsubu.mjs`；这时普通脚本也会定义全局的 `Tsubu`。
@@ -154,7 +154,7 @@ tsubu 从不猜测：只有部分段带时间、时间重叠或倒序、输入�
 每一项都链接到指南（英文）里对应的一节；网站上有同样内容的中文版和现场示例：
 
 - [**罗马字，标在上方或下方**](docs/guide.md#romaji-and-the-two-sides)：注音和罗马字可以放在文字的任一侧，两侧各自开关，横排竖排都行。
-- [**外来语词源**](docs/guide.md#loanword-origins)：在外来语上方标出原词和语言，和制外来语前加「和製」，单独开关；数据由调用方提供（JMdict 的 `lsource` 是一个来源，其许可要求署名）。
+- [**外来语词源**](docs/guide.md#loanword-origins)：在片假名外来语上方标出原词和语言（写成汉字的外来语只显示注音），和制外来语前加「和製」，单独开关；数据由调用方提供（JMdict 的 `lsource` 是一个来源，其许可要求署名）。
 - [**主题与对比度**](docs/guide.md#themes-and-contrast)：`light`、`dark`、`media` 三套预设，按说话人上色，以及 `checkContrast`：按基于 WCAG 的阈值测量画好的句子。
 - [**多行**](docs/guide.md#several-lines)：日语禁则、均衡换行、字号随容器变化、超过最大行数时按 `t` 翻页。`checkFit` 判断句子在所画的位置是否放得下。
 - [**竖排**](docs/guide.md#vertical-writing)，短的半角字符串直立显示。
@@ -201,7 +201,7 @@ python -m pytest -q                    # 加 --engine firefox 或 --engine webki
 | `docs/agents/` | 给 agent 的版本化指南，讲怎么准备 tsubu 的输入，附校验器（也在包里） |
 | `examples/` | 录制视频：用 Playwright 生成 PNG 帧，用 Node 生成 HTML 帧；帧换算 `tsubu-frames.js`，以及 Remotion 和 HyperFrames 示例 |
 | `site/` | 项目网站：首页（短片由 `t` 绘制）、快速开始、指南、API 参考、试验场和画廊，有英文、简体中文和日文三种语言。页面从同级文件加载库（检出里是符号链接），所以从磁盘直接打开就能看 |
-| `demo/index.html` | 演示页：拖动时间、开关注音、选主题，有一段对话和一个流式、会翻页的框；地址可带 `?t=秒数&ruby=off&theme=dark&frame=320&lines=2&motion=mask` |
+| `demo/index.html` | 演示页：拖动时间、开关注音、选主题，有一段对话、上下的罗马字和外来语词源，以及一个流式、会翻页的框；地址可带 `?t=秒数&ruby=off&theme=dark&frame=320&lines=2&motion=mask` |
 | `tests/` | 测试（pytest；状态用 Node，版面用 Playwright，在 Chromium、Firefox 或 WebKit 里） |
 | `.github/workflows/` | 每次推送跑 CI；打版本 tag 时先测试，再带来源证明 `npm publish`，再把网站部署到 GitHub Pages |
 | `docs/guide.md` | 指南（英文）：输入、输出、CSS 自定义属性和每项功能的细节 |

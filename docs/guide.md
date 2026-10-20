@@ -204,7 +204,7 @@ Also on `Tsubu`:
 - **`Tsubu.CONTRAST`**: the thresholds, `{ text: 4.5, ruby: 4.5, underline: 3, highlight: 3 }`;
   romaji and origins are held to `ruby`'s.
 - **`Tsubu.THEMES`**: `["light", "dark", "media"]`; **`Tsubu.SPEAKERS`**: `["a", "b"]`.
-- **`Tsubu.version`**: `"0.1.0"`.
+- **`Tsubu.version`**: `"0.2.0"`.
 - **`Tsubu.STATES`**: `["future", "current", "past"]`.
 
 Because the frame for a given `t` never depends on which `t` came before, you can call

@@ -6,6 +6,13 @@ All notable changes to tsubu are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-20
+
+The HTML changed, so by the versioning rules this is a minor release: every reading now carries
+`<rp>` parentheses (below). Callers that compare `html` byte for byte, or select the children of
+`<ruby>`, should expect them. Everything else added here is off unless asked for: with the
+defaults, romaji and origins in the input change nothing.
+
 ### Added
 
 - `options.shown: { over, under, origin }` says which annotations start out shown (each `true` by
@@ -75,7 +82,7 @@ All notable changes to tsubu are recorded here. The format follows
   JSON, WebVTT or SRT and has the over and under options; the API tables stack on a phone, and on
   a phone the loupe's label sits under the text instead of on other lines; the not-found page's
   home link stays on the site. A test keeps getting started's example the README's.
-- Documentation corrected: the size of `tsubu.js` (about 50 KB, 16 KB gzipped), which engines
+- Documentation corrected: the size of `tsubu.js` (now about 60 KB, 19 KB gzipped), which engines
   balance lines, the underline offset (from the em box), the `<rp>` fallback in the testing
   notes, the HTML attributes and refusals in full, the language versions each script needs, and
   `--tsubu-em-lead` and `--tsubu-em-trail`, now documented.
@@ -83,9 +90,15 @@ All notable changes to tsubu are recorded here. The format follows
   every frame matches `htmlAt(t)` at its time, and the folder renders with its links. Its README
   records what was checked, and that the CLI sends telemetry unless `HYPERFRAMES_NO_TELEMETRY=1`
   is set.
+- The demo has a card for romaji and loanword origins over and under the text, whose sentence
+  shows the rule for loanwords: コーヒー in katakana with its origin, 珈琲 in kanji with its
+  furigana.
+- The guide for agents preparing input (`docs/agents/segmenting.md`) is version 1.1.0, for this
+  release: the optional `romaji` and `origin`, where to take them from, the rule for loanwords in
+  kanji, kuroshiro through `fromKuroshiro`, and times that already exist through `tsubu-import.js`.
 - The package's homepage is the site's own address, https://chong.works/tsubu/.
-- The README's CDN examples carry the real Subresource Integrity hashes of 0.1.0, and a test
-  checks each against the file at its version's tag.
+- The README's CDN examples carry the real Subresource Integrity hashes of the version they name,
+  and a test checks each against the file at that version's tag.
 - The READMEs are short: what tsubu is, install, the input and output in brief, a list of
   features, and development. The detail moved, unchanged, to `docs/guide.md` (input, output,
   CSS custom properties and every feature) and `docs/testing.md` (layout guarantees, how they
@@ -270,5 +283,6 @@ Fixed during development, before this first release.
   the readings; a column now grows only for readings that would reach the characters of the next. Vertical text holds every guarantee in WebKit but balanced
   columns.
 
-[Unreleased]: https://github.com/cguodesign/tsubu/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/cguodesign/tsubu/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/cguodesign/tsubu/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cguodesign/tsubu/releases/tag/v0.1.0

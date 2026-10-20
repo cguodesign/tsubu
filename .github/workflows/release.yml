@@ -1,4 +1,4 @@
-# On a version tag (v0.1.0): run the tests, publish to npm with provenance through trusted
+# On a version tag (v0.2.0): run the tests, publish to npm with provenance through trusted
 # publishing (no token is stored anywhere), then deploy the site from the same commit.
 # The `release` environment holds the job until the maintainer approves it.
 name: Release
@@ -40,7 +40,7 @@ jobs:
           {
             echo "### SRI for $name@$version"
             echo
-            for file in tsubu.js tsubu.css tsubu-export.js tsubu.mjs tsubu-export.mjs; do
+            for file in tsubu.js tsubu.css tsubu-export.js tsubu-import.js tsubu.mjs tsubu-export.mjs tsubu-import.mjs; do
               echo "- \`https://cdn.jsdelivr.net/npm/$name@$version/$file\`: \`sha384-$(openssl dgst -sha384 -binary "$file" | openssl base64 -A)\`"
             done
           } >> "$GITHUB_STEP_SUMMARY"

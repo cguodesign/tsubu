@@ -1,8 +1,8 @@
 # Preparing a Japanese sentence for tsubu: a guide for agents
 
-**Guide version:** 1.0.0
-**Verified on:** 2026-10-19
-**Targets tsubu:** 0.1.0
+**Guide version:** 1.1.0
+**Verified on:** 2026-10-20
+**Targets tsubu:** 0.2.0
 
 tsubu draws one sentence for read-along use, but it never segments text, guesses a reading or
 estimates a time. It takes a sentence that is already cut into segments, with readings and times
@@ -46,6 +46,9 @@ What `Tsubu.sentence(input)` takes (the full contract is in the
 - `start` and `end`, in seconds on the audio's clock, on **every** spoken segment or on **none**.
   A span is half-open, `[start, end)`. Without segment times, the sentence as a whole may have
   `start` and `end`; with no times at all it can be drawn but not played.
+- Optional, from tsubu 0.2.0: `romaji` on a segment (its romanised reading) and `origin` on a part
+  (where a loanword comes from, `{ text, lang, wasei? }`). Both are the caller's: tsubu never makes
+  them. See [Optional: romaji and loanword origins](#optional-romaji-and-loanword-origins).
 
 The worked example, for 昨日、京都の友達から手紙を受け取りました。 ("Yesterday I received a letter
 from a friend in Kyoto."). **It was made by hand, and its times are invented** (there is no
@@ -292,6 +295,36 @@ of that one word and flag the sentence for a human. The validator refuses a kanj
 reading in a sentence that has other readings, because a learner would see a gap; pass
 `--allow-missing-ruby` only when the product accepts that gap on purpose.
 
+**If your pipeline uses kuroshiro** ([kuroshiro](https://github.com/hexenq/kuroshiro), verified at
+**1.2.1**, MIT), its `convert(text, { mode: "furigana" })` returns HTML with `<ruby>` per run of
+kanji. Convert **each segment's text on its own** (kuroshiro does not cut text into segments) and
+pass the HTML to `TsubuImport.fromKuroshiro(html)` from `tsubu-import.js`, which returns that
+segment's parts, `[{ text, ruby? }]`. kuroshiro's readings come from its analyser, kuromoji, so the
+words that need care below need it here too.
+
+## Optional: romaji and loanword origins
+
+Neither is needed. Add them only from a source you can name, never from memory.
+
+- **Romaji** (`segments[].romaji`, one string per segment, such as `"ikimasu"`). Turning kana into
+  romaji is not mechanical: the particles は, へ and を are read *wa*, *e* and *o*, long vowels are
+  written ō or ou depending on the system, and ん before a vowel needs a mark. Derive romaji from
+  the reading your analyser gave (step 2), in one system for the whole sentence, and have the
+  particles and long vowels checked. A sentence's romaji are shown only where the page asks for
+  them (`options.over` or `options.under`).
+- **Loanword origins** (`parts[].origin`, `{ text, lang, wasei? }`): the source word, its language
+  as a BCP 47 tag (`pt`, `nl`, `en`), and `wasei: true` for a pseudo-loanword coined in Japanese
+  (サラリーマン). One source is the `lsource` element of [JMdict](https://www.edrdg.org/jmdict/j_jmdict.html),
+  licensed CC BY-SA 4.0 by the Electronic Dictionary Research and Development Group: whoever uses
+  that data must give attribution as the [EDRDG licence](https://www.edrdg.org/edrdg/licence.html)
+  requires. JMdict writes languages as ISO 639-2 codes (`por`, `dut`); give tsubu the BCP 47 tag.
+  Where the dictionary has no entry, leave `origin` out.
+- **The rule for loanwords in kanji.** Put `origin` on the part that holds the loanword. A loanword
+  in katakana (コーヒー) has no furigana, and its origin is drawn over it. A loanword written in
+  kanji (珈琲, with the reading コーヒー) keeps its furigana, and its origin is **not drawn**, so
+  there is no point adding one there unless the page draws no furigana for other reasons and you
+  want the data kept.
+
 ## Step 3: times
 
 There are three honest outcomes: every spoken segment has its own measured time; only the whole
@@ -299,6 +332,18 @@ sentence has a start and end; or there are no times. **A partly timed sentence i
 tsubu, so if some segments cannot be timed, drop the segment times and give the sentence its
 span, or no times at all. Never fill a gap by dividing time by length or by mora: that is an
 estimate, which is what tsubu exists to avoid.
+
+### Times that already exist
+
+If the sentence already exists with times, `tsubu-import.js` reads them without estimating
+anything: `TsubuImport.fromWebVTT(text)` (a sentence per cue, segments from `<c.tsubu-seg>` spans
+or cue timestamps), `TsubuImport.fromSRT(text, { mode: "segments" })` (a cue per segment), and
+`TsubuImport.fromCaptions(captions)` for [Remotion's `Caption` objects](https://www.remotion.dev/docs/captions/caption)
+(`@remotion/captions`, verified at **4.0.537**, MIT; a segment per caption). Their segments are the
+file's cues or captions, which are not necessarily bunsetsu: check them against step 1, and if they
+are words or characters instead, take their times as character times and use
+`timesFromCharacters` (below) on your own segments. WebVTT records when a segment begins but not
+when it ends, so each imported segment lasts until the next one begins.
 
 ### Recorded speech: forced alignment
 
@@ -458,8 +503,8 @@ Models are replaced often; check the current list rather than these names.
 
 ## Sources
 
-Read on 2026-10-19. Versions, dates and licences come from these pages or from the package
-registries (PyPI, npm) at that date.
+Read on 2026-10-19, and on 2026-10-20 for kuroshiro, Remotion's captions and JMdict. Versions,
+dates and licences come from these pages or from the package registries (PyPI, npm) at that date.
 
 - Universal Dependencies: [UniDic tags mapped to UD for Japanese](https://universaldependencies.org/docsv1/ja/overview/morphology.html);
   spaCy: [`Span`](https://spacy.io/api/span)
@@ -481,6 +526,13 @@ registries (PyPI, npm) at that date.
   unidic-py: [repository and field list](https://github.com/polm/unidic-py)
 - kuromoji.js: [repository](https://github.com/takuyaa/kuromoji.js),
   [npm](https://www.npmjs.com/package/kuromoji)
+- kuroshiro: [repository](https://github.com/hexenq/kuroshiro),
+  [`src/core.js`](https://github.com/hexenq/kuroshiro/blob/master/src/core.js) (the furigana HTML),
+  [npm](https://www.npmjs.com/package/kuroshiro)
+- Remotion captions: [`Caption`](https://www.remotion.dev/docs/captions/caption),
+  [npm](https://www.npmjs.com/package/@remotion/captions)
+- JMdict: [the project and its `lsource` element](https://www.edrdg.org/jmdict/j_jmdict.html),
+  [EDRDG licence](https://www.edrdg.org/edrdg/licence.html)
 - WhisperX: [repository](https://github.com/m-bain/whisperX),
   [`alignment.py`](https://github.com/m-bain/whisperX/blob/main/whisperx/alignment.py),
   [`audio.py`](https://github.com/m-bain/whisperX/blob/main/whisperx/audio.py),
@@ -498,6 +550,13 @@ registries (PyPI, npm) at that date.
 - Claude models: [models overview](https://platform.claude.com/docs/en/about-claude/models/overview)
 
 ## Changelog
+
+### 1.1.0 (2026-10-20)
+
+- For tsubu 0.2.0: the optional `romaji` and `origin` fields, with where to take them from and the
+  rule for loanwords in kanji; kuroshiro 1.2.1 through `TsubuImport.fromKuroshiro`; times that
+  already exist as WebVTT, SRT or Remotion captions (`@remotion/captions` 4.0.537) through
+  `tsubu-import.js`.
 
 ### 1.0.0 (2026-10-19)
 

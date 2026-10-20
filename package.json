@@ -1,6 +1,6 @@
 {
   "name": "tsubu-js",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Renders one pre-segmented Japanese sentence for read-along: furigana that never move a character, and a highlight that is a pure function of time.",
   "keywords": ["japanese", "furigana", "ruby", "read-along", "karaoke", "subtitles", "bunsetsu", "language-learning"],
   "license": "MIT",

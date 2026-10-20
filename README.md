@@ -14,7 +14,8 @@ already cut into segments (*bunsetsu*), and tsubu draws:
 - romaji, the caller's own, over or under each segment: the caller chooses what goes above the
   text and what below it, and either side switches on and off without moving any character;
 - where loanwords come from, the caller's own, over the word (パン, *pão*, pt), switched on and
-  off on their own, again without moving any character;
+  off on their own, again without moving any character; a loanword in katakana shows its origin
+  (コーヒー, *koffie*), and one written in kanji keeps its furigana instead (珈琲, コーヒー);
 - a highlight on the segment being spoken, as a **pure function of time**: `apply(root, t)` has no
   timer, no `requestAnimationFrame` and no transition, so live playback and frame-by-frame video
   capture draw the same thing;
@@ -91,13 +92,13 @@ From a CDN, with an exact version and [Subresource Integrity](https://developer.
 so the page runs only the file it was written against:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tsubu-js@0.1.0/tsubu.css"
-      integrity="sha384-SlfIuFrZo0yor05+BcMvDiAP3WJ0dkZmH8a9JUHnmAUI9BGNU+oQ9dDy+5n1PKoG" crossorigin="anonymous">
-<script src="https://cdn.jsdelivr.net/npm/tsubu-js@0.1.0/tsubu.js"
-        integrity="sha384-KqOxfytJPFgoafKyYmfGSraqQPzpMAopz/++pPUH412E94z3r9qWDgy+b/aoryAE" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tsubu-js@0.2.0/tsubu.css"
+      integrity="sha384-x3n1SAJIWVplNrcCXTB3JQy5trP+zLSqRK9ED+7oF/pKg6oL+oSfLKFoZmH22DXn" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/tsubu-js@0.2.0/tsubu.js"
+        integrity="sha384-YEkJH/3ey8GoAS8rFP1Tsndo8K+ncyhFgLVIxzQhzHK5+zY89iWSDVR9JBffY3Oy" crossorigin="anonymous"></script>
 ```
 
-`https://unpkg.com/tsubu-js@0.1.0/tsubu.js` serves the same file. The hash of a file is
+`https://unpkg.com/tsubu-js@0.2.0/tsubu.js` serves the same file. The hash of a file is
 `openssl dgst -sha384 -binary tsubu.js | openssl base64 -A`, taken from the package (`npm pack`)
 or the CDN's copy; ask the CDN for the file itself, not a minified version, whose hash differs.
 In a page without a bundler, `<script type="module">` can import `tsubu.mjs` from the same
@@ -185,7 +186,8 @@ Each item links to its section of the guide:
 - [**Romaji, over or under**](docs/guide.md#romaji-and-the-two-sides): furigana and romaji on
   either side of the text, each side switched on its own, in horizontal and vertical text.
 - [**Loanword origins**](docs/guide.md#loanword-origins): the source word and its language over a
-  loanword, 和製 before a pseudo-loanword, switched on their own; the data is the caller's (JMdict's
+  loanword in katakana (one in kanji keeps its furigana), 和製 before a pseudo-loanword, switched on
+  their own; the data is the caller's (JMdict's
   `lsource` is one source, and its licence asks for attribution).
 - [**Themes and contrast**](docs/guide.md#themes-and-contrast): `light`, `dark` and `media`
   presets, colours per speaker, and `checkContrast`, which measures a drawn sentence against
@@ -252,7 +254,7 @@ the site.
 | `docs/agents/` | the versioned guide for agents preparing tsubu's input, with its validator (also in the package) |
 | `examples/` | recording video: PNG frames through Playwright, HTML frames from Node; `tsubu-frames.js`, the frame arithmetic, with Remotion and HyperFrames examples |
 | `site/` | the project's website: a home page whose film is drawn from `t`, getting started, a guide, the API reference, a playground and a gallery, in English, 简体中文 and 日本語. The pages load the library from sibling files (symlinks in the checkout), so they open straight from disk |
-| `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker, a dialogue and a fluid, paged frame; accepts `?t=seconds&ruby=off&theme=dark&frame=320&lines=2&motion=mask` |
+| `demo/index.html` | a demo with a time slider, a furigana switch, a theme picker, a dialogue, romaji and loanword origins over and under the text, and a fluid, paged frame; accepts `?t=seconds&ruby=off&theme=dark&frame=320&lines=2&motion=mask` |
 | `tests/` | the test suite (pytest; Node for the state, Playwright for the layout, in Chromium, Firefox or WebKit) |
 | `.github/workflows/` | CI on every push; on a version tag, the tests, then `npm publish` with provenance, then the site on GitHub Pages |
 | `docs/guide.md` | the guide: input, output, CSS custom properties and every feature, in detail |

@@ -29,7 +29,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const VERSION = "0.1.0";
+  const VERSION = "0.2.0";
   const STATES = Object.freeze(["future", "current", "past"]);
   const THEMES = Object.freeze(["light", "dark", "media"]);
   const SPEAKERS = Object.freeze(["a", "b"]);
