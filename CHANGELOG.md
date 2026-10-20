@@ -22,6 +22,10 @@ All notable changes to tsubu are recorded here. The format follows
 
 ### Changed
 
+- The HyperFrames example has been rendered with HyperFrames 0.8.181: the frame source registers,
+  every frame matches `htmlAt(t)` at its time, and the folder renders with its links. Its README
+  records what was checked, and that the CLI sends telemetry unless `HYPERFRAMES_NO_TELEMETRY=1`
+  is set.
 - The package's homepage is the site's own address, https://chong.works/tsubu/.
 - The README's CDN examples carry the real Subresource Integrity hashes of 0.1.0, and a test
   checks each against the file at its version's tag.

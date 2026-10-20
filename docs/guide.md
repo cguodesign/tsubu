@@ -567,9 +567,10 @@ Node against `htmlAt`.
   that renders `htmlAt` at `useCurrentFrame()` and `useVideoConfig().fps`.
   [`examples/hyperframes/`](../examples/hyperframes/) is a HyperFrames composition that registers a
   frame source whose `render(sourceTime)` writes `htmlAt`. Both follow their engine's
-  documentation, which each folder's README cites, but neither has been run against a live
-  engine. The tests check that the Remotion files parse and that the HyperFrames page draws
-  `htmlAt(t)` for any time, against a stand-in for the runtime.
+  documentation, which each folder's README cites. The HyperFrames example has been rendered with
+  HyperFrames 0.8.181, and every frame matched `htmlAt(t)` at its time; the Remotion example has
+  not been run against Remotion. The tests check that the Remotion files parse and that the
+  HyperFrames page draws `htmlAt(t)` for any time, against a stand-in for the runtime.
 - **Video editors.** Most editors import subtitle files: SRT nearly everywhere, ASS in tools built
   on libass (Aegisub, mpv, ffmpeg's `ass` filter), and WebVTT in web players. Only ASS and WebVTT
   carry the per-segment highlight. To burn the sentence into the picture with tsubu's own look,

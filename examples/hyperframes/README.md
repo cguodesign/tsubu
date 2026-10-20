@@ -1,10 +1,11 @@
 # tsubu in HyperFrames
 
-**Untested against a live HyperFrames runtime.** HyperFrames is not installed in this repository,
-and the test suite does not run it. The code follows HyperFrames' documentation as cited below.
-`tests/test_examples.py` loads `index.html` in Chromium with a stand-in for the one runtime call it
-makes, `window.__hyperframes.registerFrameSource`. It checks that the page registers a frame source
-on the right host, and that `render(sourceTime)` draws `htmlAt(t)` for any time, in any order.
+**Rendered with HyperFrames 0.8.181 on 2026-10-20** (macOS, arm64), as described under
+[Checked against HyperFrames](#checked-against-hyperframes). HyperFrames is not installed in this
+repository, and the test suite does not run it: `tests/test_examples.py` loads `index.html` in
+Chromium with a stand-in for the one runtime call it makes,
+`window.__hyperframes.registerFrameSource`. It checks that the page registers a frame source on the
+right host, and that `render(sourceTime)` draws `htmlAt(t)` for any time, in any order.
 
 ## The idea
 
@@ -29,8 +30,8 @@ shows the frame 1.4 s into the video.
 
 ## Using it
 
-Copy `index.html` and the three files it loads into a HyperFrames project; copy the files
-themselves, not the links. Then:
+Copy `index.html` and the three files it loads into a HyperFrames project (or render this folder
+as it is: the links are followed). Then:
 
 ```sh
 npx hyperframes lint
@@ -40,22 +41,32 @@ npx hyperframes render --output tsubu.mp4
 For an overlay on other footage, remove the white `background` from `#root` and render with
 `--format webm` or `--format mov`, which keep transparency.
 
-## Not confirmed
+## Checked against HyperFrames
 
-- **When `registerFrameSource` must be called.** The docs say "before runtime initialization
-  completes". The script calls it synchronously at the end of `<body>`. Whether
-  `window.__hyperframes` already exists at that point was not confirmed. If the runtime adds it
-  later, the page draws a single static frame instead.
-- **Attributes on the host.** The frame-sources page names `data-composition-id`, `data-start`,
-  `data-duration`, `data-track-index` and `data-no-timeline`. `data-width` and `data-height` are
-  added as in the docs' inline nested composition. Whether the host also needs `class="clip"` was
-  not confirmed.
-- **Fonts.** The docs say HyperFrames waits for fonts used by markup that exists when the page
-  loads, but not for faces used only by text a script creates. The page requests its font with
-  `document.fonts.load()` and passes that promise as `ready`. The docs show `ready` taking an
-  initialisation promise, and this follows that pattern. For identical renders on every machine,
-  the docs recommend `--docker`, which pins the font set.
-- **Symlinks.** Whether the preview server and renderer follow them is unknown, so copy the files.
+With HyperFrames 0.8.181, `npx hyperframes lint` and `npx hyperframes render` were run on this
+folder, rendering MP4 and PNG frames, with the GPU and without it (`--no-browser-gpu`):
+
+- **The frame source is registered.** `window.__hyperframes` exists when the script at the end of
+  `<body>` runs, and the renderer reports the registered frame source. The MP4 is 1920 x 1080 at
+  30 fps, 108 frames, 3.6 s, as `data-duration` and `data-fps` say.
+- **Every frame is the right one.** Each of the 108 PNG frames was compared with `htmlAt(t)` for
+  its own time, drawn in the same Chrome build: each is closest to its own time, gaps between
+  segments included. The pixels are not identical: glyph edges are anti-aliased differently in
+  HyperFrames' capture, with the GPU or without, while every character and highlight is in the
+  same place.
+- **The host needs no `class="clip"`**, and the font requested through `ready` is drawn from the
+  first frame.
+- **Symlinks are followed.** Rendering this folder with its links gives the same frames as
+  rendering copies of the files.
+- **Lint** reports two `negative_z_index` warnings and no errors. They are about the highlight's
+  band and the plate, which `tsubu.css` puts at `z-index: -1` inside `.tsubu`, and `.tsubu` sets
+  `isolation: isolate`, the fix the warning suggests; the renders show the highlight.
+
+Two things about the CLI itself: it sends anonymous usage telemetry unless `HYPERFRAMES_NO_TELEMETRY=1`
+or `DO_NOT_TRACK=1` is set, and it downloads its own `chrome-headless-shell` unless
+`HYPERFRAMES_BROWSER_PATH` names one already installed (the one Playwright installs works). For
+identical renders on every machine, HyperFrames recommends `--docker`, which pins the fonts and the
+browser.
 
 ## Sources
 
