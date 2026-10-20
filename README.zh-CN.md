@@ -147,7 +147,7 @@ tsubu 从不猜测：只有部分段带时间、时间重叠或倒序、输入�
 - [**动效与揭示**](docs/guide.md#motion-and-revealing)：`appear`、`mask`、`blur`、`underline-draw`，都由状态画出；也可以按调用方的事件揭示某些段。
 - [**录制视频**](docs/guide.md#recording-video)（逐帧）和[**字幕**](docs/guide.md#exporting-subtitles)（`tsubu-export.js`：WebVTT、ASS 卡拉 OK、SRT）。
 - [**与其他工具配合**](docs/guide.md#using-tsubu-with-other-tools)：Remotion、HyperFrames 等逐帧引擎，视频剪辑软件，PowerPoint。
-- [**无障碍**](docs/guide.md#accessibility)：强制颜色模式，以及可以让读屏软件跳过的注音。
+- [**无障碍**](docs/guide.md#accessibility)：强制颜色模式，可以让读屏软件跳过的注音，以及在画不出 ruby 的地方用括号显示的注音。
 
 ## 给 agent
 

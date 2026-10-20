@@ -175,8 +175,8 @@ Each item links to its section of the guide:
   [**subtitles**](docs/guide.md#exporting-subtitles) (`tsubu-export.js`: WebVTT, ASS karaoke, SRT).
 - [**Other tools**](docs/guide.md#using-tsubu-with-other-tools): frame engines such as Remotion and
   HyperFrames, video editors, PowerPoint.
-- [**Accessibility**](docs/guide.md#accessibility): forced colours, and readings that screen
-  readers can skip.
+- [**Accessibility**](docs/guide.md#accessibility): forced colours, readings that screen
+  readers can skip, and readings in parentheses where ruby cannot be drawn.
 
 ## For agents
 

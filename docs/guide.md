@@ -32,7 +32,9 @@ options = {                    // all optional
 ```
 
 - A **segment** is one unit of reading. Its `parts` are pieces of text; a part with `ruby` is drawn
-  as `<ruby>text<rt>ruby</rt></ruby>`, so a word with a reading is never split.
+  as `<ruby>text<rp>（</rp><rt>ruby</rt><rp>）</rp></ruby>`, so a word with a reading is never
+  split. The `<rp>` parentheses show only where ruby cannot be drawn (see
+  [Accessibility](#accessibility)).
 - `kind: "punct"` marks punctuation: it has no underline, is never the segment being spoken and
   may not carry a time.
 - Times are in seconds on the caller's clock, and `t` uses the same clock.
@@ -84,7 +86,9 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
   [Several lines](#several-lines)): a segment is never split across lines, and a segment that may
   not begin a line (one that starts with a closing mark, `ー` or a small kana) shares a unit with
   the one before it, as does one that follows an opening bracket. All text is HTML-escaped. The
-  fresh HTML has no state: `apply` adds it.
+  fresh HTML has no state: `apply` adds it. Each reading sits between full-width `<rp>`
+  parentheses, so the HTML read without ruby (in a reader view, a feed reader, a text browser)
+  is 雨（あめ）の日（ひ）.
 - **`timing`**: `"segments"`, `"sentence"` or `"none"`.
 - **`span(i)`**: segment `i`'s own time, `{ start, end }`, where to seek the caller's audio when it
   is tapped (with `Tsubu.segmentOf(event.target)` for `i`); `null` for punctuation and for a
@@ -545,8 +549,11 @@ Node against `htmlAt`.
   selected text (`Highlight` and `HighlightText`); its furigana take `CanvasText`, since they sit
   on the page. Everything else is left to the browser.
 - **Screen readers.** A reading is read after its base by default (Chromium exposes
-  「雨 あめ が 降る」). With `options.announceRuby: false`, every `<rt>` gets `aria-hidden="true"`,
-  so the sentence is read once; the readings are still drawn and still switch. Hidden furigana
+  「雨 あめ が 降る」). With `options.announceRuby: false`, every `<rt>` and `<rp>` gets
+  `aria-hidden="true"`, so the sentence is read once; the readings are still drawn and still switch. Hidden furigana
   are never read, since they are `visibility: hidden`.
 - The segment being spoken carries `aria-current="true"`, and segments on other pages are hidden
   from assistive technology along with the page (see [Paging by t](#paging-by-t)).
+- **Without ruby.** Each reading is wrapped in full-width `<rp>` parentheses. Browsers that draw
+  ruby hide them (`tsubu.css` keeps them hidden even where a page's own styles would show them),
+  so they move nothing and are not read; whatever cannot draw ruby shows 雨（あめ）.
