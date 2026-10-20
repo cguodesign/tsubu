@@ -74,6 +74,9 @@ declare namespace Tsubu {
     under?: Annotation;
     /** Whether loanwords' origins are drawn over the text. Default "none". Not with over "romaji". */
     origin?: OriginPlace;
+    /** Which annotations start out shown, by the names setAnnotation switches. Each default true;
+     *  `shown.over` may not differ from `ruby`. */
+    shown?: { over?: boolean; under?: boolean; origin?: boolean };
     /** A preset from THEMES, or a lower-case name of your own. */
     theme?: string;
     /** A speaker from SPEAKERS, or a lower-case name of your own. */

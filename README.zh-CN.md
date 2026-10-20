@@ -118,6 +118,7 @@ options = {                    // 都是可选的
   under: "romaji",             // 文字下方标什么："ruby"、"romaji" 或 "none"（默认）
   origin: "over",              // 是否在文字上方标外来语词源："over" 或 "none"（默认）
   ruby: true,                  // 上方的标注一开始是否显示（默认 true）
+  shown: { origin: false },    // 哪些标注一开始显示：over、under、origin（默认都显示）
   announceRuby: true,          // 读屏软件是否朗读注音和罗马字（默认 true）
   theme: "light",              // 预设："light"、"dark"、"media"，或你自己起的名字
   speaker: "a",                // 这句话是谁说的，用于按说话人上色："a"、"b" 或你自己起的名字

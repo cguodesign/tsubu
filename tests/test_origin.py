@@ -8,6 +8,7 @@ switches, the checks and the motion presets in a headless browser on the library
 script, as tests/test_romaji.py does for romaji."""
 
 import itertools
+import re
 import json
 import shutil
 import subprocess
@@ -270,6 +271,44 @@ def test_no_character_moves_when_the_origins_or_either_side_are_switched(drawn, 
                 side = {"origin": "origin", over: "over", under: "under"}[r["layer"]]
                 shown = {"over": shown_over, "under": shown_under, "origin": shown_origin}[side]
                 assert r["visibility"] == ("visible" if shown else "hidden"), (r, side)
+
+
+def test_options_shown_says_which_annotations_start_out_shown():
+    sentence = romaji_if("romaji", O_TIMED)
+    root = lambda options: re.match(r"<span class=\"tsubu\"[^>]*>", run_library(sentence, options=options)["html"]).group(0)
+    base = {"origin": "over", "under": "romaji"}
+    assert 'data-ruby="on"' in root(base) and 'data-under="on"' in root(base) and 'data-origin="on"' in root(base)
+    hidden = root({**base, "shown": {"over": False, "under": False, "origin": False}})
+    assert 'data-ruby="off"' in hidden and 'data-under="off"' in hidden and 'data-origin="off"' in hidden
+    assert 'data-origin="off"' in root({**base, "shown": {"origin": False}}) and 'data-ruby="on"' in root({**base, "shown": {"origin": False}})
+    # ruby is the over side's old name: the two may agree, and may not disagree
+    assert 'data-ruby="off"' in root({**base, "ruby": False, "shown": {"over": False}})
+    # with the defaults the HTML is what it was
+    assert run_library(sentence, options={**base, "shown": {}})["html"] == run_library(sentence, options=base)["html"]
+
+
+@pytest.mark.parametrize("shown, message", [
+    ([], "options.shown must be an object"),
+    ({"furigana": False}, 'options.shown: "furigana" is not "over", "under" or "origin"'),
+    ({"under": "no"}, "options.shown.under must be true or false"),
+])
+def test_options_shown_is_checked(shown, message):
+    assert message in run_library(O_TIMED, options={"shown": shown})["error"]
+    assert "disagree" in run_library(O_TIMED, options={"ruby": True, "shown": {"over": False}})["error"]
+
+
+@pytest.mark.parametrize("writing", ["horizontal", "vertical"])
+def test_a_side_that_starts_hidden_is_laid_out_as_one_switched_off(drawn, writing):
+    # Starting hidden is the same frame as hiding after drawing: nothing moves either way.
+    options = options_for(writing, "ruby", "romaji")
+    sentence = romaji_if("romaji", O_TIMED)
+    later = drawn(sentence, **options)
+    hidden_later = switched(later, 1.2, False, False, False)
+    # the fixture always passes ruby, the over side's old name, which must then agree with shown
+    at_start = drawn(sentence, ruby=False, **options, shown={"over": False, "under": False, "origin": False})
+    hidden_at_start = switched(at_start, 1.2)
+    assert frozen(hidden_at_start) == frozen(hidden_later)
+    assert {r["visibility"] for r in hidden_at_start["readings"]} == {"hidden"}
 
 
 def test_set_annotation_switches_the_origins_by_their_own_attribute(drawn):

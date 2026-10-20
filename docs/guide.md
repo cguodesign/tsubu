@@ -26,6 +26,7 @@ options = {                    // all optional
   under: "none",               // what is drawn under it: "ruby", "romaji" or "none" (default)
   origin: "none",              // whether loanwords' origins are drawn over the text: "over" or "none" (default)
   ruby: true,                  // whether the over side (the furigana, by default) starts out shown (default true)
+  shown: { under: false },     // which annotations start out shown: over, under, origin (each default true)
   announceRuby: true,          // whether screen readers read each reading, furigana, romaji and origins (default true)
   theme: "light",              // a preset: "light", "dark", "media", or a name of your own
   speaker: "a",                // whose line this is, for colours per speaker: "a", "b" or your own
@@ -309,10 +310,13 @@ furigana (`under: "romaji"`), over the text with the furigana under it (`over: "
   (`"romaji"` or `"none"`) and `data-under-layer` (`"ruby"` or `"romaji"`).
 - **Switching.** The over side keeps the old switch: `options.ruby`, `Tsubu.setRuby` and the root's
   `data-ruby`, whatever layer is over the text. The under side has the root's `data-under`, which
-  starts `"on"` and which `Tsubu.setAnnotation(root, "under", on)` sets;
+  `Tsubu.setAnnotation(root, "under", on)` sets;
   `Tsubu.setAnnotation(root, "over", on)` is `setRuby`. Hidden readings get `visibility: hidden`
   and keep their room, so switching either side, or both, moves no character, in horizontal and
-  vertical text and over several lines (measured in every engine).
+  vertical text and over several lines (measured in every engine). `options.shown` (`{ over,
+  under, origin }`, each `true` by default) says which start out shown, so a sentence can be
+  drawn with a side already hidden; `ruby` is the over side's old name for the same thing, and the
+  two may not disagree. A side that starts hidden is laid out exactly as one hidden afterwards.
 - **Across a line**, from over to under: the over readings, the text with its highlight, the
   underline, then the under readings. The under readings are `--tsubu-reading-gap` (`0.2em` of the
   reading) away from the text, so the dotted underline runs between the two and stays visible, and
@@ -393,8 +397,9 @@ written in katakana, which have no furigana, so the row is free there.
 - **Over the text, not with romaji there.** `options.over: "romaji"` puts the romaji in the row the
   origins would use, so `origin: "over"` with it is refused; put the romaji under the text
   (`under: "romaji"`). Origins work with `over: "ruby"` or `"none"` and with any `under`.
-- **Switching.** `options.origin` says whether origins are drawn at all;
-  `Tsubu.setAnnotation(root, "origin", on)` shows or hides them by the root's `data-origin`. They
+- **Switching.** `options.origin` says whether origins are drawn at all, and `shown: { origin:
+  false }` draws them hidden; `Tsubu.setAnnotation(root, "origin", on)` shows or hides them by the
+  root's `data-origin`. They
   have their own switch: the over side's (`setRuby`, `setAnnotation(root, "over", on)`) leaves them
   alone, and theirs leaves the furigana alone. Hidden origins get `visibility: hidden` and keep their
   room, so switching moves no character, in horizontal and vertical text and over several lines

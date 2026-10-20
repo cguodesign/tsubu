@@ -135,6 +135,7 @@ options = {                    // all optional
   under: "romaji",             // what is drawn under it: "ruby", "romaji" or "none" (default)
   origin: "over",              // whether loanwords' origins are drawn over the text: "over" or "none" (default)
   ruby: true,                  // whether the over side starts out shown (default true)
+  shown: { origin: false },    // which annotations start out shown: over, under, origin (default all)
   announceRuby: true,          // whether screen readers read each reading (default true)
   theme: "light",              // a preset: "light", "dark", "media", or a name of your own
   speaker: "a",                // whose line this is, for colours per speaker: "a", "b" or your own

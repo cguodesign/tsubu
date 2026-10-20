@@ -8,6 +8,10 @@ All notable changes to tsubu are recorded here. The format follows
 
 ### Added
 
+- `options.shown: { over, under, origin }` says which annotations start out shown (each `true` by
+  default), by the names `Tsubu.setAnnotation` switches, so a sentence can be drawn with a side or
+  its origins already hidden; `ruby` stays as the over side's old name and may not disagree. A
+  side that starts hidden is laid out exactly as one hidden afterwards.
 - Loanwords' origins, drawn over the text. A part may carry `origin: { text, lang, wasei? }`: the
   source word, its language as a BCP 47 tag, and `wasei: true` for a pseudo-loanword coined in
   Japanese. The caller supplies it (JMdict's `lsource` is one source, whose licence requires

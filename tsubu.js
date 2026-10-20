@@ -319,7 +319,7 @@
     const layers = (look.over === "ruby" ? "" : ` data-over-layer="${look.over}"`) +
       (look.under === "none" ? "" : ` data-under-layer="${look.under}" data-under="${shown.under ? "on" : "off"}"`);
     // data-origin shows or hides the origins, and is written only where they are drawn.
-    const origin = look.origin === "over" ? ' data-origin="on"' : "";
+    const origin = look.origin === "over" ? ` data-origin="${shown.origin ? "on" : "off"}"` : "";
     return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${shown.over ? "on" : "off"}"${layers}${origin}${theme}${speaker}${motion}${writing}${state}>${joined}</span>`;
   }
 
@@ -477,9 +477,11 @@
    *   options: { ruby: true | false (default true), announceRuby: true | false (default true),
    *              over: "ruby" | "romaji" | "none" (default "ruby"), under: the same (default "none"),
    *              origin: "over" | "none" (default "none"), not "over" with over: "romaji",
+   *              shown: { over?, under?, origin? } (each true or false, default true),
    *              theme?: name, speaker?: name, motion?: names from MOTIONS,
    *              writing?: "horizontal" | "vertical", combineUpright: 0 to 4 (default 2) }
-   * `ruby` says whether the over side starts out shown; the under side always starts out shown.
+   * `shown` says which annotations start out shown, by the names setAnnotation switches; `ruby` is
+   * the over side's old name, and may not say otherwise than shown.over.
    */
   function sentence(input, options) {
     const opts = options || {};
@@ -502,7 +504,17 @@
     if (!Number.isInteger(upright) || upright < 0 || upright > UPRIGHT_MAX)
       fail(`options.combineUpright must be a whole number of characters from 0 to ${UPRIGHT_MAX}`);
     const normalised = normalise(input);
-    const shown = { over: opts.ruby !== false, under: true };
+    if (opts.shown !== undefined) {
+      if (!opts.shown || typeof opts.shown !== "object" || Array.isArray(opts.shown)) fail("options.shown must be an object such as { under: false }");
+      for (const key of Object.keys(opts.shown)) {
+        if (!Object.prototype.hasOwnProperty.call(SWITCHES, key)) fail(`options.shown: ${JSON.stringify(key)} is not "over", "under" or "origin"`);
+        if (typeof opts.shown[key] !== "boolean") fail(`options.shown.${key} must be true or false`);
+      }
+      if (opts.ruby !== undefined && opts.shown.over !== undefined && opts.ruby !== opts.shown.over)
+        fail("options.ruby and options.shown.over disagree: ruby is the over side's old name");
+    }
+    const start = opts.shown || {};
+    const shown = { over: opts.ruby !== false && start.over !== false, under: start.under !== false, origin: start.origin !== false };
     const look = { theme: opts.theme, speaker: opts.speaker, announceRuby: opts.announceRuby, motion: motionNames(opts.motion),
       writing: opts.writing, combineUpright: upright, over, under, origin };
     return Object.freeze({
