@@ -270,7 +270,7 @@ def test_the_film_cuts_stay_under_three_a_second(site):
 
 LAYERS = """() => { const boxes = (layer) => [...layer.querySelectorAll('.tsubu-seg')].map((s) => { const r = s.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
   const chars = (layer) => { const out = [], w = document.createTreeWalker(layer.querySelector('.tsubu'), NodeFilter.SHOW_TEXT);
-    for (let n = w.nextNode(); n; n = w.nextNode()) { if (n.parentElement.closest('rt')) continue;
+    for (let n = w.nextNode(); n; n = w.nextNode()) { if (n.parentElement.closest('rt, rp')) continue;
       for (let i = 0; i < n.data.length; i++) { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 1); const b = r.getBoundingClientRect(); out.push([n.data[i], b.left, b.top]); } }
     return out; };
   const base = document.getElementById('base'), top = document.getElementById('top');
@@ -307,7 +307,7 @@ def test_the_start_page_redraws_the_edited_sentence_and_shows_errors(site):
     page = site("start.html")
     assert page.evaluate("() => document.querySelectorAll('#ex2 .tsubu-seg').length") == 6
     page.fill("#ex2-src", '{"segments": [{"parts": [{"text": "猫", "ruby": "ねこ"}], "start": 0, "end": 1}, {"parts": [{"text": "。"}], "kind": "punct"}]}')
-    assert page.evaluate("() => document.querySelector('#ex2 .tsubu').textContent") == "猫ねこ。"
+    assert page.evaluate("() => document.querySelector('#ex2 .tsubu').textContent") == "猫（ねこ）。"
     page.fill("#ex2-src", '{"segments": [{"parts": [{"text": "猫"}], "start": 0, "end": 1}, {"parts": [{"text": "。"}], "kind": "punct", "start": 1, "end": 2}]}')
     assert page.locator("#ex2-err").text_content().startswith("tsubu:")
     assert page.errors == []

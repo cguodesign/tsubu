@@ -32,7 +32,6 @@ are left out on purpose.
 
 ## Later
 
-- `<rp>` fallback parentheses in the output.
 - Adapters that turn other formats into tsubu's input: kuroshiro's furigana output, Remotion
   caption data, and WebVTT cues with timestamps.
 - A character-by-character wipe within a segment, once the input can carry per-character times.

@@ -209,7 +209,12 @@
   function renderHTML(sentence, ruby, look, at, revealed) {
     // With announceRuby off, screen readers read the sentence once, without each reading after
     // its base.
-    const rt = look.announceRuby === false ? '<rt aria-hidden="true">' : "<rt>";
+    const hidden = look.announceRuby === false ? ' aria-hidden="true"' : "";
+    // Each reading is wrapped in <rp> parentheses, which a browser that draws ruby does not show
+    // (display: none, in its own stylesheet and in tsubu.css) and anything that cannot draw it (a
+    // reader view, a feed reader, a text browser) shows as 本（ほん）. The parentheses are
+    // full-width, as the text is Japanese or Chinese.
+    const open = `<rp${hidden}>（</rp><rt${hidden}>`, close = `</rt><rp${hidden}>）</rp>`;
     // Short runs are marked unless the sentence is horizontal by its own option: without one, a
     // vertical ancestor can still make it vertical, as a theme set on an ancestor applies.
     const upright = look.writing === "horizontal" ? 0 : look.combineUpright;
@@ -217,7 +222,7 @@
       const inner = segment.parts
         .map((p) => {
           const base = textHTML(p.text, upright);
-          return p.ruby === undefined ? base : `<ruby>${base}${rt}${escapeHTML(p.ruby)}</rt></ruby>`;
+          return p.ruby === undefined ? base : `<ruby>${base}${open}${escapeHTML(p.ruby)}${close}</ruby>`;
         })
         .join("");
       const kind = segment.punct ? ' data-kind="punct"' : "";
@@ -762,8 +767,8 @@
       const cs = getComputedStyle(container), cr = container.getBoundingClientRect(), px = (v) => parseFloat(v) || 0;
       const box = { left: cr.left + px(cs.borderLeftWidth), right: cr.right - px(cs.borderRightWidth), top: cr.top + px(cs.borderTopWidth), bottom: cr.bottom - px(cs.borderBottomWidth) };
       const past = (r) => Math.max(box.left - r.left, r.right - box.right, box.top - r.top, r.bottom - box.bottom, 0);
-      // a segment's text without its readings, for the messages
-      const name = (el) => { const r = el.cloneNode(true); r.querySelectorAll("rt").forEach((rt) => rt.remove()); return r.textContent; };
+      // a segment's text without its readings or their parentheses, for the messages
+      const name = (el) => { const r = el.cloneNode(true); r.querySelectorAll("rt, rp").forEach((x) => x.remove()); return r.textContent; };
       // Where a segment's text lies: its box, but in vertical text the box of its text without the
       // readings, since a vertical segment's line reaches past its text (see the stylesheet).
       const textBox = (el) => {
@@ -771,7 +776,7 @@
         const range = document.createRange(), walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
         let b = null;
         for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-          if (node.parentElement.closest("rt")) continue;
+          if (node.parentElement.closest("rt, rp")) continue;
           range.selectNodeContents(node);
           const r = range.getBoundingClientRect();
           b = b ? { left: Math.min(b.left, r.left), right: Math.max(b.right, r.right), top: Math.min(b.top, r.top), bottom: Math.max(b.bottom, r.bottom) } : r;

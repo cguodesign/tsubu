@@ -120,7 +120,7 @@ def test_t_must_be_a_finite_number():
 
 def test_a_sentence_without_any_time_can_be_drawn_but_not_played():
     found = run_library({"segments": [seg(("本", "ほん"), "を")]}, times=[0.0])
-    assert found["timing"] == "none" and "<ruby>本<rt>ほん</rt></ruby>" in found["html"]
+    assert found["timing"] == "none" and "<ruby>本<rp>（</rp><rt>ほん</rt><rp>）</rp></ruby>" in found["html"]
     assert 'data-timing="none"' in found["html"]
     assert "has no times" in found["states"][0]["error"]
 
@@ -152,7 +152,7 @@ def test_text_is_escaped():
     # horizontal by its own option, so no run of half-width characters is marked to be set upright
     # (escaping inside those marks is checked in tests/test_vertical.py)
     html = run_library({"segments": [seg("<b>&", ("\"'", "<i>"))]}, options={"writing": "horizontal"})["html"]
-    assert "&lt;b&gt;&amp;" in html and "&quot;&#39;<rt>&lt;i&gt;</rt>" in html and "<b>" not in html
+    assert "&lt;b&gt;&amp;" in html and "&quot;&#39;<rp>（</rp><rt>&lt;i&gt;</rt><rp>）</rp>" in html and "<b>" not in html
 
 
 def test_the_library_object_is_frozen_and_carries_its_version():

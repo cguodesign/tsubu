@@ -6,6 +6,14 @@ All notable changes to tsubu are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Each reading is wrapped in full-width `<rp>` parentheses, `<ruby>雨<rp>（</rp><rt>あめ</rt><rp>）</rp></ruby>`,
+  so whatever cannot draw ruby (a reader view, a feed reader, a text browser) shows 雨（あめ）.
+  Browsers that draw ruby hide them, and `tsubu.css` keeps them hidden where a page's own styles
+  would show them, so nothing moves; with `announceRuby: false` they are `aria-hidden` with the
+  reading.
+
 ### Changed
 
 - The package's homepage is the site's own address, https://chong.works/tsubu/.

@@ -127,7 +127,7 @@ def test_short_runs_of_half_width_characters_are_marked_to_stand_upright():
     assert ">2025<ruby>" in html and html.count("tsubu-upright") == 3
     # the reading is never marked, and a run inside a ruby base is marked inside the <ruby>
     marked = run_library({"segments": [seg(("10", "じゅう"))]}, options=V)["html"]
-    assert '<ruby><span class="tsubu-upright">10</span><rt>じゅう</rt></ruby>' in marked
+    assert '<ruby><span class="tsubu-upright">10</span><rp>（</rp><rt>じゅう</rt><rp>）</rp></ruby>' in marked
     assert run_library({"segments": [seg(("十", "ju"))]}, options=V)["html"].count("tsubu-upright") == 0
     # configurable from 0 (none) to 4
     assert '<span class="tsubu-upright">2025</span>' in run_library(DIGITS, options={**V, "combineUpright": 4})["html"]
@@ -149,7 +149,7 @@ def test_brackets_split_runs_and_the_text_is_still_escaped():
     # A-1 is a run of three; b, &' and " are short runs, escaped inside their marks
     assert ")A-1&lt;" in html
     assert '&lt;<span class="tsubu-upright">b</span>&gt;<span class="tsubu-upright">&amp;&#39;</span>' in html
-    assert '<ruby><span class="tsubu-upright">&quot;</span><rt>&lt;i&gt;</rt></ruby>' in html
+    assert '<ruby><span class="tsubu-upright">&quot;</span><rp>（</rp><rt>&lt;i&gt;</rt><rp>）</rp></ruby>' in html
     assert "<b>" not in html and "<i>" not in html
 
 

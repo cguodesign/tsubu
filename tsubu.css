@@ -280,6 +280,12 @@
   font-weight: var(--tsubu-ruby-weight, 400);
 }
 
+/* The parentheses around each reading are for what cannot draw ruby; browsers hide them on their
+ * own, and this keeps them hidden where a page's styles would show them. */
+.tsubu rp {
+  display: none;
+}
+
 /* Hidden, not removed: display: none would let a word whose reading is wider than its base
  * narrow, and every character after it would move. */
 .tsubu[data-ruby="off"] rt {

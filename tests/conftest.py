@@ -20,6 +20,7 @@ MEASURE = """() => {
   const chars = [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.parentElement.closest("rp")) continue;  // not drawn: for what cannot draw ruby
     const inRt = !!node.parentElement.closest("rt");
     for (let i = 0; i < node.data.length; i++) {
       const range = document.createRange();
