@@ -46,12 +46,16 @@
 .beats i { width: 0.75cqi; height: 0.75cqi; min-width: 5px; min-height: 5px; border-radius: 50%; border: 1px solid var(--cap, var(--koiai)); }
 .beats i.on { background: var(--cap, var(--koiai)); }
 
-/* the end card: the grains are drawn by the canvas; the word and the tagline sit in the page, and
-   the camera (a scale set from t) jump-cuts onto the word, then pushes in slowly */
+/* the end card: the grains are drawn by the canvas; the word and the tagline sit in the page and
+   rise into place under them, then the camera (a scale set from t) pushes in slowly */
 .endcard { position: absolute; inset: 0; pointer-events: none; }
 .endcard .word { position: absolute; left: 50%; top: 58%; transform: translate(-50%, -50%); transform-origin: 50% 50%; display: flex; align-items: baseline;
   font-family: var(--display); font-weight: 800; font-size: 8cqi; letter-spacing: 0.03em; color: var(--koiai); white-space: nowrap; }
-.endcard .word::after { content: ""; position: absolute; left: 0.04em; right: 0.04em; bottom: -0.06em; height: 0; border-bottom: 0.06em dotted var(--shu); transform: scaleX(var(--draw, 0)); transform-origin: 0 50%; }
+/* Under the word, where a dotted line would go, a row of the logo's grains (the same two paths the
+   canvas draws), in the accent: each is placed by a transform set from t. The box overflows so a
+   grain's overshoot and hop are never clipped. */
+.endcard .word .row { position: absolute; left: 0.04em; right: 0.04em; bottom: -0.13em; height: 0.2em; overflow: visible; fill: var(--ruri); }
+.endcard .word .row .groove { fill: none; stroke: var(--shironeri); stroke-width: 3.2; stroke-linecap: round; opacity: 0.55; }
 .endcard .word .kanji { font-size: 0.56em; color: var(--ruri); margin-left: 0.18em; font-weight: 700; }
 .endcard .tag { position: absolute; left: 50%; top: 80%; transform: translate(-50%, -50%); font-family: var(--display); font-weight: 500; font-size: 2.3cqi; color: var(--koiai); white-space: nowrap;
   --tsubu-text-color: var(--koiai); --tsubu-ruby-color: var(--ruri); --tsubu-underline-color: var(--gunjo);
@@ -107,7 +111,7 @@
       <canvas id="fx" aria-hidden="true"></canvas>
       <div class="film-line" id="line" data-field="shironeri" data-unchecked></div>
       <div class="endcard" id="endcard" aria-hidden="true">
-        <div class="word" id="word">tsubu<span class="kanji">粒</span></div>
+        <div class="word" id="word">tsubu<span class="kanji">粒</span><svg class="row" id="row"></svg></div>
         <div class="tag" id="endtag"></div>
       </div>
       <div class="cap" id="cap" aria-hidden="true"></div>
@@ -166,7 +170,8 @@
   <footer class="foot"></footer>
 </div>
 
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><path id="grainpath" d="M0 -46 C26 -46 36 -16 34 10 C32 36 16 48 -2 48 C-22 48 -34 30 -34 6 C-34 -6 -31 -14 -26 -20 C-21 -18 -16 -20 -14 -26 C-12 -40 -8 -46 0 -46 Z"/></svg>
+<!-- the logo's grain and its groove, as in the logo file: the canvas samples and strokes these, and the end card's row reuses them -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><path id="grainpath" d="M0 -46 C26 -46 36 -16 34 10 C32 36 16 48 -2 48 C-22 48 -34 30 -34 6 C-34 -6 -31 -14 -26 -20 C-21 -18 -16 -20 -14 -26 C-12 -40 -8 -46 0 -46 Z"/><path id="groovepath" d="M7 -36 C15 -14 15 14 6 38"/></svg>
 
 <script src="tsubu.js"></script>
 <script src="tsubu-export.js"></script>
@@ -213,9 +218,11 @@ const DURATION = 9.0, WIPE = 0.34;
 const FIELDS = [{ t: 0, f: "shironeri" }, { t: 2.0, f: "ruri" }, { t: 3.2, f: "koiai" }, { t: 3.8, f: "shu" }, { t: 4.8, f: "konjo" }, { t: 5.9, f: "shironeri" }];
 const CAPTION = { shironeri: C.koiai, ruri: C.shironeri, koiai: C.shironeri, konjo: C.shironeri, shu: C.koiai };
 // the outro: the band becomes a grain and travels (OUTRO), splits into the logo's three (SPLIT),
-// then the camera jump-cuts onto the word (CUTS) and pushes in slowly while the grains wiggle on
-// the beat (BEAT seconds)
-const OUTRO = 5.6, SPLIT = 6.15, CUTS = [7.0, 7.2, 7.4], TAG = 7.55, BEAT = 0.6;
+// then the word rises into place under them (WORD), a row of GRAINS comes in under it one per
+// eighth of a beat from ROW (on the beat) and the tagline follows (TAG), while the camera pushes
+// in slowly and the grains wiggle on the beat (BEAT seconds). One continuous motion: nothing in
+// the end card cuts, appears or resizes between one frame and the next.
+const OUTRO = 5.6, SPLIT = 6.15, WORD = 6.95, ROW = 7.35, TAG = 7.55, BEAT = 0.6, GRAINS = 8;
 // the logo's three grains, as offsets from their centre (logo units: a grain is 94 tall), angle, size
 const TRIO = [{ x: -30, y: -42, rot: -28, s: 1.15 }, { x: 38, y: -6, rot: 22, s: 1.05 }, { x: -8, y: 48, rot: 98, s: 1.1 }];
 
@@ -227,6 +234,8 @@ const root = line.querySelector(".tsubu");
 const tagline = Tsubu.sentence({ segments: [{ parts: [{ text: "一粒", ruby: "ひとつぶ" }, { text: "ずつ" }] }, { parts: [{ text: "、" }], kind: "punct" }, { parts: [{ text: "読", ruby: "よ" }, { text: "む" }] }, { parts: [{ text: "。" }], kind: "punct" }] }, { announceRuby: false });
 document.getElementById("endtag").innerHTML = tagline.html;
 const word = document.getElementById("word"), endtag = document.getElementById("endtag");
+const row = document.getElementById("row");
+row.innerHTML = '<g><use href="#grainpath"/><use href="#groovepath" class="groove"/></g>'.repeat(GRAINS);
 const beats = document.getElementById("beats");
 beats.innerHTML = "<i></i>".repeat(SPOKEN.length);
 const cap = document.getElementById("cap");
@@ -235,6 +244,7 @@ const cap = document.getElementById("cap");
 const N = 128;
 const grainPath = document.getElementById("grainpath");
 const GRAIN = (() => { const L = grainPath.getTotalLength(); return Array.from({ length: N }, (_, i) => { const p = grainPath.getPointAtLength((i / N) * L); return [p.x, p.y]; }); })();
+const GROOVE = new Path2D(document.getElementById("groovepath").getAttribute("d"));
 const circle = (r) => Array.from({ length: N }, (_, i) => { const a = -Math.PI / 2 + (i / N) * Math.PI * 2; return [r * Math.cos(a), r * Math.sin(a)]; });
 function roundBox(w, h, r) { // perimeter from top centre, clockwise, by arc length
   r = Math.min(r, w / 2, h / 2); const sw = w - 2 * r, sh = h - 2 * r, arc = (Math.PI / 2) * r, P = 2 * sw + 2 * sh + 4 * arc;
@@ -258,7 +268,7 @@ function groove(cx, cy, sx, sy, rot, alpha, colour) { // the light stroke of the
   if (alpha <= 0) return;
   ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(sx, sy); ctx.globalAlpha = 0.55 * alpha;
   ctx.strokeStyle = colour; ctx.lineWidth = 3.2; ctx.lineCap = "round";
-  ctx.beginPath(); ctx.moveTo(7, -36); ctx.bezierCurveTo(15, -14, 15, 14, 6, 38); ctx.stroke(); ctx.restore();
+  ctx.stroke(GROOVE); ctx.restore();
 }
 
 /* ---------- paper grain: seeded, so every render of a frame is the same ---------- */
@@ -355,13 +365,9 @@ function bandAt(t, fa) {
   return null;
 }
 
-// The camera of the end card: a scale about the word, cut hard three times, then a slow push in.
-function cameraAt(t) {
-  if (t < CUTS[0]) return { k: 1, on: false };
-  if (t < CUTS[1]) return { k: 2.4, on: true };
-  if (t < CUTS[2]) return { k: 1.5, on: true };
-  return { k: 1 + 0.035 * clamp((t - CUTS[2]) / 1.6), on: true };
-}
+// The camera of the end card: a scale about the word, a slow push in from the moment the word
+// starts to rise. It is continuous in t, so the grains and the word move together, never cut.
+function cameraAt(t) { return { k: 1 + 0.035 * clamp((t - WORD) / 2.0) }; }
 const CENTRE = () => ({ x: W / 2, y: H * 0.58 }); // where the camera looks: the word
 // a kick on every beat, settling before the next: the grains' wiggle
 const kick = (t, phase) => { const u = ((t - SPLIT - phase) % BEAT + BEAT) % BEAT; return Math.sin(2 * Math.PI * u / BEAT * 1.5) * Math.exp(-u * 6); };
@@ -384,10 +390,9 @@ function drawOutro(t, fa) {
     groove(x, y, g, g, rot, clamp((u - 0.6) / 0.4), C.shironeri);
     return;
   }
-  // one grain becomes the logo's three, each settling into its angle, then wiggling on the beat.
-  // While the camera is tight on the word (the first jump cut) the grains are out of frame.
+  // one grain becomes the logo's three, each settling into its angle, then wiggling on the beat,
+  // and staying in frame through the end card
   const cam = cameraAt(t), look = CENTRE();
-  if (cam.k > 1.6) return;
   TRIO.forEach((gr, i) => {
     const u = OUT(clamp((t - SPLIT - i * 0.07) / 0.45));
     const s = unit * lerp(1.6, gr.s, u), x = cluster.x + gr.x * unit * u, y = cluster.y + gr.y * unit * u;
@@ -451,11 +456,24 @@ function overlays(t, s, fa) {
     cap.innerHTML = `<span class="no">${String(n).padStart(2, "0")} / ${String(SPOKEN.length).padStart(2, "0")}</span><span class="kana">${kana}</span><span class="romaji">${romaji}</span><span class="gloss">${gloss}</span>`; }
   [...beats.children].forEach((d, i) => mark(d, "on", t < 5.9 && s.segments[SPOKEN[i]].state !== "future"));
   beats.style.opacity = t >= 1.6 && t < 5.9 ? "1" : "0";
-  // end card: the camera cuts onto the word, then pushes in; the tagline arrives last
-  const cam = cameraAt(t);
-  word.style.opacity = cam.on ? "1" : "0";
-  word.style.transform = `translate(-50%, -50%) scale(${cam.k.toFixed(4)})`;
-  word.style.setProperty("--draw", EASE(clamp((t - CUTS[2]) / 0.5)).toFixed(4));
+  // end card: the word rises into place and fades up under the grains, as the tagline does after
+  // it, while the camera pushes in
+  const cam = cameraAt(t), w = OUT(clamp((t - WORD) / 0.5));
+  word.style.opacity = w.toFixed(4);
+  word.style.transform = `translate(-50%, ${(-50 + (1 - w) * 30).toFixed(2)}%) scale(${cam.k.toFixed(4)})`;
+  // The row under the word, once it has landed: the grains come in left to right, one per eighth
+  // of a beat, each growing from nothing with a wiggle (an overshoot of size and angle that
+  // settles). Once in, each hops on the beat in its turn along the row, like the ball over a
+  // karaoke line, and keeps that pulse to the end of the film as the logo's grains do.
+  // Sizes are in the word's em, so the row scales with the word under the camera.
+  const fs = parseFloat(getComputedStyle(word).fontSize), width = word.offsetWidth - 0.08 * fs, size = (0.16 * fs) / 94;
+  [...row.children].forEach((g, i) => {
+    const u = clamp((t - ROW - (i * BEAT) / 8) / 0.4), wig = Math.exp(-3 * u) * Math.cos(2.2 * Math.PI * u) * (1 - u);
+    const beat = (((t - SPLIT - (i / GRAINS) * BEAT) % BEAT) + BEAT) % BEAT / BEAT;
+    const hop = clamp((t - ROW - (i * BEAT) / 8 - 0.4) / 0.3) * Math.sin(Math.PI * clamp(beat / 0.35));
+    const x = ((i + 0.5) / GRAINS) * width, y = 0.1 * fs - 0.1 * fs * hop;
+    g.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(70 + 50 * wig - 10 * hop).toFixed(2)}) scale(${(size * (1 - wig)).toFixed(4)})`);
+  });
   const u = OUT(clamp((t - TAG) / 0.4));
   endtag.style.opacity = String(u);
   endtag.style.transform = `translate(-50%, ${(-50 + (1 - u) * 40).toFixed(2)}%)`;
