@@ -30,6 +30,18 @@ says which hold where:
   in vertical text the highlight and the side line stay on the em box of the text whatever
   readings a segment has. Pages with readings under the text keep to their number of lines, and
   switching either side does not reflow them.
+- **Loanwords' origins, and their switch, move nothing** (`tests/test_origin.py`). With origins
+  over the text and furigana over it, furigana under it, romaji under it, or nothing else, in
+  horizontal and vertical text, on one line and on several: the boxes of every character, segment
+  and reading, and the sentence's own, stay where they are while `t` moves and the origins, the over
+  side and the under side are switched on and off in every combination; the over side's switch
+  never hides an origin and the origins' switch never hides furigana. With `origin: "none"` the HTML,
+  and `htmlAt`'s, is byte for byte that of the same sentence without origins.
+- **Each origin is over its part and clear of everything else** (`tests/test_origin.py`): above
+  its part's text (at its right in vertical text), inside the sentence's box, clear of every other
+  reading and character on its own line and the next, and with its descenders clear of the
+  highlight; in a face with Noto Sans JP's metrics too. A part with furigana keeps them and has no
+  origin drawn.
 - **Changing the theme or the speaker moves nothing** (`tests/test_theme.py`): every preset and
   speaker, set on the root and on an ancestor, at several values of `t`, against the boxes of the
   unthemed sentence. The `media` plate is a positioned layer behind the sentence and takes no room.
@@ -87,6 +99,14 @@ says which hold where:
   them as furigana and no preset moves them; under forced colours the spoken segment's romaji take
   `CanvasText`; with `announceRuby` off the accessibility tree holds none; `htmlAt` equals `apply`;
   without ruby layout they follow their segment in parentheses.
+- **Origins in the checks, motion and accessibility** (`tests/test_origin.py`): `checkContrast`
+  measures them, their language codes and 和製 marks included, in every state and theme against the
+  furigana's threshold, on the page rather than the highlight; `checkFit` reports origins past the
+  container; `appear`, `mask` and `blur` treat them as furigana and no preset moves them; under
+  forced colours the spoken segment's origin takes `CanvasText`; each origin's `<rt>` carries its
+  `lang`; with `announceRuby` off the accessibility tree holds none; `htmlAt` equals `apply`; without
+  ruby or the stylesheet they follow their part in parentheses, パン（pão, pt）; the exporters and
+  importers carry none.
 - **Motion presets** (`tests/test_motion.py`): each draws what it says for unheard segments only,
   a revealed segment is drawn as without the preset, nothing moves with any preset or reveal,
   frames are byte-identical screenshots whatever order `t` and reveals come in, every theme meets
@@ -157,6 +177,24 @@ only measures differently, the test checks the same guarantee in that engine's t
   are further apart than Chromium's and Firefox's (in vertical text tsubu gives the inner ruby a
   line height of 1, which the other engines do not read there, so that the columns match); and it
   does not grow the last line for the readings under it, which `--tsubu-under-reserve` holds.
+- **Origins (plain ruby, over the text).** A part with an origin is a ruby of its own, as a part
+  with furigana is, so no engine needs the romaji's inline-block for it alone (tested with `blur`
+  and an added box, with furigana and with romaji under the text). Two things were measured before
+  relying on them:
+  - Moving a reading off the text: padding on the `<rt>`, which moves romaji, does not move a plain
+    ruby's reading in Chromium 139; `vertical-align` on its content moves it in horizontal text
+    everywhere but not in Chromium's vertical text; relative positioning of the `<rt>` does not move
+    it in WebKit. Relative positioning of a span inside the `<rt>` moves it alike in all three
+    engines, horizontally and vertically, and takes no room, so tsubu gives that room itself (the
+    first line's reserve grows by the gap).
+  - Readings under one line and over the next: with furigana under the text and origins over it,
+    each on its own part, Firefox and WebKit set the lines no further apart than for either alone,
+    and the two met; Chromium moves the lines apart. With romaji under the text the lines make room
+    for the origin's `<rt>` but not for its move. So with origins and any readings under the text,
+    tsubu sets a line height that holds both (see [Loanword origins](guide.md#loanword-origins)).
+    The lines are then as far apart in every engine with furigana under the text; with romaji
+    under it WebKit, which gives the side of a nested reading more room of its own, sets them
+    further apart than Chromium and Firefox.
 - `ruby-align` is needed for the "wide reading does not spread its base" guarantee. Per MDN it is
   supported from **Chrome 128** and **Safari 18.2**. In older browsers the furigana still switch
   without reflow, but a reading wider than its base spreads the base characters apart.

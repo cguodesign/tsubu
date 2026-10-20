@@ -13,13 +13,15 @@ already cut into segments (*bunsetsu*), and tsubu draws:
 - furigana that switch on and off **without moving any character**;
 - romaji, the caller's own, over or under each segment: the caller chooses what goes above the
   text and what below it, and either side switches on and off without moving any character;
+- where loanwords come from, the caller's own, over the word (パン, *pão*, pt), switched on and
+  off on their own, again without moving any character;
 - a highlight on the segment being spoken, as a **pure function of time**: `apply(root, t)` has no
   timer, no `requestAnimationFrame` and no transition, so live playback and frame-by-frame video
   capture draw the same thing;
 - themes whose contrast is measured, several lines broken by Japanese rules, vertical writing,
   motion presets, and WebVTT, ASS and SRT export.
 
-It is one classic script (`tsubu.js`, about 50 KB unminified, 16 KB gzipped) and one stylesheet (`tsubu.css`),
+It is one classic script (`tsubu.js`, about 60 KB unminified, 19 KB gzipped) and one stylesheet (`tsubu.css`),
 and it loads from a `file://` page, from any web page, and from Node.
 
 What tsubu does **not** do: split text into words, align audio to text, estimate times, play
@@ -124,12 +126,14 @@ input = {
   segments: [                  // required, in reading order
     { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], romaji: "ie de", start: 0.9, end: 1.3 },
     { parts: [{ text: "、" }], kind: "punct" },
+    { parts: [{ text: "パン", origin: { text: "pão", lang: "pt" } }, { text: "を" }], start: 1.4, end: 1.8 },
     // ...
   ],
 }
 options = {                    // all optional
   over: "ruby",                // what is drawn over the text: "ruby" (default), "romaji" or "none"
   under: "romaji",             // what is drawn under it: "ruby", "romaji" or "none" (default)
+  origin: "over",              // whether loanwords' origins are drawn over the text: "over" or "none" (default)
   ruby: true,                  // whether the over side starts out shown (default true)
   announceRuby: true,          // whether screen readers read each reading (default true)
   theme: "light",              // a preset: "light", "dark", "media", or a name of your own
@@ -142,7 +146,9 @@ options = {                    // all optional
 
 A segment's `parts` are pieces of text; a part with `ruby` is drawn as `<ruby>`. A segment's
 `romaji` is the romanised reading of the whole segment, which tsubu never makes itself; `over` and
-`under` choose which layer is drawn on which side. `kind: "punct"` marks punctuation, which is
+`under` choose which layer is drawn on which side. A part's `origin` is where a loanword comes from
+(`{ text, lang, wasei? }`), which tsubu never guesses either; a part with `ruby` keeps its furigana
+and has no origin drawn. `kind: "punct"` marks punctuation, which is
 never spoken and never timed. The times decide the sentence's
 **timing**:
 
@@ -166,7 +172,7 @@ throw an `Error` whose message starts with `tsubu:`. The full contract is in the
   text or nodes; `htmlAt(t)`, the same frame as HTML, for servers and renderers;
 - `span(i)` and `find(id)`, for click-to-seek.
 
-`Tsubu` also has `setRuby` and `setAnnotation` (show or hide either side's readings), `setRevealed`, `segmentOf`, `checkContrast`, `checkFit`, `contrast`
+`Tsubu` also has `setRuby` and `setAnnotation` (show or hide either side's readings, or the origins), `setRevealed`, `segmentOf`, `checkContrast`, `checkFit`, `contrast`
 and the catalogues `THEMES`, `SPEAKERS`, `MOTIONS`, `CONTRAST` and `STATES`. Every name, option and
 CSS custom property is in the [guide](docs/guide.md#output) and on the website's
 [API page](https://chong.works/tsubu/api.html).
@@ -177,6 +183,9 @@ Each item links to its section of the guide:
 
 - [**Romaji, over or under**](docs/guide.md#romaji-and-the-two-sides): furigana and romaji on
   either side of the text, each side switched on its own, in horizontal and vertical text.
+- [**Loanword origins**](docs/guide.md#loanword-origins): the source word and its language over a
+  loanword, 和製 before a pseudo-loanword, switched on their own; the data is the caller's (JMdict's
+  `lsource` is one source, and its licence asks for attribution).
 - [**Themes and contrast**](docs/guide.md#themes-and-contrast): `light`, `dark` and `media`
   presets, colours per speaker, and `checkContrast`, which measures a drawn sentence against
   WCAG-based thresholds.

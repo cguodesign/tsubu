@@ -16,19 +16,18 @@ are left out on purpose.
 - **No dependencies, and the script still loads from `file://`.**
 - **One sentence.** Bubbles, cameras and the arrangement of several sentences stay with the caller.
 
-## Loanword-origin gloss layer
+## Done: loanword origins
 
-- An optional second annotation layer for loanwords: the source word, its language code and
-  whether it is a pseudo-loanword coined in Japanese (*wasei-eigo*), drawn on the opposite side
-  from the furigana (below in horizontal text, to the left in vertical text). It can be switched on
-  and off on its own, again without moving any character.
-- **tsubu only draws it; the caller supplies the data.** One possible source is the `lsource`
-  element of [JMdict](https://www.edrdg.org/jmdict/j_jmdict.html), which records a loanword's
-  source language, source word and a *wasei* flag. JMdict is licensed under
-  [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) by the Electronic Dictionary
-  Research and Development Group: **anyone who uses that data must give attribution** as the
-  [EDRDG licence](https://www.edrdg.org/edrdg/licence.html) requires, and share-alike terms apply to
-  the data. tsubu will not bundle the dictionary.
+- Loanwords' origins are drawn **over the text**, in the furigana's row, which a loanword in
+  katakana leaves free, rather than under it as first planned: the source word, its language code
+  and 和製 for a pseudo-loanword (*wasei-eigo*), switched on and off on their own without moving any
+  character. A loanword written in kanji keeps its furigana and has no origin drawn. See
+  [Loanword origins](docs/guide.md#loanword-origins) in the guide.
+- **tsubu only draws them; the caller supplies the data**, and tsubu bundles no dictionary. One
+  possible source is the `lsource` element of [JMdict](https://www.edrdg.org/jmdict/j_jmdict.html);
+  JMdict is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) by the
+  Electronic Dictionary Research and Development Group, and **anyone who uses that data must give
+  attribution** as the [EDRDG licence](https://www.edrdg.org/edrdg/licence.html) requires.
 - Where the data has no entry, nothing is shown; the library never guesses an origin.
 
 ## Later
