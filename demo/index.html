@@ -57,7 +57,7 @@
   </header>
   <p class="note">One sentence per card, drawn by <code>Tsubu.sentence()</code> and updated with <code>apply(root, t)</code>. Drag the time to move the highlight; untick the box to hide the furigana, or pick another theme, and see that nothing moves. Under each card, <code>Tsubu.checkContrast()</code> reports the lowest contrast it measured in any state; "none" shows the unthemed defaults, which are not a preset and do not pass. The sentences were written for this page and their times are invented, not measured. The motion card hides what has not been heard yet; click a segment to reveal it and see its time, where a player would seek to. お茶を carries the tag <code>new-word</code>, which this page draws with a solid underline. The vertical card is the same library with <code>writing: "vertical"</code>. The last card is a fluid frame: drag its width to see the size follow it, and set a maximum number of lines to see the sentence paged by <code>t</code>. The address accepts <code>?t=seconds&amp;ruby=off&amp;theme=dark&amp;frame=320&amp;lines=2&amp;motion=mask</code>.</p>
   <div id="bar">
-    <label>t <input id="t" type="range" min="-0.5" max="21" step="0.01" value="0"></label>
+    <label>t <input id="t" type="range" min="-0.5" max="25" step="0.01" value="0"></label>
     <output id="tv">0.00 s</output>
     <label><input id="ruby" type="checkbox" checked> furigana</label>
     <label>theme <select id="theme"><option>light</option><option>dark</option><option>media</option><option value="">none</option></select></label>
@@ -153,6 +153,23 @@ EXAMPLES.push({ title: "Vertical writing: columns from right to left, furigana a
       { parts: [{ text: "始", ruby: "はじ" }, { text: "まります" }], start: 19.7, end: 20.4 },
       { parts: [{ text: "。" }], kind: "punct" },
     ] } });
+// 毎朝パンとコーヒーを飲み、祖父は珈琲と書きます。
+//   "Every morning I have bread and coffee; my grandfather writes it 珈琲."
+// Romaji and loanwords' origins are the caller's own (the origins as JMdict records them). The
+// katakana コーヒー shows its origin; the same word in kanji, 珈琲, keeps its furigana and has none.
+EXAMPLES.push({ title: "Romaji and loanword origins: choose what goes over and under the text; a loanword in katakana shows its origin, one written in kanji keeps its furigana",
+  layers: true, input: {
+    segments: [
+      { parts: [{ text: "毎朝", ruby: "まいあさ" }], romaji: "maiasa", start: 20.6, end: 21.1 },
+      { parts: [{ text: "パン", origin: { text: "pão", lang: "pt" } }, { text: "と" }], romaji: "pan to", start: 21.1, end: 21.5 },
+      { parts: [{ text: "コーヒー", origin: { text: "koffie", lang: "nl" } }, { text: "を" }], romaji: "kōhī o", start: 21.5, end: 22.0 },
+      { parts: [{ text: "飲", ruby: "の" }, { text: "み" }], romaji: "nomi", start: 22.0, end: 22.4 },
+      { parts: [{ text: "、" }], kind: "punct" },
+      { parts: [{ text: "祖父", ruby: "そふ" }, { text: "は" }], romaji: "sofu wa", start: 22.6, end: 23.0 },
+      { parts: [{ text: "珈琲", ruby: "コーヒー", origin: { text: "koffie", lang: "nl" } }, { text: "と" }], romaji: "kōhī to", start: 23.0, end: 23.6 },
+      { parts: [{ text: "書", ruby: "か" }, { text: "きます" }], romaji: "kakimasu", start: 23.6, end: 24.3 },
+      { parts: [{ text: "。" }], kind: "punct" },
+    ] } });
 // The fluid frame shows the long sentence again.
 EXAMPLES.push({ title: "A fluid frame: the size follows the frame's width, and beyond the maximum number of lines the sentence is paged by t",
   frame: true, input: EXAMPLES[2].input });
@@ -171,8 +188,14 @@ const frameLines = params.get("lines") || "2";
 // The theme is set once, on the container of every card; a sentence with a speaker carries it
 // on its own root.
 let card;
+// The layers card's choices: what is drawn over and under the text, and whether origins are.
+// Origins and romaji cannot both be over the text, so romaji over draws no origins.
+const layerOptions = () => {
+  const over = document.getElementById("over")?.value || "ruby", under = document.getElementById("under")?.value || "romaji";
+  return { over, under, origin: over === "romaji" ? "none" : "over" };
+};
 const shown = EXAMPLES.map((ex) => {
-  const s = Tsubu.sentence(ex.input, { ruby: rubyBox.checked, speaker: ex.speaker, writing: ex.writing });
+  const s = Tsubu.sentence(ex.input, { ruby: rubyBox.checked, speaker: ex.speaker, writing: ex.writing, ...(ex.layers ? layerOptions() : {}) });
   if (ex.title) {
     card = document.createElement("section");
     card.className = "card";
@@ -199,6 +222,16 @@ const shown = EXAMPLES.map((ex) => {
       <output id="clicked">click a segment</output>`;
     parts.push(controls);
     bubble.id = "motion-bubble";
+  }
+  if (ex.layers) {
+    const controls = document.createElement("div");
+    controls.className = "controls";
+    controls.innerHTML = `<label>over <select id="over"><option>ruby</option><option>romaji</option><option>none</option></select></label>
+      <label>under <select id="under"><option>romaji</option><option>ruby</option><option>none</option></select></label>
+      <label><input id="origins" type="checkbox" checked> origins</label>
+      <label><input id="under-shown" type="checkbox" checked> under shown</label>`;
+    parts.push(controls);
+    bubble.id = "layers";
   }
   if (ex.writing === "vertical") bubble.classList.add("vertical");
   if (ex.frame) {
@@ -265,6 +298,32 @@ motionBubble.addEventListener("click", (event) => {
 });
 document.getElementById("reveal-all").addEventListener("click", () => reveal("all"));
 document.getElementById("reveal-none").addEventListener("click", () => reveal("none"));
+
+// The layers card: a new choice of sides draws the sentence again; the two switches change only
+// attributes, so nothing moves.
+const layers = document.getElementById("layers");
+const layersEntry = shown.find((x) => x.root === layers.querySelector(".tsubu"));
+const layersInput = EXAMPLES.find((ex) => ex.layers).input;
+function switchLayers() {
+  Tsubu.setAnnotation(layersEntry.root, "under", document.getElementById("under-shown").checked);
+  Tsubu.setAnnotation(layersEntry.root, "origin", document.getElementById("origins").checked);
+}
+function drawLayers() {
+  const options = layerOptions();
+  if (options.over === options.under && options.over !== "none") { document.getElementById("under").value = options.over === "ruby" ? "romaji" : "ruby"; return drawLayers(); }
+  layersEntry.s = Tsubu.sentence(layersInput, { ruby: rubyBox.checked, ...options });
+  layers.innerHTML = layersEntry.s.html;
+  layersEntry.root = layers.querySelector(".tsubu");
+  // with romaji over the text no origins are drawn, so their switch has nothing to switch
+  document.getElementById("origins").disabled = options.origin === "none";
+  switchLayers();
+  layersEntry.contrast.textContent = describeContrast(Tsubu.checkContrast(layersEntry.root));
+  renderAt(Number(slider.value));
+}
+document.getElementById("over").addEventListener("change", drawLayers);
+document.getElementById("under").addEventListener("change", drawLayers);
+document.getElementById("origins").addEventListener("change", switchLayers);
+document.getElementById("under-shown").addEventListener("change", switchLayers);
 
 // The frame's width and its maximum number of lines are page settings like the furigana switch.
 const frame = document.getElementById("frame");
