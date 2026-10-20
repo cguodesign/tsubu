@@ -26,16 +26,20 @@
 
   <div class="prose">
     <h2 class="label"><span class="kanji" data-ruby="そなえ">備</span><span class="en">Install</span><span class="zh" lang="zh-CN">安装</span><span class="ja" lang="ja">インストール</span></h2>
-    <p class="en">Copy <code>tsubu.js</code> and <code>tsubu.css</code> next to your page. <code>tsubu-export.js</code> is optional, for subtitles. There is no npm package yet; it is on the roadmap.</p>
-    <p class="zh" lang="zh-CN">把 <code>tsubu.js</code> 和 <code>tsubu.css</code> 复制到你的页面旁边。<code>tsubu-export.js</code> 是可选的，用来导出字幕。还没有 npm 包，这在路线图上。</p><p class="ja" lang="ja"><code>tsubu.js</code> と <code>tsubu.css</code> をページの隣に置きます。<code>tsubu-export.js</code> は字幕書き出し用で、省略できます。npm パッケージはまだなく、ロードマップに載っています。</p>
-    <div class="files"><a href="tsubu.js">tsubu.js<small id="size-js"></small></a><a href="tsubu.css">tsubu.css<small id="size-css"></small></a><a href="tsubu-export.js">tsubu-export.js<small>optional</small></a></div>
+    <p class="en">From npm, where the package is named <code>tsubu-js</code>, pinned to an exact version (below). Or copy <code>tsubu.js</code> and <code>tsubu.css</code> next to your page: that is all a page needs. <code>tsubu-export.js</code> (subtitles out) and <code>tsubu-import.js</code> (other formats in) are optional.</p>
+    <p class="zh" lang="zh-CN">从 npm 安装，包名是 <code>tsubu-js</code>，固定到精确版本（见下）。也可以把 <code>tsubu.js</code> 和 <code>tsubu.css</code> 复制到页面旁边，页面只需要这两个文件。<code>tsubu-export.js</code>（导出字幕）和 <code>tsubu-import.js</code>（导入其他格式）是可选的。</p><p class="ja" lang="ja">npm からインストールできます。パッケージ名は <code>tsubu-js</code> で、バージョンを固定します（下記）。または <code>tsubu.js</code> と <code>tsubu.css</code> をページの隣に置くだけで動きます。<code>tsubu-export.js</code>（字幕の書き出し）と <code>tsubu-import.js</code>（他の形式の読み込み）は省略できます。</p>
+<pre><code>npm install --save-exact tsubu-js</code></pre>
+    <div class="files"><a href="tsubu.js">tsubu.js</a><a href="tsubu.css">tsubu.css</a><a href="tsubu-export.js">tsubu-export.js<small>optional</small></a><a href="tsubu-import.js">tsubu-import.js<small>optional</small></a></div>
 <pre><code>&lt;link rel="stylesheet" href="tsubu.css"&gt;
 &lt;script src="tsubu.js"&gt;&lt;/script&gt;        <span class="c">// defines window.Tsubu</span>
-&lt;script src="tsubu-export.js"&gt;&lt;/script&gt; <span class="c">// optional: window.TsubuExport</span></code></pre>
-    <p class="en">In Node, <code>require()</code> returns the same object; <code>stateAt</code>, <code>htmlAt</code>, <code>contrast</code> and the exporters work there without a browser.</p>
-    <p class="zh" lang="zh-CN">在 Node 里 <code>require()</code> 返回同一个对象；<code>stateAt</code>、<code>htmlAt</code>、<code>contrast</code> 和导出函数不需要浏览器就能用。</p><p class="ja" lang="ja">Node では <code>require()</code> が同じオブジェクトを返します。<code>stateAt</code>、<code>htmlAt</code>、<code>contrast</code>、書き出し関数はブラウザなしで動きます。</p>
-<pre><code>const Tsubu = require("./tsubu.js");
-const TsubuExport = require("./tsubu-export.js");</code></pre>
+&lt;script src="tsubu-export.js"&gt;&lt;/script&gt; <span class="c">// optional: window.TsubuExport</span>
+&lt;script src="tsubu-import.js"&gt;&lt;/script&gt; <span class="c">// optional: window.TsubuImport</span></code></pre>
+    <p class="en">In Node, <code>require()</code> returns the same object; <code>stateAt</code>, <code>htmlAt</code>, <code>contrast</code>, the exporters and the importers work there without a browser. Each script also has an ES module.</p>
+    <p class="zh" lang="zh-CN">在 Node 里 <code>require()</code> 返回同一个对象；<code>stateAt</code>、<code>htmlAt</code>、<code>contrast</code>、导出和导入函数不需要浏览器就能用。每个脚本也都有 ES 模块。</p><p class="ja" lang="ja">Node では <code>require()</code> が同じオブジェクトを返します。<code>stateAt</code>、<code>htmlAt</code>、<code>contrast</code>、書き出しと読み込みの関数はブラウザなしで動きます。各スクリプトには ES モジュールもあります。</p>
+<pre><code>const Tsubu = require("tsubu-js");                  <span class="c">// or require("./tsubu.js")</span>
+const TsubuExport = require("tsubu-js/export");
+const TsubuImport = require("tsubu-js/import");
+import Tsubu, { sentence } from "tsubu-js";         <span class="c">// ES modules and bundlers</span></code></pre>
 
     <h2 class="label"><span class="kanji" data-ruby="はじめ">初</span><span class="en">The 30-second example</span><span class="zh" lang="zh-CN">30 秒示例</span><span class="ja" lang="ja">30 秒でわかる例</span></h2>
     <p class="en">The sentence arrives already cut into segments, each a list of parts; a part with <code>ruby</code> becomes <code>&lt;ruby&gt;</code>. Times are in seconds on your own clock. <code>sentence()</code> gives HTML; <code>apply(root, t)</code> draws the state at <code>t</code>.</p>
@@ -58,9 +62,13 @@ const TsubuExport = require("./tsubu-export.js");</code></pre>
   line.innerHTML = s.html;
   const root = line.querySelector(".tsubu");
 
-  // Drive it from any clock: an &lt;audio&gt; element, a video timeline, a frame counter.
+  // Drive it from any clock: an &lt;audio&gt; element, a video timeline, a frame counter. tsubu
+  // keeps no timers; the loop is yours. Read the time on every frame: "timeupdate" fires only
+  // every 15 to 250 ms, so a highlight driven by it lags behind the voice.
   const audio = document.querySelector("audio");
-  audio?.addEventListener("timeupdate", () =&gt; s.apply(root, audio.currentTime));
+  const frame = () =&gt; { s.apply(root, audio.currentTime); if (!audio.paused) requestAnimationFrame(frame); };
+  audio?.addEventListener("play", frame);
+  audio?.addEventListener("seeked", frame);
   s.apply(root, 1.0);            // the frame at t = 1.0 s: 家で is highlighted
 
   Tsubu.setRuby(root, false);    // hide the furigana; nothing moves
@@ -100,7 +108,7 @@ const TsubuExport = require("./tsubu-export.js");</code></pre>
     <p class="en">An agent that writes pages or templates with tsubu needs the contract, not the whole guide. The block below is that contract, in the guide's words; paste it into the agent's instructions. The API page and <code>Tsubu.MOTIONS</code> (the motion catalogue as data: each preset's purpose, what it needs, its parameters) are the references it can read on its own.</p>
     <p class="zh" lang="zh-CN">用 tsubu 写页面或模板的 agent 需要的是契约，不是整份指南。下面这段就是契约，措辞与指南一致；把它贴进 agent 的指令里。API 页和 <code>Tsubu.MOTIONS</code>（动效目录的数据形式：每个预设的用途、需要什么、参数）是它可以自己读的参考。</p><p class="ja" lang="ja">tsubu でページやテンプレートを書くエージェントに必要なのは、ガイド全体ではなく契約です。下のブロックがその契約で、文言はガイドのままです。エージェントの指示に貼り付けてください。API ページと <code>Tsubu.MOTIONS</code>（モーションカタログのデータ版：各プリセットの目的、必要なもの、パラメータ）は、エージェントが自分で読める参照先です。</p>
 <pre><code class="plain" id="agent-brief">tsubu draws ONE sentence, already cut into segments, for read-along use.
-- Input: { segments: [{ parts: [{ text, ruby? }], kind?: "punct", start?, end?, id?, tags? }], start?, end?, lang? }.
+- Input: { segments: [{ parts: [{ text, ruby? }], kind?: "punct", start?, end?, id?, tags?, romaji? }], start?, end?, lang? }.
   Times are seconds on the caller's clock. tsubu never segments text, never estimates times and never plays audio.
 - Timing: every spoken segment timed → "segments" (one segment lights at a time); only the sentence timed → "sentence"
   (the whole sentence lights; the span is NOT divided among segments); no times → "none" (static; stateAt/apply throw).
@@ -109,6 +117,8 @@ const TsubuExport = require("./tsubu-export.js");</code></pre>
   The frame at t depends on t alone: no timers, no transitions. For video, call apply(root, t) at each frame's time,
   or render s.htmlAt(t) without a page. Never add CSS transitions to make it "smooth".
 - Furigana: Tsubu.setRuby(root, on) switches them without moving any character. Keep that: never set display: none on rt.
+- Romaji: the caller's own, per segment (segments[].romaji). options.over and options.under each name "ruby", "romaji"
+  or "none" (default: furigana over, nothing under). Tsubu.setAnnotation(root, "over" | "under", on) switches a side.
 - Themes: options.theme "light" | "dark" | "media"; speakers "a" | "b". Verify colours with Tsubu.checkContrast(root):
   4.5 for text and furigana, 3 for the underline and the highlight. The unthemed defaults are not a preset and fail.
 - Motion: choose from Tsubu.MOTIONS only, to show what is being read, never to decorate. Plain read-along: none.
@@ -119,12 +129,14 @@ const TsubuExport = require("./tsubu-export.js");</code></pre>
   with a definite width. Paging: --tsubu-max-lines; call apply after document.fonts.ready and after resizes.
 - Vertical: options.writing "vertical"; give the container a height.
 - Subtitles: TsubuExport.toWebVTT(input) / toASS(input) / toSRT(input) from the same input (times required).
+- Other formats in: TsubuImport.fromWebVTT(text) / fromSRT(text) / fromCaptions(remotionCaptions) / fromKuroshiro(html).
+  Segments come only from what the format marks, times only from the file.
 - Tags: segment id and tags are written as data-id / data-tags for the caller to style; colours and lines only.</code></pre>
     <div class="transport" style="padding-top: 0"><button type="button" class="btn quiet" id="copy-brief"><span class="en">Copy</span><span class="zh" lang="zh-CN">复制</span><span class="ja" lang="ja">コピー</span></button><output id="copied" class="small muted"></output></div>
 
     <h2 class="label"><span class="kanji" data-ruby="つぎ">次</span><span class="en">Next</span><span class="zh" lang="zh-CN">接下来</span><span class="ja" lang="ja">次へ</span></h2>
     <div class="grid">
-      <a class="pointer" href="guide.html"><b class="en">Guide</b><b class="zh" lang="zh-CN">指南</b><b class="ja" lang="ja">ガイド</b><span class="en">Timing, several lines, themes, motion, vertical text, video, subtitles and accessibility, each with a live example.</span><span class="zh" lang="zh-CN">时间、多行、主题、动效、竖排、录视频、字幕和无障碍，每节都有活的示例。</span><span class="ja" lang="ja">タイミング、複数行、テーマ、モーション、縦書き、動画、字幕、アクセシビリティ。各節に動く例があります。</span></a>
+      <a class="pointer" href="guide.html"><b class="en">Guide</b><b class="zh" lang="zh-CN">指南</b><b class="ja" lang="ja">ガイド</b><span class="en">Timing, several lines, romaji, themes, motion, vertical text, video, subtitles, importing and accessibility, each with a live example.</span><span class="zh" lang="zh-CN">时间、多行、罗马字、主题、动效、竖排、录视频、字幕、导入和无障碍，每节都有活的示例。</span><span class="ja" lang="ja">タイミング、複数行、ローマ字、テーマ、モーション、縦書き、動画、字幕、読み込み、アクセシビリティ。各節に動く例があります。</span></a>
       <a class="pointer" href="api.html"><b class="en">API</b><b class="zh" lang="zh-CN">API</b><b class="ja" lang="ja">API</b><span class="en">The whole surface: input, options, output, functions, CSS properties.</span><span class="zh" lang="zh-CN">全部接口：输入、选项、输出、函数、CSS 属性。</span><span class="ja" lang="ja">API のすべて：入力、オプション、出力、関数、CSS プロパティ。</span></a>
       <a class="pointer" href="playground.html"><b class="en">Playground</b><b class="zh" lang="zh-CN">试验场</b><b class="ja" lang="ja">プレイグラウンド</b><span class="en">Your own sentence with every switch and the contrast check.</span><span class="zh" lang="zh-CN">用你自己的句子，所有开关和对比度检查都在。</span><span class="ja" lang="ja">自分の文で、すべてのスイッチとコントラスト検査を試せます。</span></a>
     </div>
@@ -147,10 +159,6 @@ const RAIN = { segments: [
   { parts: [{ text: "。" }], kind: "punct" },
 ] };
 const $ = (id) => document.getElementById(id);
-
-// the file sizes, read from the files themselves where the page is served (not from file://)
-if (location.protocol !== "file:") for (const [id, name] of [["size-js", "tsubu.js"], ["size-css", "tsubu.css"]])
-  fetch(name, { method: "HEAD" }).then((r) => { const n = Number(r.headers.get("content-length")); if (n) $(id).textContent = `${Math.round(n / 1024)} KB`; }).catch(() => {});
 
 // example 1: the README's sentence on a clock, with the furigana switch
 const ex1 = Site.draw($("ex1"), RAIN);

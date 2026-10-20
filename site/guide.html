@@ -39,12 +39,14 @@ section.g .label { margin-top: 18px; }
   <p class="page-lede zh" lang="zh-CN">这个库做的事，一节一节讲，每节都有活的示例。这些内容仓库里的指南 <code>docs/guide.md</code> 都有；完整接口见 API 页。</p><p class="page-lede ja" lang="ja">このライブラリができることを、節ごとに動く例つきで説明します。内容はすべてリポジトリのガイド <code>docs/guide.md</code> にもあり、API の全体は API ページにあります。</p>
   <ul class="toc">
     <li><a href="#timing"><span class="en">Input and timing</span><span class="zh" lang="zh-CN">输入与时间</span><span class="ja" lang="ja">入力とタイミング</span></a></li>
+    <li><a href="#romaji"><span class="en">Romaji over and under</span><span class="zh" lang="zh-CN">上下的罗马字</span><span class="ja" lang="ja">上と下のローマ字</span></a></li>
     <li><a href="#lines"><span class="en">Several lines and paging</span><span class="zh" lang="zh-CN">多行与翻页</span><span class="ja" lang="ja">複数行とページ送り</span></a></li>
     <li><a href="#themes"><span class="en">Themes and contrast</span><span class="zh" lang="zh-CN">主题与对比度</span><span class="ja" lang="ja">テーマとコントラスト</span></a></li>
     <li><a href="#motion"><span class="en">Motion and revealing</span><span class="zh" lang="zh-CN">动效与揭示</span><span class="ja" lang="ja">モーションと明かし</span></a></li>
     <li><a href="#vertical"><span class="en">Vertical writing</span><span class="zh" lang="zh-CN">竖排</span><span class="ja" lang="ja">縦書き</span></a></li>
     <li><a href="#video"><span class="en">Recording video</span><span class="zh" lang="zh-CN">录制视频</span><span class="ja" lang="ja">動画の書き出し</span></a></li>
     <li><a href="#subtitles"><span class="en">Exporting subtitles</span><span class="zh" lang="zh-CN">导出字幕</span><span class="ja" lang="ja">字幕の書き出し</span></a></li>
+    <li><a href="#import"><span class="en">Importing other formats</span><span class="zh" lang="zh-CN">导入其他格式</span><span class="ja" lang="ja">他の形式の読み込み</span></a></li>
     <li><a href="#a11y"><span class="en">Accessibility</span><span class="zh" lang="zh-CN">无障碍</span><span class="ja" lang="ja">アクセシビリティ</span></a></li>
   </ul>
 
@@ -73,14 +75,39 @@ s.span(2)           // segment 2's own { start, end }, or null: where to seek on
     </div>
   </section>
 
+  <section class="g" id="romaji">
+    <h2 class="label"><span class="kanji" data-ruby="よみ">読</span><span class="en">Romaji over and under</span><span class="zh" lang="zh-CN">上下的罗马字</span><span class="ja" lang="ja">上と下のローマ字</span></h2>
+    <div class="cols">
+      <div class="prose">
+        <p class="lead en">Romaji, the caller's own, over or under the text: you choose what goes on each side, and either side switches without moving a character.</p>
+        <p class="lead zh" lang="zh-CN">由调用方提供的罗马字，标在字的上方或下方：每一侧标什么由你决定，任何一侧开关都不会让字移动。</p><p class="lead ja" lang="ja">呼び出し側が用意したローマ字を、文字の上か下に。どちらの側に何を置くかを選べ、どちらの側を切り替えても文字は動きません。</p>
+        <p class="en">A segment may carry <code>romaji</code>, the romanised reading of the whole segment; tsubu never makes it from kana. <code>options.over</code> and <code>options.under</code> each name <code>"ruby"</code> (the furigana), <code>"romaji"</code> or <code>"none"</code>; the defaults are furigana over and nothing under, and the two may not name the same layer. <code>Tsubu.setAnnotation(root, "over" | "under", on)</code> switches a side (<code>setRuby</code> is its <code>"over"</code> form). Hidden readings keep their room, so nothing moves. Readings under the text sit below the dotted underline, and the lines make room for both sides.</p>
+        <p class="zh" lang="zh-CN">每段可以带 <code>romaji</code>，即整段的罗马字读音；tsubu 从不自己把假名转成罗马字。<code>options.over</code> 和 <code>options.under</code> 各自指定 <code>"ruby"</code>（注音）、<code>"romaji"</code> 或 <code>"none"</code>；默认上方是注音、下方什么都没有，两侧不能指定同一层。<code>Tsubu.setAnnotation(root, "over" | "under", on)</code> 开关某一侧（<code>setRuby</code> 就是它的 <code>"over"</code> 形式）。隐藏的读音照旧占位，所以什么都不会动。下方的读音在点状下划线之下，各行会为两侧都留出空间。</p><p class="ja" lang="ja">文節には <code>romaji</code>（文節全体のローマ字読み）を付けられます。tsubu が仮名からローマ字を作ることはありません。<code>options.over</code> と <code>options.under</code> はそれぞれ <code>"ruby"</code>（ふりがな）、<code>"romaji"</code>、<code>"none"</code> を指定します。既定は上にふりがな、下には何もなしで、両側に同じ層は指定できません。<code>Tsubu.setAnnotation(root, "over" | "under", on)</code> で片側を切り替えます（<code>setRuby</code> はその <code>"over"</code> 版です）。隠した読みも場所を保つので、何も動きません。下側の読みは点線の下線の下に置かれ、行は両側の分の余白を取ります。</p>
+        <p class="en">In vertical text over is at the right and under at the left, and romaji lie on their side. The motion presets, the contrast check, forced colours and <code>announceRuby</code> treat romaji as they treat furigana. The exporters and importers accept romaji in their input but carry none.</p>
+        <p class="zh" lang="zh-CN">竖排时上方在字的右侧、下方在左侧，罗马字侧躺。动效预设、对比度检查、强制颜色和 <code>announceRuby</code> 对罗马字的处理和注音一样。导出和导入函数接受带罗马字的输入，但不会带上罗马字。</p><p class="ja" lang="ja">縦書きでは上が右側、下が左側になり、ローマ字は横倒しになります。モーションプリセット、コントラスト検査、強制カラー、<code>announceRuby</code> はローマ字をふりがなと同じように扱います。書き出しと読み込みの関数はローマ字を含む入力を受け付けますが、ローマ字は運びません。</p>
+      </div>
+      <div>
+        <div class="ctl">
+          <label>over <select id="rj-over"><option>ruby</option><option selected>romaji</option><option>none</option></select></label>
+          <label>under <select id="rj-under"><option>none</option><option>romaji</option><option selected>ruby</option></select></label>
+          <label><input type="checkbox" id="rj-over-on" checked> <span class="en">over shown</span><span class="zh" lang="zh-CN">显示上方</span><span class="ja" lang="ja">上を表示</span></label>
+          <label><input type="checkbox" id="rj-under-on" checked> <span class="en">under shown</span><span class="zh" lang="zh-CN">显示下方</span><span class="ja" lang="ja">下を表示</span></label>
+        </div>
+        <div class="stage" data-tsubu-theme="light" id="rj" style="margin-top: 8px"></div>
+        <p class="err" id="rj-err"></p>
+        <div class="transport"><button type="button" id="rj-play">Play</button><input type="range" id="rj-t" aria-label="t"><output id="rj-out">0.00 s</output></div>
+      </div>
+    </div>
+  </section>
+
   <section class="g" id="lines">
     <h2 class="label"><span class="kanji" data-ruby="ぎょう">行</span><span class="en">Several lines and paging</span><span class="zh" lang="zh-CN">多行与翻页</span><span class="ja" lang="ja">複数行とページ送り</span></h2>
     <div class="cols">
       <div class="prose">
         <p class="lead en">A long sentence breaks by Japanese rules, keeps its lines even, sizes itself to its box and turns pages as the reading goes on.</p>
         <p class="lead zh" lang="zh-CN">长句按日语规则断行，各行长度均衡，字号随容器变化，读到哪儿就翻到哪一页。</p><p class="lead ja" lang="ja">長い文は日本語の禁則で改行され、行の長さは揃い、文字サイズはコンテナに追従し、読みの進みに合わせてページが送られます。</p>
-        <p class="en">A line breaks only between segments, and never where Japanese line-breaking rules (<i>kinsoku</i>) forbid it: no closing bracket, punctuation, <code>ー</code> or small kana at the start of a line, no opening bracket at its end. Segments that may not be parted share a <code>nowrap</code> unit. Lines are balanced with <code>text-wrap: balance</code>, so the last line never holds a lone segment.</p>
-        <p class="zh" lang="zh-CN">行只在段与段之间断开，而且不在日语禁则不允许的地方断：闭合括号、标点、<code>ー</code>、小假名不出现在行首，开括号不出现在行尾。不能分开的段放在同一个 <code>nowrap</code> 单元里。各行用 <code>text-wrap: balance</code> 均衡，最后一行不会只剩一段。</p><p class="ja" lang="ja">改行は文節の間でだけ起こり、禁則処理に反する位置では起こりません。閉じ括弧、句読点、<code>ー</code>、小書き仮名は行頭に来ず、開き括弧は行末に来ません。分けられない文節は同じ <code>nowrap</code> のユニットにまとめられます。行は <code>text-wrap: balance</code> で均され、最終行に文節が一つだけ残ることはありません。</p>
+        <p class="en">A line breaks only between segments, and never where Japanese line-breaking rules (<i>kinsoku</i>) forbid it: no closing bracket, punctuation, <code>ー</code> or small kana at the start of a line, no opening bracket at its end. Segments that may not be parted share a <code>nowrap</code> unit. Lines are balanced with <code>text-wrap: balance</code> where the browser does it: Chromium balances up to six lines, so the last line does not hold a lone segment; Firefox breaks tsubu's lines greedily; WebKit balances but may add a line, so a paged sentence keeps its greedy lines there.</p>
+        <p class="zh" lang="zh-CN">行只在段与段之间断开，而且不在日语禁则不允许的地方断：闭合括号、标点、<code>ー</code>、小假名不出现在行首，开括号不出现在行尾。不能分开的段放在同一个 <code>nowrap</code> 单元里。在浏览器支持的地方各行用 <code>text-wrap: balance</code> 均衡：Chromium 最多均衡六行，所以最后一行不会只剩一段；Firefox 对 tsubu 的行按贪心方式断行；WebKit 会均衡，但可能多出一行，所以翻页的句子在 WebKit 里保留贪心断行。</p><p class="ja" lang="ja">改行は文節の間でだけ起こり、禁則処理に反する位置では起こりません。閉じ括弧、句読点、<code>ー</code>、小書き仮名は行頭に来ず、開き括弧は行末に来ません。分けられない文節は同じ <code>nowrap</code> のユニットにまとめられます。行はブラウザが対応する範囲で <code>text-wrap: balance</code> により均されます。Chromium は 6 行まで均すので、最終行に文節が一つだけ残ることはありません。Firefox は tsubu の行を貪欲に折り返します。WebKit は均しますが行が一つ増えることがあるため、ページ送りする文は WebKit では貪欲な折り返しのままにします。</p>
         <p class="en">Inside an element with class <code>tsubu-fluid</code>, the font size is the container's width divided by a number of characters per line, in three steps (under 480px, to 960px, and over), each configurable, between <code>--tsubu-size-min</code> and <code>--tsubu-size-max</code>. With <code>--tsubu-max-lines</code> set, a longer sentence is paged by <code>t</code>: <code>apply</code> shows the page that holds the segment being spoken, and returns <code>page</code> and <code>pages</code>.</p>
         <p class="zh" lang="zh-CN">放在带 <code>tsubu-fluid</code> 类的元素里时，字号等于容器宽度除以每行字数，分三档（480px 以下、到 960px、以上），每档都可配置，并限制在 <code>--tsubu-size-min</code> 和 <code>--tsubu-size-max</code> 之间。设了 <code>--tsubu-max-lines</code> 时，更长的句子按 <code>t</code> 翻页：<code>apply</code> 显示正在读的段所在的页，并返回 <code>page</code> 和 <code>pages</code>。</p><p class="ja" lang="ja">クラス <code>tsubu-fluid</code> の要素の中では、文字サイズはコンテナ幅を一行あたりの文字数で割った値になります。三つの段階（480px 未満、960px まで、それ以上）はそれぞれ設定でき、<code>--tsubu-size-min</code> と <code>--tsubu-size-max</code> の範囲に収まります。<code>--tsubu-max-lines</code> を設定すると、それより長い文は <code>t</code> でページ送りされます。<code>apply</code> は読まれている文節のあるページを表示し、<code>page</code> と <code>pages</code> を返します。</p>
 <pre><code>&lt;div class="tsubu-fluid" style="width: 100%; --tsubu-max-lines: 2"&gt;
@@ -211,13 +238,32 @@ node examples/frames-from-node.mjs examples/sentence.json frames 30</code></pre>
         <p class="lead zh" lang="zh-CN">同样的输入可以导出成带读音和时间戳的 WebVTT、一行 ASS 卡拉 OK，或纯文本 SRT。</p><p class="lead ja" lang="ja">同じ入力から、読みとタイムスタンプ付きの WebVTT、ASS のカラオケ行、またはプレーンテキストの SRT を書き出せます。</p>
         <p class="en">The optional <code>tsubu-export.js</code> turns the same input into subtitles. <code>TsubuExport.toWebVTT(input, { ruby, offset, id })</code> returns one cue spanning the sentence, each segment a <code>&lt;c.tsubu-seg&gt;</code> span with <code>&lt;ruby&gt;</code> readings, and a cue timestamp at each spoken segment's start, so <code>::cue(:past)</code> follows the reading. <code>TsubuExport.toASS(input, { ruby, offset })</code> returns one karaoke <code>Dialogue:</code> line with <code>\k</code> durations, rounded to centiseconds so they add up to the line; <code>toASSScript</code> wraps it in a minimal script. A sentence without times cannot be exported.</p>
         <p class="zh" lang="zh-CN">可选的 <code>tsubu-export.js</code> 把同样的输入转成字幕。<code>TsubuExport.toWebVTT(input, { ruby, offset, id })</code> 返回覆盖整句的一条 cue，每段是一个带 <code>&lt;ruby&gt;</code> 读音的 <code>&lt;c.tsubu-seg&gt;</code> span，每个非标点段开始处有一个 cue 时间戳，所以 <code>::cue(:past)</code> 会跟着朗读走。<code>TsubuExport.toASS(input, { ruby, offset })</code> 返回一行带 <code>\k</code> 时长的卡拉 OK <code>Dialogue:</code>，先取整到百分之一秒，所以各时长之和等于这一行；<code>toASSScript</code> 把它包成最小脚本。没有时间的句子无法导出。</p><p class="ja" lang="ja">省略可能な <code>tsubu-export.js</code> は同じ入力を字幕にします。<code>TsubuExport.toWebVTT(input, { ruby, offset, id })</code> は文全体にわたる一つのキューを返します。各文節は <code>&lt;ruby&gt;</code> の読みを含む <code>&lt;c.tsubu-seg&gt;</code> スパンで、句読点以外の各文節の開始位置にキュータイムスタンプがあるので、<code>::cue(:past)</code> が読みに追従します。<code>TsubuExport.toASS(input, { ruby, offset })</code> は <code>\k</code> の長さを持つカラオケ <code>Dialogue:</code> 行を返します。境界を先に百分の一秒へ丸めるので、長さの合計は行の長さと一致します。<code>toASSScript</code> はそれを最小限のスクリプトで包みます。時刻のない文は書き出せません。</p>
-        <p class="en"><code>TsubuExport.toSRT(input, { mode, ruby, offset })</code> writes plain SubRip, which nearly every video editor imports: one cue for the sentence, or with <code>mode: "segments"</code> one cue per spoken segment. It has no tags, so only ASS and WebVTT carry the per-segment highlight. To drive tsubu from an engine's own clock instead, turn its time into seconds (for a frame counter, <code>t = from + frame / fps</code>, computed from the frame number each time rather than added up) and write <code>s.htmlAt(t)</code> into an element. <code>examples/tsubu-frames.js</code> holds that arithmetic, and <code>examples/remotion/</code> and <code>examples/hyperframes/</code> are a Remotion and a HyperFrames composition built on it, written from each engine's documentation but not yet run against a live engine.</p>
-        <p class="zh" lang="zh-CN"><code>TsubuExport.toSRT(input, { mode, ruby, offset })</code> 写出纯文本 SubRip，几乎所有视频编辑器都能导入：整句一条 cue，或用 <code>mode: "segments"</code> 每个非标点段一条。它没有标签，所以只有 ASS 和 WebVTT 带逐段高亮。要用引擎自己的时钟驱动 tsubu，就把它的时间换成秒（对帧计数器是 <code>t = from + frame / fps</code>，每次都从帧号算出，而不是累加），再把 <code>s.htmlAt(t)</code> 写进一个元素。<code>examples/tsubu-frames.js</code> 包含这段算术，<code>examples/remotion/</code> 和 <code>examples/hyperframes/</code> 是基于它的 Remotion 和 HyperFrames 合成，按各引擎的文档写成，但还没有在真实引擎上运行过。</p><p class="ja" lang="ja"><code>TsubuExport.toSRT(input, { mode, ruby, offset })</code> はプレーンテキストの SubRip を書き出します。ほとんどの動画編集ソフトが読み込めます。文に一つのキュー、または <code>mode: "segments"</code> で句読点以外の文節ごとに一つ。タグがないので、文節ごとのハイライトを運べるのは ASS と WebVTT だけです。エンジン自身の時計で tsubu を動かすには、その時刻を秒に直し（フレームカウンタなら <code>t = from + frame / fps</code>。足し合わせず、毎回フレーム番号から計算します）、<code>s.htmlAt(t)</code> を要素に書き込みます。<code>examples/tsubu-frames.js</code> にはその計算があり、<code>examples/remotion/</code> と <code>examples/hyperframes/</code> はそれを使った Remotion と HyperFrames のコンポジションです。各エンジンのドキュメントに沿って書かれていますが、実際のエンジンではまだ動かしていません。</p>
+        <p class="en"><code>TsubuExport.toSRT(input, { mode, ruby, offset })</code> writes plain SubRip, which nearly every video editor imports: one cue for the sentence, or with <code>mode: "segments"</code> one cue per spoken segment. It has no tags, so only ASS and WebVTT carry the per-segment highlight. To drive tsubu from an engine's own clock instead, turn its time into seconds (for a frame counter, <code>t = from + frame / fps</code>, computed from the frame number each time rather than added up) and write <code>s.htmlAt(t)</code> into an element. <code>examples/tsubu-frames.js</code> holds that arithmetic, and <code>examples/remotion/</code> and <code>examples/hyperframes/</code> are a Remotion and a HyperFrames composition built on it, written from each engine's documentation. The HyperFrames one has been rendered with HyperFrames 0.8.181, and every frame matched <code>htmlAt(t)</code>; the Remotion one has not yet been run against Remotion.</p>
+        <p class="zh" lang="zh-CN"><code>TsubuExport.toSRT(input, { mode, ruby, offset })</code> 写出纯文本 SubRip，几乎所有视频编辑器都能导入：整句一条 cue，或用 <code>mode: "segments"</code> 每个非标点段一条。它没有标签，所以只有 ASS 和 WebVTT 带逐段高亮。要用引擎自己的时钟驱动 tsubu，就把它的时间换成秒（对帧计数器是 <code>t = from + frame / fps</code>，每次都从帧号算出，而不是累加），再把 <code>s.htmlAt(t)</code> 写进一个元素。<code>examples/tsubu-frames.js</code> 包含这段算术，<code>examples/remotion/</code> 和 <code>examples/hyperframes/</code> 是基于它的 Remotion 和 HyperFrames 合成，按各引擎的文档写成。HyperFrames 示例已用 HyperFrames 0.8.181 实际渲染，每一帧都和 <code>htmlAt(t)</code> 一致；Remotion 示例还没有在真实的 Remotion 里运行过。</p><p class="ja" lang="ja"><code>TsubuExport.toSRT(input, { mode, ruby, offset })</code> はプレーンテキストの SubRip を書き出します。ほとんどの動画編集ソフトが読み込めます。文に一つのキュー、または <code>mode: "segments"</code> で句読点以外の文節ごとに一つ。タグがないので、文節ごとのハイライトを運べるのは ASS と WebVTT だけです。エンジン自身の時計で tsubu を動かすには、その時刻を秒に直し（フレームカウンタなら <code>t = from + frame / fps</code>。足し合わせず、毎回フレーム番号から計算します）、<code>s.htmlAt(t)</code> を要素に書き込みます。<code>examples/tsubu-frames.js</code> にはその計算があり、<code>examples/remotion/</code> と <code>examples/hyperframes/</code> はそれを使った Remotion と HyperFrames のコンポジションです。各エンジンのドキュメントに沿って書かれています。HyperFrames の例は HyperFrames 0.8.181 で実際にレンダリングし、すべてのフレームが <code>htmlAt(t)</code> と一致しました。Remotion の例は、実際の Remotion ではまだ動かしていません。</p>
         <div class="ctl"><label><input type="checkbox" id="sb-ruby" checked> <span class="en">readings in the WebVTT</span><span class="zh" lang="zh-CN">WebVTT 带读音</span><span class="ja" lang="ja">WebVTT に読みを含める</span></label> <label><input type="checkbox" id="sb-inline"> <span class="en">readings inline in the ASS</span><span class="zh" lang="zh-CN">ASS 行内读音</span><span class="ja" lang="ja">ASS に読みをインラインで</span></label></div>
       </div>
       <div>
         <pre><code class="plain" id="sb-vtt"></code></pre>
         <pre><code class="plain" id="sb-ass"></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="g" id="import">
+    <h2 class="label"><span class="kanji" data-ruby="とり">取</span><span class="en">Importing other formats</span><span class="zh" lang="zh-CN">导入其他格式</span><span class="ja" lang="ja">他の形式の読み込み</span></h2>
+    <div class="cols">
+      <div class="prose">
+        <p class="lead en">Subtitles and other tools' output come back as tsubu's input, with no segment or time guessed.</p>
+        <p class="lead zh" lang="zh-CN">字幕和其他工具的输出可以转回 tsubu 的输入，不猜任何段或时间。</p><p class="lead ja" lang="ja">字幕や他のツールの出力を tsubu の入力に戻せます。文節も時刻も推測しません。</p>
+        <p class="en">The optional <code>tsubu-import.js</code> defines <code>TsubuImport</code>. <code>fromWebVTT(text)</code> gives a sentence per cue, its segments from <code>&lt;c.tsubu-seg&gt;</code> spans or cue timestamps; WebVTT records when a segment begins but not when it ends, so a gap between segments does not survive the round trip. <code>fromSRT(text, { mode })</code> gives a sentence per cue, or with <code>mode: "segments"</code> one sentence with a segment per cue. <code>fromCaptions(captions)</code> takes Remotion's captions, a segment each, and <code>fromKuroshiro(html)</code> turns kuroshiro's furigana HTML into the parts of one segment. Every result is checked with <code>Tsubu.sentence()</code>, and a refusal names the cue or caption.</p>
+        <p class="zh" lang="zh-CN">可选的 <code>tsubu-import.js</code> 定义 <code>TsubuImport</code>。<code>fromWebVTT(text)</code> 每条 cue 给出一句，段来自 <code>&lt;c.tsubu-seg&gt;</code> span 或 cue 时间戳；WebVTT 只记一段何时开始、不记何时结束，所以段与段之间的空档往返一次就没了。<code>fromSRT(text, { mode })</code> 每条 cue 给出一句，或用 <code>mode: "segments"</code> 整个文件一句、每条 cue 一段。<code>fromCaptions(captions)</code> 接收 Remotion 的字幕，每条一段；<code>fromKuroshiro(html)</code> 把 kuroshiro 的注音 HTML 变成一个段的片段。每个结果都经 <code>Tsubu.sentence()</code> 检查，被拒绝时会指出是哪条 cue 或字幕。</p><p class="ja" lang="ja">省略可能な <code>tsubu-import.js</code> は <code>TsubuImport</code> を定義します。<code>fromWebVTT(text)</code> はキューごとに一文を返し、文節は <code>&lt;c.tsubu-seg&gt;</code> スパンかキュータイムスタンプから取ります。WebVTT は文節の始まりを記録しても終わりは記録しないので、文節の間の空きは往復で失われます。<code>fromSRT(text, { mode })</code> はキューごとに一文、<code>mode: "segments"</code> ならファイル全体で一文、キューごとに一つの文節を返します。<code>fromCaptions(captions)</code> は Remotion のキャプションを一つずつ文節にし、<code>fromKuroshiro(html)</code> は kuroshiro のふりがな HTML を一つの文節のパーツにします。結果はすべて <code>Tsubu.sentence()</code> で検査され、拒否されたときはどのキューやキャプションかが示されます。</p>
+        <div class="ctl"><label><span class="en">format</span><span class="zh" lang="zh-CN">格式</span><span class="ja" lang="ja">形式</span> <select id="im-kind"><option value="vtt">WebVTT</option><option value="srt">SRT (mode: "segments")</option></select></label></div>
+      </div>
+      <div>
+        <textarea class="json" id="im-src" spellcheck="false" aria-label="Subtitle file"></textarea>
+        <p class="err" id="im-err"></p>
+        <div class="stage" data-tsubu-theme="light" id="im"></div>
+        <div class="transport"><button type="button" id="im-play">Play</button><input type="range" id="im-t" aria-label="t"><output id="im-out">0.00 s</output></div>
       </div>
     </div>
   </section>
@@ -248,6 +294,7 @@ node examples/frames-from-node.mjs examples/sentence.json frames 30</code></pre>
 </div>
 <script src="tsubu.js"></script>
 <script src="tsubu-export.js"></script>
+<script src="tsubu-import.js"></script>
 <script src="site.js"></script>
 <script>
 "use strict";
@@ -265,7 +312,8 @@ const RAIN = { segments: [seg([["雨", "あめ"], "の", ["日", "ひ"], "は"],
 // 10月10日は、朝から晴れていました。 "On 10 October it was fine from the morning."
 const OCT = { segments: [seg(["10", ["月", "がつ"], "10", ["日", "か"], "は"], 0.0, 1.0), punct("、"), seg([["朝", "あさ"], "から"], 1.2, 1.8), seg([["晴", "は"], "れていました"], 1.8, 3.2), punct("。")] };
 
-// 1. the three timings, on one clock
+// 1. the three timings, on one clock; the message is the library's own
+const noTimes = (() => { try { Tsubu.sentence({ segments: strip(CLASS) }).stateAt(0); } catch (e) { return e.message; } })();
 const timings = [
   ["segments", { segments: CLASS }], ["sentence", { start: 0.0, end: 3.0, segments: strip(CLASS) }], ["none", { segments: strip(CLASS) }],
 ].map(([name, input]) => {
@@ -276,10 +324,24 @@ const timings = [
   return { s, root, out: el.querySelector(".readout") };
 });
 Site.clock({ duration: 3.4, render: (t) => timings.forEach(({ s, root, out }) => {
-  if (s.timing === "none") { out.textContent = "stateAt(t) throws: tsubu: the sentence has no times"; return; }
+  if (s.timing === "none") { out.textContent = `stateAt(t) throws: ${noTimes}`; return; }
   const st = s.apply(root, t);
   out.textContent = `state: ${st.state}  current: ${st.current}  progress: ${st.progress === null ? "null" : st.progress.toFixed(2)}`;
 }), play: $("tm-play"), scrub: $("tm-t"), out: $("tm-out"), start: 1.0, autoplay: false });
+
+// 1b. romaji over and under; the switches change only attributes, so nothing moves
+const RAIN_ROMAJI = { 0: "ame no hi wa", 2: "ie de", 3: "ocha o", 4: "nomimasu" };
+const ROMAJI = { segments: RAIN.segments.map((s, i) => (i in RAIN_ROMAJI ? { ...s, romaji: RAIN_ROMAJI[i] } : s)) };
+let rj = null, rjT = 1.0;
+const rjShow = () => { if (!rj) return; Tsubu.setAnnotation(rj.root, "over", $("rj-over-on").checked); Tsubu.setAnnotation(rj.root, "under", $("rj-under-on").checked); };
+function rjDraw() {
+  try { rj = Site.draw($("rj"), ROMAJI, { announceRuby: false, over: $("rj-over").value, under: $("rj-under").value }); $("rj-err").textContent = ""; }
+  catch (e) { $("rj-err").textContent = e.message; return; }
+  rjShow(); rj.s.apply(rj.root, rjT);
+}
+$("rj-over").addEventListener("change", rjDraw); $("rj-under").addEventListener("change", rjDraw);
+$("rj-over-on").addEventListener("change", rjShow); $("rj-under-on").addEventListener("change", rjShow);
+Site.clock({ duration: 3.0, render: (t) => { rjT = t; if (rj) rj.s.apply(rj.root, t); }, play: $("rj-play"), scrub: $("rj-t"), out: $("rj-out"), start: 1.0, autoplay: false });
 
 // 2. lines and paging in a fluid frame
 const ln = Site.draw($("ln"), BREAD, { announceRuby: false });
@@ -334,11 +396,25 @@ const film = Tsubu.sentence(RAIN, { announceRuby: false, theme: "media", motion:
 const sb = () => { $("sb-vtt").textContent = TsubuExport.toWebVTT(RAIN, { ruby: $("sb-ruby").checked, id: "rain" }); $("sb-ass").textContent = TsubuExport.toASSScript(RAIN, { ruby: $("sb-inline").checked ? "inline" : "omit" }); };
 $("sb-ruby").addEventListener("change", sb); $("sb-inline").addEventListener("change", sb);
 
+// 7b. importing: the exporters' own output, read back
+const imSample = { vtt: () => TsubuExport.toWebVTT(RAIN), srt: () => TsubuExport.toSRT(RAIN, { mode: "segments" }) };
+let im = null, imT = 1.0;
+function imDraw() {
+  try {
+    const text = $("im-src").value;
+    const input = $("im-kind").value === "vtt" ? TsubuImport.fromWebVTT(text)[0] : TsubuImport.fromSRT(text, { mode: "segments" });
+    im = Site.draw($("im"), input, { announceRuby: false }); $("im-err").textContent = ""; im.s.apply(im.root, imT);
+  } catch (e) { $("im-err").textContent = e.message; }
+}
+const imReset = () => { $("im-src").value = imSample[$("im-kind").value](); imDraw(); };
+$("im-kind").addEventListener("change", imReset); $("im-src").addEventListener("input", imDraw);
+Site.clock({ duration: 3.0, render: (t) => { imT = t; if (im && im.s.timing !== "none") im.s.apply(im.root, t); }, play: $("im-play"), scrub: $("im-t"), out: $("im-out"), start: 1.0, autoplay: false });
+
 // 8. accessibility: the markup with and without announced readings
 const ax = () => { const s = Tsubu.sentence(RAIN, { announceRuby: $("ax-announce").checked }); $("ax").innerHTML = s.html; s.apply($("ax").querySelector(".tsubu"), 1.0); $("ax-html").textContent = s.htmlAt(1.0).replace(/></g, ">\n<"); };
 $("ax-announce").addEventListener("change", ax);
 
-document.fonts.ready.then(() => { lnBox(); thDraw(); rvShow([]); moDraw(); vtDraw(); sb(); ax(); window.__ready = true; });
+document.fonts.ready.then(() => { rjDraw(); lnBox(); thDraw(); rvShow([]); moDraw(); vtDraw(); sb(); imReset(); ax(); window.__ready = true; });
 </script>
 </body>
 </html>

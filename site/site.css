@@ -93,7 +93,17 @@ hr { border: 0; border-top: 1px solid var(--rule); margin: 40px 0; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 .api table { table-layout: fixed; min-width: 720px; }
 .api col.c1 { width: 8.3333%; } .api col.c2 { width: 16.6667%; } .api col.c3 { width: 25%; } .api col.c4 { width: 33.3333%; } .api col.c8 { width: 66.6667%; } .api col.c10 { width: 83.3333%; }
-.api td code, .api th code { white-space: normal; overflow-wrap: anywhere; }
+.api td code, .api th code { white-space: normal; overflow-wrap: break-word; }
+.cell-head { display: none; }
+/* On a phone a table's rows stack: the name, then each value, labelled with its column. */
+@media (max-width: 600px) {
+  .api table { min-width: 0; table-layout: auto; }
+  .api colgroup, .api thead { display: none; }
+  .api tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+  .api td { display: block; padding: 2px 0; border: 0; }
+  .api td:first-child { font-weight: 700; }
+  .api .cell-head { display: inline; margin-right: 6px; font-size: 12px; letter-spacing: 0.04em; color: var(--gunjo); }
+}
 .table-wrap { overflow-x: auto; margin: 0 0 16px; }
 th, td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--rule); }
 th { font-weight: 700; font-family: var(--body); font-size: 13px; letter-spacing: 0.04em; color: var(--gunjo); }

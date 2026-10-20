@@ -1,7 +1,7 @@
 /* tsubu's site: the pieces every page shares. Loaded after tsubu.js.
    - the masthead and footer, written once here so that every page agrees;
-   - the language toggle: English and 简体中文 sit side by side in the markup (class en / zh) and
-     data-lang on <html> shows one of them;
+   - the language toggle: English, 简体中文 and 日本語 sit side by side in the markup (class en / zh /
+     ja) and data-lang on <html> shows one of them;
    - a clock for the examples: it only chooses t, and every frame is drawn from t alone;
    - small helpers for drawing an example sentence and a section label with tsubu. */
 "use strict";
@@ -12,7 +12,7 @@ window.Site = (function () {
   ];
   const LANGS = [["en", "EN", "en"], ["zh", "中文", "zh-CN"], ["ja", "日本語", "ja"]];
   const T = (en, zh, ja) => `<span class="en">${en}</span><span class="zh" lang="zh-CN">${zh}</span><span class="ja" lang="ja">${ja}</span>`;
-  // The repository's address, once it is public: the masthead and the footer link to it.
+  // The repository's address: the masthead and the footer link to it.
   const REPO = "https://github.com/cguodesign/tsubu";
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } } };
@@ -72,6 +72,14 @@ window.Site = (function () {
     return { s, root: el.querySelector(".tsubu") };
   }
 
+  // Short inline code (a name, a file, a property) stays on one line: browsers would otherwise
+  // break it after a hyphen, as in "tsubu-" / "import.js". Longer code may still wrap.
+  function keepCodeWhole(scope) {
+    scope.querySelectorAll("p code, li code").forEach((el) => {
+      if (!/\s/.test(el.textContent) && el.textContent.length <= 40) el.style.whiteSpace = "nowrap";
+    });
+  }
+
   // Section labels: the kanji is a one-grain sentence drawn by tsubu, with its reading.
   function labels() {
     document.querySelectorAll(".label .kanji[data-ruby]").forEach((el) => {
@@ -98,6 +106,6 @@ window.Site = (function () {
     return Object.values(by).map((c) => `<span class="${c.ok ? "ok" : "fail"}">${c.layer} ${fmt(c.ratio)}${c.ok ? "" : " ✕"}</span>`).join(" · ");
   }
 
-  document.addEventListener("DOMContentLoaded", () => { labels(); code(); });
+  document.addEventListener("DOMContentLoaded", () => { labels(); code(); keepCodeWhole(document); });
   return { PAGES, LANGS, REPO, T, word, reduce, lang, setLang, mast, clock, draw, labels, code, worst, fmt };
 })();

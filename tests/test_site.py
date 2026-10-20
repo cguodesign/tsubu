@@ -21,7 +21,7 @@ PAGES = ["index.html", "start.html", "guide.html", "api.html", "playground.html"
 @pytest.fixture(scope="module")
 def copied(tmp_path_factory):
     out = tmp_path_factory.mktemp("site")
-    for name in ("tsubu.css", "tsubu.js", "tsubu-export.js"):
+    for name in ("tsubu.css", "tsubu.js", "tsubu-export.js", "tsubu-import.js"):
         shutil.copy(ROOT / name, out / name)
     for path in SITE.iterdir():
         if path.is_symlink() or not path.is_file():
@@ -51,7 +51,7 @@ def site(browser, copied):
 
 
 def test_the_library_files_in_site_are_the_library(copied):
-    for name in ("tsubu.css", "tsubu.js", "tsubu-export.js"):
+    for name in ("tsubu.css", "tsubu.js", "tsubu-export.js", "tsubu-import.js"):
         assert (SITE / name).is_symlink() and (SITE / name).read_bytes() == (ROOT / name).read_bytes()
 
 
@@ -67,10 +67,18 @@ def test_the_not_found_page_stands_alone_and_links_home(browser, copied):
         page.goto((copied / "404.html").as_uri())
         assert errors == []
         assert page.evaluate("() => document.documentElement.scrollWidth") <= 390
-        links = page.evaluate("() => [...document.querySelectorAll('main a')].map((a) => a.getAttribute('href'))")
+        links = lambda: page.evaluate("() => [...document.querySelectorAll('main a')].map((a) => a.getAttribute('href'))")
+        assert links() == ["/", "/", "/"]  # opened from disk, home is the root
+        # Served at a missing path under the site, as GitHub Pages serves it (any host: the custom
+        # domain and github.io both put the site under /tsubu/), home is the site, not the host.
+        page.route("https://tsubu.test/**", lambda route: route.fulfill(status=404, content_type="text/html", body=text))
+        found = {}
+        for path in ("tsubu/no/such/page", "tsubu", "other/page"):
+            page.goto(f"https://tsubu.test/{path}")
+            found[path] = links()
     finally:
         page.close()
-    assert links == ["/", "/", "/"]  # a file:// page is not on github.io, so home is the root
+    assert found == {"tsubu/no/such/page": ["/tsubu/"] * 3, "tsubu": ["/tsubu/"] * 3, "other/page": ["/"] * 3}
 
 
 # ---- every page ----

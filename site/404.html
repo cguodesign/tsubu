@@ -24,8 +24,9 @@ a { color: #0f2350; }
   <p lang="ja">このページはありません。<a href="./" class="home">tsubu のトップへ</a>。</p>
 </main>
 <script>
-// On a github.io project site the home page is the first path segment, not the host's root.
-const root = location.hostname.endsWith("github.io") ? "/" + location.pathname.split("/")[1] + "/" : "/";
+// The site lives under /tsubu/, on github.io and on the custom domain alike, and GitHub Pages
+// serves this page at any missing path below it; anywhere else home is the host's root.
+const root = /^\/tsubu(\/|$)/.test(location.pathname) ? "/tsubu/" : "/";
 document.querySelectorAll("#home, .home").forEach((a) => a.setAttribute("href", root));
 </script>
 </body>
