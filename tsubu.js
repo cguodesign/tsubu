@@ -33,6 +33,11 @@
   const STATES = Object.freeze(["future", "current", "past"]);
   const THEMES = Object.freeze(["light", "dark", "media"]);
   const SPEAKERS = Object.freeze(["a", "b"]);
+  /* What can be drawn on each side of the text: the parts' furigana, the segments' romaji, or
+   * nothing; and the two sides, over (above in horizontal text, at the right in vertical text) and
+   * under (below, at the left). */
+  const ANNOTATIONS = Object.freeze(["ruby", "romaji", "none"]);
+  const SIDES = Object.freeze(["over", "under"]);
 
   /* The smallest contrast ratio each layer must have against what is behind it, after WCAG 2.2:
    * text and furigana as normal-size text (1.4.3, AA), the underline and the highlight as
@@ -153,10 +158,18 @@
       if (segment.id !== undefined && (typeof segment.id !== "string" || segment.id === "")) fail(`${where}: \`id\` must be a non-empty string`);
       if (segment.tags !== undefined && (!Array.isArray(segment.tags) || !segment.tags.every((tag) => typeof tag === "string" && NAME.test(tag))))
         fail(`${where}: \`tags\` must be an array of names in lower case, such as "new-word"`);
+      // The romanised reading of the whole segment, the unit that is read and never split across
+      // lines. It is the caller's: particles and long vowels make it more than a mapping of kana,
+      // so tsubu never makes one.
+      if (segment.romaji !== undefined) {
+        if (punct) fail(`${where}: punctuation carries no romaji`);
+        if (typeof segment.romaji !== "string" || segment.romaji === "") fail(`${where}: \`romaji\` must be a non-empty string`);
+      }
       const made = { parts, punct };
       if (timed) Object.assign(made, { start: segment.start, end: segment.end });
       if (segment.id !== undefined) made.id = segment.id;
       if (segment.tags !== undefined && segment.tags.length) made.tags = [...new Set(segment.tags)];
+      if (segment.romaji !== undefined) made.romaji = segment.romaji;
       return made;
     });
     const ids = segments.filter((s) => "id" in s).map((s) => s.id);
@@ -206,7 +219,7 @@
 
   /* The sentence as HTML; with `at` (a state from stateOf), as it is after apply() at that t, and
    * with `revealed` (indexes) as it is after setRevealed(). */
-  function renderHTML(sentence, ruby, look, at, revealed) {
+  function renderHTML(sentence, shown, look, at, revealed) {
     // With announceRuby off, screen readers read the sentence once, without each reading after
     // its base.
     const hidden = look.announceRuby === false ? ' aria-hidden="true"' : "";
@@ -218,13 +231,23 @@
     // Short runs are marked unless the sentence is horizontal by its own option: without one, a
     // vertical ancestor can still make it vertical, as a theme set on an ancestor applies.
     const upright = look.writing === "horizontal" ? 0 : look.combineUpright;
+    // A layer that is on neither side is not written at all, so it takes no room and is not read.
+    const drawn = (layer) => look.over === layer || look.under === layer;
     const segments = sentence.segments.map((segment, i) => {
-      const inner = segment.parts
+      let inner = segment.parts
         .map((p) => {
           const base = textHTML(p.text, upright);
-          return p.ruby === undefined ? base : `<ruby>${base}${open}${escapeHTML(p.ruby)}${close}</ruby>`;
+          return p.ruby === undefined || !drawn("ruby") ? base : `<ruby>${base}${open}${escapeHTML(p.ruby)}${close}</ruby>`;
         })
         .join("");
+      // The romaji annotate the whole segment: a ruby around its parts, furigana and all, whose
+      // reading is the romaji. Nested ruby is drawn by every engine tsubu is tested in, a reading
+      // wider than its base widens the segment as a wide furigana does, and the lines make room
+      // for it, as they do for furigana. The ruby sits in a box of its own (.tsubu-stack, an
+      // inline-block; see the stylesheet). The romaji are not set upright in vertical text: they
+      // lie on their side, as other Latin text does there.
+      if (segment.romaji !== undefined && drawn("romaji"))
+        inner = `<span class="tsubu-stack"><ruby class="tsubu-romaji">${inner}${open}${escapeHTML(segment.romaji)}${close}</ruby></span>`;
       const kind = segment.punct ? ' data-kind="punct"' : "";
       const id = segment.id === undefined ? "" : ` data-id="${escapeHTML(segment.id)}"`;
       const tags = segment.tags ? ` data-tags="${segment.tags.join(" ")}"` : "";
@@ -251,7 +274,12 @@
     const motion = look.motion.length ? ` data-tsubu-motion="${look.motion.join(" ")}"` : "";
     const writing = look.writing ? ` data-tsubu-writing="${look.writing}"` : "";
     const state = at ? stateAttributes(at.state, at.progress, at.timing === "sentence" && at.state === "current") : "";
-    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${ruby ? "on" : "off"}"${theme}${speaker}${motion}${writing}${state}>${joined}</span>`;
+    // data-ruby shows or hides the over side, whatever is drawn there (its name is from when
+    // furigana were the only layer), and data-under the under side. Which layer is on which side
+    // is written only where it differs from furigana over and nothing under.
+    const layers = (look.over === "ruby" ? "" : ` data-over-layer="${look.over}"`) +
+      (look.under === "none" ? "" : ` data-under-layer="${look.under}" data-under="${shown.under ? "on" : "off"}"`);
+    return `<span class="tsubu" lang="${escapeHTML(sentence.lang)}" data-timing="${sentence.timing}" data-ruby="${shown.over ? "on" : "off"}"${layers}${theme}${speaker}${motion}${writing}${state}>${joined}</span>`;
   }
 
   /* The state of the sentence and of each segment at t (seconds, on the same clock as the
@@ -404,10 +432,12 @@
 
   /**
    * Tsubu.sentence(input, options) -> { html, timing, stateAt(t), htmlAt(t), apply(root, t), span(i), find(id) }
-   *   input:   { lang?, start?, end?, segments: [{ parts: [{ text, ruby? }], start?, end?, kind?, id?, tags? }] }
+   *   input:   { lang?, start?, end?, segments: [{ parts: [{ text, ruby? }], romaji?, start?, end?, kind?, id?, tags? }] }
    *   options: { ruby: true | false (default true), announceRuby: true | false (default true),
+   *              over: "ruby" | "romaji" | "none" (default "ruby"), under: the same (default "none"),
    *              theme?: name, speaker?: name, motion?: names from MOTIONS,
    *              writing?: "horizontal" | "vertical", combineUpright: 0 to 4 (default 2) }
+   * `ruby` says whether the over side starts out shown; the under side always starts out shown.
    */
   function sentence(input, options) {
     const opts = options || {};
@@ -417,21 +447,25 @@
       if (opts[key] !== undefined && (typeof opts[key] !== "string" || !NAME.test(opts[key])))
         fail(`options.${key} must be a name in lower case, such as ${JSON.stringify(key === "theme" ? THEMES[0] : SPEAKERS[0])}`);
     if (opts.writing !== undefined && !WRITING.includes(opts.writing)) fail('options.writing must be "horizontal" or "vertical"');
+    for (const key of SIDES)
+      if (opts[key] !== undefined && !ANNOTATIONS.includes(opts[key])) fail(`options.${key} must be "ruby", "romaji" or "none"`);
+    const over = opts.over === undefined ? "ruby" : opts.over, under = opts.under === undefined ? "none" : opts.under;
+    if (over === under && over !== "none") fail(`options.over and options.under are both ${JSON.stringify(over)}: a layer can be drawn on one side only`);
     const upright = opts.combineUpright === undefined ? 2 : opts.combineUpright;
     if (!Number.isInteger(upright) || upright < 0 || upright > UPRIGHT_MAX)
       fail(`options.combineUpright must be a whole number of characters from 0 to ${UPRIGHT_MAX}`);
     const normalised = normalise(input);
-    const ruby = opts.ruby !== false;
+    const shown = { over: opts.ruby !== false, under: true };
     const look = { theme: opts.theme, speaker: opts.speaker, announceRuby: opts.announceRuby, motion: motionNames(opts.motion),
-      writing: opts.writing, combineUpright: upright };
+      writing: opts.writing, combineUpright: upright, over, under };
     return Object.freeze({
-      html: renderHTML(normalised, ruby, look),
+      html: renderHTML(normalised, shown, look),
       timing: normalised.timing,
       stateAt: (t) => stateOf(normalised, t),
       // The frame at t as HTML, without a page: what `html` becomes after apply(root, t) (and
       // setRevealed(root, revealed)), for server-side rendering and renderers that take HTML.
       // Paging needs the layout, so it is not done here.
-      htmlAt: (t, at) => renderHTML(normalised, ruby, look, stateOf(normalised, t), revealedIndexes((at || {}).revealed, normalised.segments.length)),
+      htmlAt: (t, at) => renderHTML(normalised, shown, look, stateOf(normalised, t), revealedIndexes((at || {}).revealed, normalised.segments.length)),
       apply: (root, t) => applyState(root, normalised, t),
       // A segment's own time, { start, end }, to seek the caller's audio to when it is tapped; null
       // for punctuation and for a sentence without times for its segments (nothing is estimated).
@@ -482,11 +516,19 @@
     return segment ? Number(segment.getAttribute("data-index")) : null;
   }
 
-  /* Shows or hides the furigana of a drawn sentence. The <rt> keeps its place in the layout
-   * either way, so no character moves. */
+  /* Shows or hides one side's annotations of a drawn sentence: "over" (the furigana, unless
+   * options.over named another layer) or "under". Each <rt> keeps its place in the layout either
+   * way, so no character moves. */
+  function setAnnotation(root, side, on) {
+    if (!root || !root.classList || !root.classList.contains("tsubu")) fail('setAnnotation needs the element with class "tsubu"');
+    if (!SIDES.includes(side)) fail('setAnnotation: the side must be "over" or "under"');
+    root.setAttribute(side === "over" ? "data-ruby" : "data-under", on ? "on" : "off");
+  }
+
+  /* The over side, by its old name. */
   function setRuby(root, on) {
     if (!root || !root.classList || !root.classList.contains("tsubu")) fail('setRuby needs the element with class "tsubu"');
-    root.setAttribute("data-ruby", on ? "on" : "off");
+    setAnnotation(root, "over", on);
   }
 
   /* Colours as [r, g, b, a], channels 0 to 255 and alpha 0 to 1. Accepts what a browser's
@@ -573,6 +615,9 @@
   }
 
   const LAYERS = Object.freeze(["text", "ruby", "underline", "highlight"]);
+  /* A segment's readings: the furigana of its parts, and its romaji (see renderHTML). */
+  const FURIGANA = "ruby:not(.tsubu-romaji) > rt";
+  const ROMAJI = ".tsubu-romaji > rt";
 
   /* The colour of a highlight's band: the stylesheet paints it as a one-colour gradient (its first
    * colour, read up to the first comma outside parentheses), or, should a theme set a background
@@ -595,10 +640,11 @@
    * Tsubu.checkContrast(root, options) -> { ok, checks, failures }
    * Measures the colours the browser computes for a drawn sentence in every state ("static",
    * before any apply and with timing "none", then each of STATES), for each layer (text,
-   * furigana, underline, and the highlight against what surrounds it), against each backdrop.
-   * A layer is measured against the highlight when the highlight covers its middle: furigana sit
-   * above the highlighted em box (to its right in vertical text), so they are measured against
-   * the plate and the backdrop.
+   * furigana, romaji, underline, and the highlight against what surrounds it), against each
+   * backdrop. A layer is measured against the highlight when the highlight covers its middle:
+   * readings sit above or below the highlighted em box (to its right or left in vertical text),
+   * so they are measured against the plate and the backdrop. Romaji are small text, as furigana
+   * are, and are held to the furigana's threshold (`ruby`).
    *   options: { backdrop?: colour | [colours] | "any", thresholds?: { text, ruby, underline, highlight } }
    * It works on a copy of the sentence, which it removes again: the page is left as it was.
    */
@@ -625,9 +671,11 @@
       const axis = blockAxis(copy);
       const side = axis.side[0].toUpperCase() + axis.side.slice(1);
       const segments = [...copy.querySelectorAll(":scope > .tsubu-unit > .tsubu-seg")];
-      // Every segment shown, revealed and with its furigana: whatever can be drawn is checked.
-      // (What a motion preset hides while it is unheard is drawn in these colours once revealed.)
+      // Every segment shown, revealed and with its readings on both sides: whatever can be drawn
+      // is checked. (What a motion preset hides while it is unheard is drawn in these colours once
+      // revealed.)
       copy.setAttribute("data-ruby", "on");
+      if (copy.hasAttribute("data-under")) copy.setAttribute("data-under", "on");
       // Where each segment's highlight and underline lie is measured on probes that take their
       // geometry from the same rules as its ::before and ::after (see the stylesheet).
       const probes = new Map();
@@ -679,11 +727,12 @@
             const [top, bottom] = axis.span(el.getBoundingClientRect());
             const onBand = (top + bottom) / 2 >= from && (top + bottom) / 2 <= to;
             if (style.visibility !== "hidden") layers.push(["text", style.color, onBand ? behind : base, fade(el)]);
-            const rt = el.querySelector("rt");
-            const rtStyle = rt && getComputedStyle(rt);
-            if (rt && rtStyle.visibility !== "hidden") {
+            // The first reading of each layer: the readings of a segment share their colours.
+            for (const [layer, rt] of [["ruby", el.querySelector(FURIGANA)], ["romaji", el.querySelector(ROMAJI)]]) {
+              const rtStyle = rt && getComputedStyle(rt);
+              if (!rt || rtStyle.visibility === "hidden") continue;
               const [a, b] = axis.span(rt.getBoundingClientRect());
-              for (const under of backgroundsFor(a, b)) layers.push(["ruby", rtStyle.color, under, fade(rt)]);
+              for (const under of backgroundsFor(a, b)) layers.push([layer, rtStyle.color, under, fade(rt)]);
             }
             // The underline, or in vertical text the side line: a border on the block-end side of
             // the segment's ::after, whose box its probe takes.
@@ -701,12 +750,12 @@
               if (paint[3] === 0) continue;
               const fg = layer === "highlight" ? over(paint, base) : over(paint, under);
               const bg = layer === "highlight" ? base : under;
-              const ratio = ratioOf(fg, bg);
+              const ratio = ratioOf(fg, bg), minimum = thresholds[layer === "romaji" ? "ruby" : layer];
               const key = [state, layer, colour, alpha, bg.join(), backdrop].join("|");
               if (!seen.has(key)) {
                 const hex = (c) => "#" + c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
                 seen.set(key, { state, layer, foreground: hex(fg), background: hex(bg), backdrop: String(backdrop),
-                  ratio: Math.round(ratio * 100) / 100, minimum: thresholds[layer], ok: ratio >= thresholds[layer] });
+                  ratio: Math.round(ratio * 100) / 100, minimum, ok: ratio >= minimum });
               }
             }
           }
@@ -724,14 +773,16 @@
    * Tsubu.checkFit(root, options) -> { ok, issues, lines, pages }
    * Measures whether a drawn sentence fits where it is drawn: in its container (options.container,
    * else the root's parent element), at the size, font and width it has there. It works on a copy
-   * of the sentence the same size as the root, with every segment shown and the furigana on, and
-   * removes it again: the page is left as it was. A sentence paged by t is checked page by page.
-   * Each issue is { kind, segment, page, by, message }:
+   * of the sentence the same size as the root, with every segment shown and the readings on both
+   * sides on, and removes it again: the page is left as it was. A sentence paged by t is checked
+   * page by page. Each issue is { kind, segment, page, by, message }:
    *   "overflow"        a segment or its furigana reach past the container's padding box (by px);
    *   "too-wide"        a unit of segments that may not be parted is longer than a line, so it can
    *                     only overflow: shorten the segment, or make the text smaller;
-   *   "ruby-clipped"    furigana reach past the container's padding box above the text (or beside
-   *                     it, in vertical text): raise --tsubu-ruby-reserve, or give the container room;
+   *   "ruby-clipped"    a reading, furigana or romaji, reaches past the container's padding box
+   *                     (above or below the text, or beside it in vertical text): raise
+   *                     --tsubu-ruby-reserve (over) or --tsubu-under-reserve (under), or give the
+   *                     container room;
    *   "too-many-lines"  more lines than --tsubu-max-lines in a sentence that cannot be paged (one
    *                     without times for its segments).
    */
@@ -748,6 +799,7 @@
     copy.removeAttribute("id");
     copy.setAttribute("aria-hidden", "true");
     copy.setAttribute("data-ruby", "on");
+    if (copy.hasAttribute("data-under")) copy.setAttribute("data-under", "on");
     copy.removeAttribute("data-measuring");
     copy.removeAttribute("data-greedy");
     // The same box as the root: its width (and in vertical text its height, the length of a
@@ -820,8 +872,9 @@
             message: `segment ${i}, ${JSON.stringify(name(el))}, reaches ${round(by)}px past its container` });
           el.querySelectorAll("rt").forEach((rt) => {
             const q = shift(rt.getBoundingClientRect()), out = past(q);
+            const what = rt.matches(ROMAJI) ? "romaji" : "furigana";
             if (out > 0.5) issues.push({ kind: "ruby-clipped", segment: i, page: paged ? page : null, by: round(out),
-              message: `the furigana ${JSON.stringify(rt.textContent)} of segment ${i} reach ${round(out)}px past the container` });
+              message: `the ${what} ${JSON.stringify(rt.textContent)} of segment ${i} reach ${round(out)}px past the container` });
           });
         });
       }
@@ -833,5 +886,5 @@
 
   function round(v) { return Math.round(v * 10) / 10; }
 
-  return Object.freeze({ version: VERSION, sentence, setRuby, setRevealed, segmentOf, contrast, checkContrast, checkFit, STATES, THEMES, SPEAKERS, CONTRAST, MOTIONS });
+  return Object.freeze({ version: VERSION, sentence, setRuby, setAnnotation, setRevealed, segmentOf, contrast, checkContrast, checkFit, STATES, THEMES, SPEAKERS, CONTRAST, MOTIONS });
 });

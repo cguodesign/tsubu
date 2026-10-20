@@ -8,6 +8,26 @@ All notable changes to tsubu are recorded here. The format follows
 
 ### Added
 
+- Romaji, and a choice of what is drawn over and under the text. A segment may carry `romaji`,
+  the romanised reading of the whole segment, which tsubu never makes itself; it is refused on
+  punctuation and when it is not a non-empty string. `options.over` (default `"ruby"`) and
+  `options.under` (default `"none"`) each name `"ruby"`, `"romaji"` or `"none"`, so romaji can go
+  under the furigana, over the text with the furigana under it, or over the text alone; the two
+  may not name the same layer. With the defaults the HTML is unchanged, romaji or not. A segment
+  with romaji drawn holds a ruby around its parts, furigana and all, whose reading is the romaji,
+  in an inline-block (`.tsubu-stack`); the root carries `data-over-layer` and `data-under-layer`
+  where the layers differ from the defaults. `Tsubu.setAnnotation(root, side, on)` shows or hides
+  the readings on the `"over"` or `"under"` side (the root's `data-ruby` and `data-under`);
+  `setRuby(root, on)` is `setAnnotation(root, "over", on)`. Hidden readings keep their room, so
+  switching either side moves no character, in horizontal and vertical text and over several
+  lines. New custom properties: `--tsubu-romaji-size`, `--tsubu-under-reserve` (room below the
+  last line) and `--tsubu-reading-gap` (between the text and the readings under it, so that the
+  underline runs between them, and between the text and romaji over it). Romaji take the
+  furigana's colours, are measured by `checkContrast` as layer `"romaji"` against the furigana's
+  threshold and by `checkFit`, are treated as furigana by the motion presets and forced colours,
+  are hidden from screen readers with `announceRuby: false`, and follow their segment in `<rp>`
+  parentheses where ruby cannot be drawn. The exporters and importers accept romaji in their input
+  and leave them out of subtitles.
 - Each reading is wrapped in full-width `<rp>` parentheses, `<ruby>雨<rp>（</rp><rt>あめ</rt><rp>）</rp></ruby>`,
   so whatever cannot draw ruby (a reader view, a feed reader, a text browser) shows 雨（あめ）.
   Browsers that draw ruby hide them, and `tsubu.css` keeps them hidden where a page's own styles

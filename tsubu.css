@@ -9,7 +9,15 @@
  *   --tsubu-ruby-reserve             0.3em    room above the first line for its furigana
  *                                             (at the right of the first column in vertical text)
  *   --tsubu-ruby-size                0.5em
- *   --tsubu-ruby-weight              400
+ *   --tsubu-ruby-weight              400      (romaji too)
+ *   --tsubu-romaji-size              --tsubu-ruby-size
+ *   --tsubu-under-reserve            0.5em    room below the last line for the readings under it
+ *                                             (at the left of the last column in vertical text)
+ *   --tsubu-reading-gap              0.2em    between the text and the readings under it (twice
+ *                                             that past them), and the romaji over it, in em of the
+ *                                             reading: the underline runs clear of the one, the
+ *                                             highlight of the other's descenders (furigana over
+ *                                             the text have none)
  *   --tsubu-underline-style          dotted
  *   --tsubu-underline-width          0.06em
  *   --tsubu-underline-offset         0.02em   below the bottom of the text's em box (left of it in
@@ -52,9 +60,11 @@
  *
  *   --tsubu-progress                 written by apply(); read it, do not set it
  *
- * No box changes size with the state, the furigana switch, the theme or the speaker: these
- * change colours and the background of one positioned layer only, and hidden furigana keep their
- * place.
+ * Romaji take the furigana's colours in every group.
+ *
+ * No box changes size with the state, the switch of either side's readings, the theme or the
+ * speaker: these change colours and the background of one positioned layer only, and hidden
+ * readings keep their place.
  *
  * The em box. A segment's own box is the font's content area, which in many web fonts (Noto
  * Sans JP and the rest of the Noto and Source Han family, Shippori Mincho, Zen Kaku Gothic) is
@@ -254,14 +264,51 @@
   line-height: 2;
   margin-block: calc((1 - var(--tsubu-line-height, 1.75)) * 0.5em) -0.5em;
 }
+/* With romaji over the text and nothing under it, no room is given back at the right: romaji reach
+ * further than furigana (their gap, see below), as far as the side line of the column to the
+ * right. */
+.tsubu[data-over-layer="romaji"]:not([data-under-layer]):is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg:not([data-off-page]) {
+  margin-block-start: 0;
+}
+/* With readings under the text, at the left, a column's readings at its left would share the room
+ * between two columns with the next column's readings at its right, and meet them. So each column
+ * holds its own readings, on both sides, and none is given back to the column's half-leading.
+ * The line of a segment is then wide enough on each side for every reading there can be, so that
+ * no reading widens it: the highlight and the side line are drawn that far from its left edge,
+ * and so stay on the em box of the text whichever readings a segment has, and every segment of a
+ * column has the same box across it. Room for both layers on each side, because WebKit sets the
+ * romaji past the line of the furigana's ruby rather than past its text, and widened the segment
+ * by both (measured); a line height of 1 on the furigana's ruby keeps that line to the em box,
+ * and the other engines do not read it there. The margins give back all but the room of each
+ * side's own reading: its size, half again for fonts whose content area is taller than their em
+ * box (1.45em in the Noto family), and its gaps, which here are in em of the text and so larger
+ * than the reading's own. */
+.tsubu[data-under-layer]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg {
+  --tsubu-seg-ruby: calc(1.5 * var(--tsubu-ruby-size, 0.5em));
+  --tsubu-seg-romaji: calc(1.5 * var(--tsubu-romaji-size, var(--tsubu-ruby-size, 0.5em)));
+  --tsubu-seg-gap: var(--tsubu-reading-gap, 0.2em);
+  --tsubu-seg-half: calc(0.5em + var(--tsubu-seg-ruby) + var(--tsubu-seg-romaji) + 2 * var(--tsubu-seg-gap));
+  --tsubu-seg-over: var(--tsubu-seg-ruby);
+  --tsubu-seg-under: calc(var(--tsubu-seg-ruby) + 2 * var(--tsubu-seg-gap));
+}
+.tsubu[data-under-layer][data-over-layer="romaji"]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg { --tsubu-seg-over: calc(var(--tsubu-seg-romaji) + var(--tsubu-seg-gap)); }
+.tsubu[data-under-layer][data-over-layer="none"]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg { --tsubu-seg-over: 0px; }
+.tsubu[data-under-layer="romaji"]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg { --tsubu-seg-under: calc(var(--tsubu-seg-romaji) + 2 * var(--tsubu-seg-gap)); }
+.tsubu[data-under-layer]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-romaji ruby {
+  line-height: 1;
+}
+.tsubu[data-under-layer]:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg:not([data-off-page]) {
+  line-height: calc(1em + 2 * var(--tsubu-seg-half));
+  margin-block: calc(var(--tsubu-seg-over) - var(--tsubu-seg-half)) calc(var(--tsubu-seg-under) - var(--tsubu-seg-half));
+}
 .tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg::before,
 .tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg > .tsubu-band-probe {
   inset-block-start: auto;
-  inset-block-end: calc(0.5em - var(--tsubu-current-spread, 0.06em));
+  inset-block-end: calc(var(--tsubu-seg-half, 0.5em) - var(--tsubu-current-spread, 0.06em));
 }
 .tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg:not([data-kind="punct"])::after,
 .tsubu:is([data-tsubu-writing="vertical"], [data-tsubu-writing="vertical"] *):not([data-tsubu-writing="horizontal"]) .tsubu-seg:not([data-kind="punct"]) > .tsubu-line-probe {
-  inset-block-end: calc(0.5em - var(--tsubu-underline-offset, 0.02em));
+  inset-block-end: calc(var(--tsubu-seg-half, 0.5em) - var(--tsubu-underline-offset, 0.02em));
 }
 
 /* No overhang: WebKit lets a wide reading overhang the kana next to it, but leaves the segment's
@@ -286,9 +333,65 @@
   display: none;
 }
 
+/*
+ * Two sides. Each part's furigana and each segment's romaji are both ruby: a segment with romaji
+ * is a ruby whose base is the segment's parts, their own ruby included, and whose reading is the
+ * romaji (.tsubu-romaji). options.over and options.under choose which layer goes on which side,
+ * and the root says so where it differs from furigana over and nothing under: data-over-layer
+ * ("romaji" or "none") and data-under-layer ("ruby" or "romaji"). Over is above the text in
+ * horizontal text and at its right in vertical text; under is below it, at its left in vertical
+ * text, the side of the segment's underline (ruby-position turns with the writing mode).
+ *
+ * Across a line, from over to under: the over readings, the text with its highlight, the
+ * underline, then the under readings, --tsubu-reading-gap away from the text so that the underline
+ * runs between the two, and twice as far from the next line. Romaji over the text are as far from
+ * it, so that their descenders (g, j, p, y) stay clear of the highlight; furigana over the text
+ * sit as they always have. The lines make room for the readings on both sides, as they do for
+ * furigana, so a line's under readings never meet the next line's over readings.
+ */
+.tsubu .tsubu-romaji > rt {
+  font-size: var(--tsubu-romaji-size, var(--tsubu-ruby-size, 0.5em));
+}
+/* The romaji's ruby in a box of its own. WebKit lays out a line of nested ruby with readings on
+ * both sides again, with the segments wider than they are and so on more lines, whenever a reading
+ * gets a filter, an opacity or a text shadow (the blur preset) or a positioned box is added to the
+ * segment; the first layout is right (all measured). In an inline-block its layout stays the
+ * same, in every engine. The box's baseline is the text's, and the segment itself stays an inline
+ * whose box is the text's, so its highlight and underline are drawn as for any other segment. */
+.tsubu-stack {
+  display: inline-block;
+}
+.tsubu[data-under-layer="ruby"] ruby:not(.tsubu-romaji),
+.tsubu[data-under-layer="romaji"] .tsubu-romaji {
+  ruby-position: under;
+}
+/* Padding, not a margin: a margin moves the box of the reading in Firefox's vertical text but not
+ * its glyphs; padding moves both, in every engine (measured), and the line makes room for it.
+ * Twice as much past the readings under the text keeps them apart from the next line's readings,
+ * which the lines otherwise only just make room for, so that it is clear which line each belongs
+ * to. */
+.tsubu[data-under-layer="ruby"] ruby:not(.tsubu-romaji) > rt,
+.tsubu[data-under-layer="romaji"] .tsubu-romaji > rt {
+  padding-block: var(--tsubu-reading-gap, 0.2em) calc(2 * var(--tsubu-reading-gap, 0.2em));
+}
+.tsubu[data-over-layer="romaji"] .tsubu-romaji > rt {
+  padding-block-end: var(--tsubu-reading-gap, 0.2em);
+}
+/* Browsers differ in whether the last line box grows to hold the readings under it, as they do for
+ * the first line and the readings over it: WebKit's does not, and furigana under the last line
+ * reached 0.35em past the sentence's box without this room (measured). Room below the last line
+ * (at the left of the last column in vertical text) keeps them inside it. */
+.tsubu[data-under-layer] {
+  padding-block-end: var(--tsubu-under-reserve, 0.5em);
+}
+
 /* Hidden, not removed: display: none would let a word whose reading is wider than its base
- * narrow, and every character after it would move. */
-.tsubu[data-ruby="off"] rt {
+ * narrow, and every character after it would move. data-ruby shows or hides the over side,
+ * data-under the under side. */
+.tsubu[data-ruby="off"]:not([data-over-layer]) ruby:not(.tsubu-romaji) > rt,
+.tsubu[data-ruby="off"][data-over-layer="romaji"] .tsubu-romaji > rt,
+.tsubu[data-under="off"][data-under-layer="ruby"] ruby:not(.tsubu-romaji) > rt,
+.tsubu[data-under="off"][data-under-layer="romaji"] .tsubu-romaji > rt {
   visibility: hidden;
 }
 

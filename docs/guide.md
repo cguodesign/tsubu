@@ -15,14 +15,16 @@ input = {
   lang: "ja",                  // optional, default "ja"; written to the root's lang attribute
   start: 4.0, end: 6.0,        // optional: the whole sentence's start and end, in seconds
   segments: [                  // required, in reading order
-    { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], start: 0.9, end: 1.3 },
+    { parts: [{ text: "家", ruby: "いえ" }, { text: "で" }], romaji: "ie de", start: 0.9, end: 1.3 },
     { parts: [{ text: "、" }], kind: "punct" },
     // ...
   ],
 }
 options = {                    // all optional
-  ruby: true,                  // whether furigana start out shown (default true)
-  announceRuby: true,          // whether screen readers read each reading (default true)
+  over: "ruby",                // what is drawn over the text: "ruby" (default), "romaji" or "none"
+  under: "none",               // what is drawn under it: "ruby", "romaji" or "none" (default)
+  ruby: true,                  // whether the over side (the furigana, by default) starts out shown (default true)
+  announceRuby: true,          // whether screen readers read each reading, furigana and romaji (default true)
   theme: "light",              // a preset: "light", "dark", "media", or a name of your own
   speaker: "a",                // whose line this is, for colours per speaker: "a", "b" or your own
   motion: "mask",              // motion presets from Tsubu.MOTIONS, a name, a list or an array
@@ -35,8 +37,13 @@ options = {                    // all optional
   as `<ruby>text<rp>（</rp><rt>ruby</rt><rp>）</rp></ruby>`, so a word with a reading is never
   split. The `<rp>` parentheses show only where ruby cannot be drawn (see
   [Accessibility](#accessibility)).
+- A segment may carry `romaji`, a non-empty string: the romanised reading of the whole segment,
+  such as `"ie de"`. It belongs to the segment, the unit that is read and never split across lines,
+  not to a part. tsubu never makes romaji from kana (particles and long vowels make it more than a
+  mapping), so a segment without `romaji` simply has none. `options.over` and `options.under` choose
+  where the furigana and the romaji are drawn; see [Romaji and the two sides](#romaji-and-the-two-sides).
 - `kind: "punct"` marks punctuation: it has no underline, is never the segment being spoken and
-  may not carry a time.
+  may not carry a time or romaji.
 - Times are in seconds on the caller's clock, and `t` uses the same clock.
 - A segment may carry an `id` (a non-empty string, unique in the sentence) and `tags` (lower-case
   names, such as `["new-word"]`). They are the caller's: tsubu writes them as `data-id` and
@@ -59,11 +66,13 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
 - segment times that overlap or are out of order, an `end` before its `start`, a time that is not
   a finite number, or only one of `start`/`end`;
 - segment times outside the sentence's `start`/`end`;
-- punctuation with a time, no segment that is not punctuation;
-- an empty `segments`, `parts`, `text`, `ruby` or `lang`, an unknown `kind`, an `options.ruby` or
+- punctuation with a time or with romaji, no segment that is not punctuation;
+- an empty `segments`, `parts`, `text`, `ruby`, `romaji` or `lang`, an unknown `kind`, an `options.ruby` or
   `options.announceRuby` that is not a boolean, an `options.theme` or `options.speaker` that is not a lower-case name
   (`a-z`, digits and `-`, starting with a letter), or an `options.motion` naming a preset that is
   not in `Tsubu.MOTIONS`;
+- an `options.over` or `options.under` other than `"ruby"`, `"romaji"` and `"none"`, or both
+  naming the same layer;
 - an empty or non-string `id`, an `id` used twice, or `tags` that are not an array of lower-case
   names.
 
@@ -81,7 +90,9 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
   ```
 
   (without the whitespace). With `options.theme` the root also carries `data-tsubu-theme`, and
-  with `options.speaker` it carries `data-speaker`. Punctuation segments carry `data-kind="punct"`.
+  with `options.speaker` it carries `data-speaker`. With other layers than furigana over the text
+  and nothing under it, it carries `data-over-layer`, `data-under-layer` and `data-under` (see
+  [Romaji and the two sides](#romaji-and-the-two-sides)). Punctuation segments carry `data-kind="punct"`.
   Segments are grouped in units, and a line breaks only between units (see
   [Several lines](#several-lines)): a segment is never split across lines, and a segment that may
   not begin a line (one that starts with a closing mark, `ー` or a small kana) shares a unit with
@@ -134,7 +145,11 @@ tsubu never guesses. These inputs throw an `Error` whose message starts with `ts
 Also on `Tsubu`:
 
 - **`Tsubu.setRuby(root, on)`** shows or hides the furigana of a drawn sentence by setting the
-  root's `data-ruby` to `"on"` or `"off"`.
+  root's `data-ruby` to `"on"` or `"off"`. It is `setAnnotation(root, "over", on)`: with another
+  layer over the text, it switches that layer.
+- **`Tsubu.setAnnotation(root, side, on)`** shows or hides one side's readings: `side` is `"over"`
+  (the root's `data-ruby`) or `"under"` (its `data-under`). Hidden readings keep their room, so
+  nothing moves.
 - **`Tsubu.setRevealed(root, which)`** reveals segments that a motion preset hides while they are
   unheard: `which` is an array of segment indexes, `"all"` or `"none"`, and replaces the previous
   set. It writes `data-revealed` and returns the indexes. See [Motion and revealing](#motion-and-revealing).
@@ -145,14 +160,15 @@ Also on `Tsubu`:
   see [Themes and contrast](#themes-and-contrast).
 - **`Tsubu.checkFit(root, options)`** measures whether a drawn sentence fits where it is drawn:
   in its container (`options.container`, else the root's parent element), at the size, font and
-  width it has there. It works on a hidden copy with every segment shown and the furigana on, and
-  checks a sentence paged by `t` page by page. It returns `{ ok, issues, lines, pages }`; each
+  width it has there. It works on a hidden copy with every segment shown and the readings on both
+  sides on, and checks a sentence paged by `t` page by page. It returns `{ ok, issues, lines, pages }`; each
   issue is `{ kind, segment, page, by, message }`, `by` in pixels:
   - `"overflow"`: a segment reaches past the container's padding box;
   - `"too-wide"`: segments that may not be parted are longer than a line (or column), so they can
     only overflow: shorten the segment or make the text smaller;
-  - `"ruby-clipped"`: furigana reach past the container: raise `--tsubu-ruby-reserve` or give the
-    container room;
+  - `"ruby-clipped"`: a reading, furigana or romaji (the message says which), reaches past the
+    container: raise `--tsubu-ruby-reserve` (over the text) or `--tsubu-under-reserve` (under it),
+    or give the container room;
   - `"too-many-lines"`: more lines than `--tsubu-max-lines` in a sentence that cannot be paged.
 
   The library's own guarantees are tested over a grid of widths (see below); `checkFit` is for the
@@ -160,7 +176,8 @@ Also on `Tsubu`:
 - **`Tsubu.contrast(foreground, background, backdrop)`**: the WCAG contrast ratio (1 to 21) of two
   colours (hex, `rgb()`, `rgba()`). A translucent foreground is painted over the background, and a
   translucent background over `backdrop` (default white). Works in Node too.
-- **`Tsubu.CONTRAST`**: the thresholds, `{ text: 4.5, ruby: 4.5, underline: 3, highlight: 3 }`.
+- **`Tsubu.CONTRAST`**: the thresholds, `{ text: 4.5, ruby: 4.5, underline: 3, highlight: 3 }`;
+  romaji are held to `ruby`'s.
 - **`Tsubu.THEMES`**: `["light", "dark", "media"]`; **`Tsubu.SPEAKERS`**: `["a", "b"]`.
 - **`Tsubu.version`**: `"0.1.0"`.
 - **`Tsubu.STATES`**: `["future", "current", "past"]`.
@@ -181,9 +198,12 @@ Layout and shape:
 | Property | Default | Meaning |
 |---|---|---|
 | `--tsubu-line-height` | `1.75` | line height |
-| `--tsubu-ruby-reserve` | `0.3em` | room above the first line for its furigana |
+| `--tsubu-ruby-reserve` | `0.3em` | room above the first line for its furigana (for whatever is over the text) |
 | `--tsubu-ruby-size` | `0.5em` | furigana size, relative to the text |
-| `--tsubu-ruby-weight` | `400` | furigana weight |
+| `--tsubu-ruby-weight` | `400` | furigana weight, and the romaji's |
+| `--tsubu-romaji-size` | `--tsubu-ruby-size` | romaji size, relative to the text |
+| `--tsubu-under-reserve` | `0.5em` | room below the last line for the readings under the text (only with `options.under`) |
+| `--tsubu-reading-gap` | `0.2em` | between the text and the readings under it (and twice that past them), and between the text and romaji over it; in em of the reading |
 | `--tsubu-underline-style` | `dotted` | underline style (any `border-style`) |
 | `--tsubu-underline-width` | `0.06em` | underline thickness |
 | `--tsubu-underline-offset` | `0.02em` | distance below the em box of the text |
@@ -209,17 +229,88 @@ enough to recolour everything.
 | speaker *name* | `--tsubu-speaker-`*name*`-color` | `--tsubu-speaker-`*name*`-ruby-color` | `--tsubu-speaker-`*name*`-underline-color` | `--tsubu-speaker-`*name*`-bg` |
 | plate | | | | `--tsubu-plate-bg` (transparent), behind the whole sentence |
 
+Romaji take the furigana's colours in every group, on whichever side they are drawn.
+
 A speaker's group replaces the current group in a sentence whose root has that `data-speaker`;
 where the theme defines no colour for that speaker, the current group applies. `tsubu.css` maps
 speakers `a` and `b`; for another name, copy its four-line `.tsubu[data-speaker="a"]` rule.
 `--tsubu-backdrop` is not painted: it names the colours a theme is designed to sit on, for
 `checkContrast`.
 
-The highlight covers the em box of the text, not the furigana above it, so the current segment's
-furigana sit on the page: give them a colour that reads on the page, not on the highlight.
+The highlight covers the em box of the text, not the readings above or below it, so the current
+segment's furigana and romaji sit on the page: give them a colour that reads on the page, not on
+the highlight.
 
 States, themes and speakers change colours and the background of one positioned layer only,
 never weight, padding or size, so none of them can move a character.
+
+## Romaji and the two sides
+
+```js
+const s = Tsubu.sentence({ segments: [
+  { parts: [{ text: "雨", ruby: "あめ" }, { text: "が" }], romaji: "ame ga", start: 0, end: 0.6 },
+  { parts: [{ text: "降", ruby: "ふ" }, { text: "る" }], romaji: "furu", start: 0.6, end: 1.1 },
+] }, { over: "romaji", under: "ruby" });          // romaji above, furigana below
+Tsubu.setAnnotation(root, "under", false);        // hide the furigana; nothing moves
+```
+
+A sentence has two sides for readings: **over** the text (above it, at its right in vertical text)
+and **under** it (below it, at its left in vertical text, the side of the underline). `options.over`
+and `options.under` each name what is drawn there: `"ruby"`, the parts' furigana; `"romaji"`, the
+segments' romaji; or `"none"`. The defaults are furigana over and nothing under, as before romaji
+existed; the two may not name the same layer, and both may be `"none"`. So romaji can go under the
+furigana (`under: "romaji"`), over the text with the furigana under it (`over: "romaji", under:
+"ruby"`), or over the text alone (`over: "romaji"`).
+
+- **What is written.** A layer on neither side is not written at all, so it takes no room and is
+  not read: with the defaults the HTML is byte for byte the same with or without `romaji` in the
+  input. A segment with romaji drawn holds a ruby of its own, whose base is the segment's parts,
+  their furigana included, and whose reading is the romaji, in an inline-block:
+  `<span class="tsubu-stack"><ruby class="tsubu-romaji"><ruby>雨<rp>（</rp><rt>あめ</rt><rp>）</rp></ruby>が<rp>（</rp><rt>ame ga</rt><rp>）</rp></ruby></span>`.
+  Ruby inside the base of a ruby is drawn by Chromium, Firefox and WebKit alike (measured), and
+  a reading wider than its segment widens the segment as a wide furigana does, so neighbouring
+  romaji never overlap. The inline-block is for WebKit, which lays a line of such segments out
+  again, wider, when a reading is blurred or a box is added to a segment (measured); in its own box
+  the ruby keeps its layout. The segment is still an inline whose box is its text's, so its
+  highlight and underline are drawn as before. (The HTML standard's content model allows only a
+  single ruby as another ruby's base, so a validator flags the nesting; browsers parse and draw it
+  as written.) Where the layers differ from the defaults, the root says so: `data-over-layer`
+  (`"romaji"` or `"none"`) and `data-under-layer` (`"ruby"` or `"romaji"`).
+- **Switching.** The over side keeps the old switch: `options.ruby`, `Tsubu.setRuby` and the root's
+  `data-ruby`, whatever layer is over the text. The under side has the root's `data-under`, which
+  starts `"on"` and which `Tsubu.setAnnotation(root, "under", on)` sets;
+  `Tsubu.setAnnotation(root, "over", on)` is `setRuby`. Hidden readings get `visibility: hidden`
+  and keep their room, so switching either side, or both, moves no character, in horizontal and
+  vertical text and over several lines (measured in every engine).
+- **Across a line**, from over to under: the over readings, the text with its highlight, the
+  underline, then the under readings. The under readings are `--tsubu-reading-gap` (`0.2em` of the
+  reading) away from the text, so the dotted underline runs between the two and stays visible, and
+  twice that from the next line's readings. Romaji over the text are as far from it, so that their
+  descenders (g, j, p, y) stay clear of the highlight; furigana over the text sit as they always
+  have. The lines make room for the readings on both sides, so one line's under readings never
+  meet the next line's over readings. `--tsubu-under-reserve` (`0.5em`) is room below the last line
+  for its under readings, as `--tsubu-ruby-reserve` is above the first: WebKit does not grow the
+  last line for them.
+- **Vertical text.** Over is at the right of the characters and under at the left, as
+  `ruby-position` turns with the writing mode. Romaji lie on their side, as other Latin text does
+  in vertical Japanese, and are never set upright (`combineUpright` applies to the parts only).
+  With readings under the text, each column holds its own readings on both sides, so the columns
+  are further apart: their width comes from the readings' sizes, half again for fonts whose content
+  area is taller than their em box, and so is generous for a font whose content area is its em box.
+- **Size and colours.** `--tsubu-romaji-size` (default: the furigana's size) and
+  `--tsubu-ruby-weight`; romaji take the furigana's colour tokens in every state and for every
+  speaker, and `checkContrast` measures them as layer `"romaji"` against the furigana's threshold.
+  `checkFit` reports romaji past the container as `"ruby-clipped"`, as it does furigana.
+- **Motion, forced colours, screen readers.** The motion presets treat romaji as they treat
+  furigana: `appear` hides them and `mask` and `blur` blank and blur them while their segment is
+  unheard; `underline-draw` leaves them alone. Under forced colours the romaji of the segment being
+  spoken take `CanvasText`, as its furigana do. With `announceRuby: false` the romaji, like the
+  furigana, are `aria-hidden`.
+- **Without ruby.** The romaji sit between the same full-width `<rp>` parentheses, after their
+  segment: 雨（あめ）が（ame ga）降（ふ）る（furu）.
+- **Not here:** the exporters (`tsubu-export.js`) and importers (`tsubu-import.js`) accept romaji
+  in their input, which `Tsubu.sentence()` checks, but subtitles carry no romaji, and nothing is
+  imported as romaji.
 
 ## Themes and contrast
 
@@ -248,8 +339,8 @@ it (1.4.11, graphics needed to follow the reading).
 
 **`Tsubu.checkContrast(root, options)`** measures what the browser computes for a drawn sentence,
 in every state: `"static"` (before any `apply`, and timing `"none"`), `"future"`, `"current"` and
-`"past"`. For each segment it checks the text, the furigana and the underline against what is
-behind them, painting translucent colours over what is beneath, and the highlight against the
+`"past"`. For each segment it checks the text, the furigana, the romaji (layer `"romaji"`, against
+the `ruby` threshold) and the underline against what is behind them, painting translucent colours over what is beneath, and the highlight against the
 plate and backdrop around it. A layer counts as on the highlight when the highlight covers its
 middle, so the furigana above a highlighted segment are checked against the page. It works on a
 hidden copy of the sentence and removes it again, so the page is left as it was.
@@ -486,7 +577,8 @@ such as Remotion, see [Using tsubu with other tools](#using-tsubu-with-other-too
 An optional script, `tsubu-export.js`, turns the same input into subtitles. Load it after
 `tsubu.js` (it defines `TsubuExport`), or `require("./tsubu-export.js")` in Node. Input is checked
 by `Tsubu.sentence()`, so it is refused with the same errors. A sentence without times cannot be
-exported, and nothing is estimated.
+exported, and nothing is estimated. Romaji are accepted and left out: the subtitles carry the
+furigana only.
 
 - **`TsubuExport.toWebVTT(input, { ruby = true, offset = 0, id })`** returns a WebVTT file with
   one cue spanning the sentence. Each segment is a class span, `<c.tsubu-seg>`
@@ -583,14 +675,16 @@ Node against `htmlAt`.
 
 - **Forced colours.** In forced-colours mode (Windows contrast themes and the like) browsers
   replace backgrounds, which would leave the segment being spoken looking like every other. tsubu keeps a highlight on that segment alone, in the user's own colours for
-  selected text (`Highlight` and `HighlightText`); its furigana take `CanvasText`, since they sit
-  on the page. Everything else is left to the browser.
+  selected text (`Highlight` and `HighlightText`); its furigana and romaji take `CanvasText`, since
+  they sit on the page. Everything else is left to the browser.
 - **Screen readers.** A reading is read after its base by default (Chromium exposes
-  「雨 あめ が 降る」). With `options.announceRuby: false`, every `<rt>` and `<rp>` gets
-  `aria-hidden="true"`, so the sentence is read once; the readings are still drawn and still switch. Hidden furigana
-  are never read, since they are `visibility: hidden`.
+  「雨 あめ が 降る」), and romaji after their segment. With `options.announceRuby: false`, every
+  `<rt>` and `<rp>`, romaji included, gets `aria-hidden="true"`, so the sentence is read once; the
+  readings are still drawn and still switch. Hidden readings, on either side, are never read, since
+  they are `visibility: hidden`.
 - The segment being spoken carries `aria-current="true"`, and segments on other pages are hidden
   from assistive technology along with the page (see [Paging by t](#paging-by-t)).
 - **Without ruby.** Each reading is wrapped in full-width `<rp>` parentheses. Browsers that draw
   ruby hide them (`tsubu.css` keeps them hidden even where a page's own styles would show them),
-  so they move nothing and are not read; whatever cannot draw ruby shows 雨（あめ）.
+  so they move nothing and are not read; whatever cannot draw ruby shows 雨（あめ）, and romaji
+  after their segment, 雨（あめ）が（ame ga）.

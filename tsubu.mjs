@@ -8,5 +8,5 @@ import * as script from "./tsubu.js";
 const Tsubu = script.default ?? globalThis.Tsubu;
 
 export default Tsubu;
-export const { version, sentence, setRuby, setRevealed, segmentOf, contrast, checkContrast, checkFit,
+export const { version, sentence, setRuby, setAnnotation, setRevealed, segmentOf, contrast, checkContrast, checkFit,
   STATES, THEMES, SPEAKERS, CONTRAST, MOTIONS } = Tsubu;

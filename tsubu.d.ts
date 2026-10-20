@@ -15,6 +15,11 @@ declare namespace Tsubu {
   /** One unit of reading. Times are in seconds on the caller's clock. */
   interface Segment {
     parts: Part[];
+    /**
+     * The romanised reading of the whole segment, drawn where options.over or options.under says;
+     * tsubu never makes one. Not on punctuation.
+     */
+    romaji?: string;
     start?: number;
     end?: number;
     /** Punctuation: no underline, never the segment being spoken, and never timed. */
@@ -34,12 +39,20 @@ declare namespace Tsubu {
   }
 
   type Writing = "horizontal" | "vertical";
+  /** What a side of the text shows: the parts' furigana, the segments' romaji, or nothing. */
+  type Annotation = "ruby" | "romaji" | "none";
+  /** Over: above the text (at its right in vertical text); under: below it (at its left). */
+  type Side = "over" | "under";
 
   interface Options {
-    /** Whether furigana start out shown. Default true. */
+    /** Whether the over side (the furigana, by default) starts out shown. Default true. */
     ruby?: boolean;
-    /** Whether screen readers read each reading. Default true. */
+    /** Whether screen readers read each reading, furigana and romaji. Default true. */
     announceRuby?: boolean;
+    /** What is drawn over the text. Default "ruby". Not the same layer as `under`. */
+    over?: Annotation;
+    /** What is drawn under the text. Default "none". Not the same layer as `over`. */
+    under?: Annotation;
     /** A preset from THEMES, or a lower-case name of your own. */
     theme?: string;
     /** A speaker from SPEAKERS, or a lower-case name of your own. */
@@ -93,7 +106,8 @@ declare namespace Tsubu {
     find(id: string): number | null;
   }
 
-  type Layer = "text" | "ruby" | "underline" | "highlight";
+  /** "romaji" is measured against the `ruby` threshold. */
+  type Layer = "text" | "ruby" | "romaji" | "underline" | "highlight";
 
   interface Thresholds {
     text: number;
@@ -168,6 +182,7 @@ declare namespace Tsubu {
     readonly version: string;
     sentence(input: Input, options?: Options): Sentence;
     setRuby(root: Element, on: boolean): void;
+    setAnnotation(root: Element, side: Side, on: boolean): void;
     setRevealed(root: Element, which: Revealed): number[];
     segmentOf(node: Node | null | undefined): number | null;
     contrast(foreground: string, background: string, backdrop?: string): number;
