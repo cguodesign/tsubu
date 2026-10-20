@@ -517,6 +517,42 @@ Node, that the browser parses the WebVTT as one cue with its spans, ruby and tim
 ffmpeg with libass is installed, that the ASS karaoke lights up at each syllable's start. Where
 ffmpeg and ffprobe are installed, they read the SRT with the cues and times it was written with.
 
+## Importing other formats
+
+Another optional script, `tsubu-import.js`, turns other formats into tsubu's input. Load it after
+`tsubu.js` (it defines `TsubuImport`), or `require("./tsubu-import.js")` in Node. Nothing is
+guessed: segments come only from what the format marks (a caption, a cue, a class span, a cue
+timestamp), never from the text, and times only from the file. Every result is checked with
+`Tsubu.sentence()`, and a refusal names the cue or caption it came from.
+
+- **`TsubuImport.fromKuroshiro(html)`** returns the parts of one segment, `[{ text, ruby? }]`,
+  from [kuroshiro](https://github.com/hexenq/kuroshiro)'s furigana HTML (`convert(text, { mode:
+  "furigana" })`), whatever its delimiters, and with the romaji target's several readings in one
+  `<ruby>`. kuroshiro does not cut text into segments, so convert each segment's text on its own.
+  kuroshiro does not escape its text, and nothing is unescaped here.
+- **`TsubuImport.fromCaptions(captions)`** returns one sentence from
+  [Remotion](https://www.remotion.dev/docs/captions/caption)'s `Caption` objects (`text`,
+  `startMs`, `endMs`), one segment per caption. The spaces Remotion puts around a word are
+  dropped, a caption of spaces alone is left out, and one of punctuation alone becomes a
+  punctuation segment, which has no time.
+- **`TsubuImport.fromWebVTT(text)`** returns one sentence per cue. Readings are
+  `<ruby>雨<rt>あめ</rt></ruby>`. Segments are the cue's `<c.tsubu-seg>` spans, as `toWebVTT`
+  writes them; failing those, the text between its cue timestamps; failing those, the whole cue.
+  A cue timestamp says when the text after it begins, and WebVTT records no end: a segment lasts
+  until the next timestamp or segment, and the last until the cue ends. So a gap between two
+  segments does not survive a round trip through WebVTT; everything else does. Without cue
+  timestamps the sentence is timed as a whole by the cue. Other tags (`<v>`, `<i>`, `<c>` of
+  other classes) keep only their text; notes, styles, regions and cue settings are passed over.
+- **`TsubuImport.fromSRT(text, { mode = "sentence" })`** reads a SubRip file. `mode: "sentence"`
+  returns one sentence per cue, timed as a whole; `mode: "segments"` returns one sentence with a
+  segment per cue, as `toSRT` writes it in that mode. Tags (`<i>`, `<font>`) and override blocks
+  (`{\an8}`) are dropped. SRT has no ruby, so readings written inline come back as text.
+
+A segment of punctuation alone becomes punctuation. Where a cue's text breaks onto a new line, the
+break becomes a space, except between two Japanese or Chinese characters, which get none. The tests
+(`tests/test_import.py`) run each importer in Node, on files from elsewhere and on round trips
+through `tsubu-export.js`.
+
 ## Using tsubu with other tools
 
 Every frame is a function of `t` alone, so any tool with its own clock can drive tsubu. Turn the

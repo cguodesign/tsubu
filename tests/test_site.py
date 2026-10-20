@@ -211,6 +211,8 @@ def test_the_api_page_names_everything_the_guide_and_the_library_do(site):
     assert f'"{found["version"]}"' in text and f'`"{found["version"]}"`' in readme
     for name in ("toWebVTT", "toASS", "toASSScript", "toSRT"):
         assert f"TsubuExport.{name}" in text and f"`TsubuExport.{name}" in readme or f"**`{name}`**" in readme
+    for name in ("fromKuroshiro", "fromCaptions", "fromWebVTT", "fromSRT"):
+        assert f"TsubuImport.{name}" in text and f"`TsubuImport.{name}" in readme
     for motion in ("appear", "mask", "blur", "underline-draw"):
         assert motion in text and f"`{motion}`" in readme
 

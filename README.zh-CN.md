@@ -56,15 +56,16 @@ tsubu **不做**的事：把文本切成词、把音频和文本对齐、估算�
 npm install --save-exact tsubu-js
 ```
 
-包里的文件和本仓库相同，没有构建步骤：`tsubu.js`（普通脚本）、`tsubu.css`、`tsubu-export.js`，
-每个脚本各有一个 ES 模块（`tsubu.mjs`、`tsubu-export.mjs`，只把脚本的对象再导出），以及
-TypeScript 类型声明。
+包里的文件和本仓库相同，没有构建步骤：`tsubu.js`（普通脚本）、`tsubu.css`、`tsubu-export.js`、
+`tsubu-import.js`，每个脚本各有一个 ES 模块（`tsubu.mjs`、`tsubu-export.mjs`、`tsubu-import.mjs`，
+只把脚本的对象再导出），以及 TypeScript 类型声明。
 
 ```js
 const Tsubu = require("tsubu-js");                     // Node，CommonJS
 const TsubuExport = require("tsubu-js/export");
 import Tsubu, { sentence } from "tsubu-js";            // ES 模块和打包工具
 import { toSRT } from "tsubu-js/export";
+import { fromWebVTT } from "tsubu-js/import";
 import "tsubu-js/tsubu.css";                           // 打包工具能处理 CSS 时
 ```
 
@@ -146,6 +147,7 @@ tsubu 从不猜测：只有部分段带时间、时间重叠或倒序、输入�
 - [**竖排**](docs/guide.md#vertical-writing)，短的半角字符串直立显示。
 - [**动效与揭示**](docs/guide.md#motion-and-revealing)：`appear`、`mask`、`blur`、`underline-draw`，都由状态画出；也可以按调用方的事件揭示某些段。
 - [**录制视频**](docs/guide.md#recording-video)（逐帧）和[**字幕**](docs/guide.md#exporting-subtitles)（`tsubu-export.js`：WebVTT、ASS 卡拉 OK、SRT）。
+- [**导入**](docs/guide.md#importing-other-formats)（`tsubu-import.js`）：把 kuroshiro 的注音、Remotion 字幕、WebVTT 和 SRT 转成 tsubu 的输入，不猜段，也不猜时间。
 - [**与其他工具配合**](docs/guide.md#using-tsubu-with-other-tools)：Remotion、HyperFrames 等逐帧引擎，视频剪辑软件，PowerPoint。
 - [**无障碍**](docs/guide.md#accessibility)：强制颜色模式，可以让读屏软件跳过的注音，以及在画不出 ruby 的地方用括号显示的注音。
 
@@ -179,7 +181,8 @@ python -m pytest -q                    # 加 --engine firefox 或 --engine webki
 | `tsubu.js` | 库本身：一个普通脚本，在页面里定义 `Tsubu`，在 Node 里是 `module.exports` |
 | `tsubu.css` | 样式；可调的都是自定义属性 |
 | `tsubu-export.js` | 可选：用同样的输入生成 WebVTT、ASS 卡拉 OK 和 SRT 字幕 |
-| `tsubu.mjs`、`tsubu-export.mjs` | 同样的对象，以 ES 模块的形式，本身没有代码 |
+| `tsubu-import.js` | 可选：从 kuroshiro 的注音、Remotion 字幕、WebVTT 和 SRT 生成 tsubu 的输入 |
+| `tsubu.mjs`、`tsubu-export.mjs`、`tsubu-import.mjs` | 同样的对象，以 ES 模块的形式，本身没有代码 |
 | `*.d.ts`、`*.d.mts` | TypeScript 类型声明，由 `tests/test_package.py` 和 `tests/types` 对照脚本检查 |
 | `package.json` | npm 包：导出、发布哪些文件、锁定版本的 TypeScript |
 | `docs/agents/` | 给 agent 的版本化指南，讲怎么准备 tsubu 的输入，附校验器（也在包里） |

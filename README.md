@@ -66,14 +66,16 @@ npm install --save-exact tsubu-js
 ```
 
 The package holds the same files as this repository, with no build step: `tsubu.js` (the classic
-script), `tsubu.css`, `tsubu-export.js`, an ES module for each script (`tsubu.mjs`,
-`tsubu-export.mjs`, which only re-export the script's object) and TypeScript declarations.
+script), `tsubu.css`, `tsubu-export.js`, `tsubu-import.js`, an ES module for each script
+(`tsubu.mjs`, `tsubu-export.mjs`, `tsubu-import.mjs`, which only re-export the script's object)
+and TypeScript declarations.
 
 ```js
 const Tsubu = require("tsubu-js");                     // Node, CommonJS
 const TsubuExport = require("tsubu-js/export");
 import Tsubu, { sentence } from "tsubu-js";            // ES modules and bundlers
 import { toSRT } from "tsubu-js/export";
+import { fromWebVTT } from "tsubu-js/import";
 import "tsubu-js/tsubu.css";                           // with a bundler that handles CSS
 ```
 
@@ -173,6 +175,9 @@ Each item links to its section of the guide:
   `underline-draw`, each drawn from the state, and segments revealed on the caller's events.
 - [**Recording video**](docs/guide.md#recording-video) frame by frame, and
   [**subtitles**](docs/guide.md#exporting-subtitles) (`tsubu-export.js`: WebVTT, ASS karaoke, SRT).
+- [**Importing**](docs/guide.md#importing-other-formats) (`tsubu-import.js`): kuroshiro's
+  furigana, Remotion captions, WebVTT and SRT, turned into tsubu's input without guessing segments
+  or times.
 - [**Other tools**](docs/guide.md#using-tsubu-with-other-tools): frame engines such as Remotion and
   HyperFrames, video editors, PowerPoint.
 - [**Accessibility**](docs/guide.md#accessibility): forced colours, readings that screen
@@ -217,7 +222,8 @@ the site.
 | `tsubu.js` | the library: a classic script that defines `Tsubu`, or `module.exports` in Node |
 | `tsubu.css` | the styles; everything adjustable is a custom property |
 | `tsubu-export.js` | optional: WebVTT, ASS karaoke and SRT subtitles from the same input |
-| `tsubu.mjs`, `tsubu-export.mjs` | the same objects as ES modules, with no code of their own |
+| `tsubu-import.js` | optional: tsubu's input from kuroshiro's furigana, Remotion captions, WebVTT and SRT |
+| `tsubu.mjs`, `tsubu-export.mjs`, `tsubu-import.mjs` | the same objects as ES modules, with no code of their own |
 | `*.d.ts`, `*.d.mts` | TypeScript declarations, checked against the scripts by `tests/test_package.py` and `tests/types` |
 | `package.json` | the npm package: its exports, the files it publishes, the pinned TypeScript |
 | `docs/agents/` | the versioned guide for agents preparing tsubu's input, with its validator (also in the package) |
