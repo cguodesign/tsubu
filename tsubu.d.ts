@@ -6,7 +6,7 @@
  */
 
 declare namespace Tsubu {
-  /** A piece of a segment's text; with `ruby` it is drawn as <ruby>text<rt>ruby</rt></ruby>. */
+  /** A piece of a segment's text; with `ruby` it is drawn as <ruby>text<rp>（</rp><rt>ruby</rt><rp>）</rp></ruby>. */
   interface Part {
     text: string;
     ruby?: string;
