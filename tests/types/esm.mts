@@ -1,6 +1,7 @@
 // The declarations as an ES module user sees them, through the package's own exports map.
 import Tsubu, { sentence, version, STATES, MOTIONS, checkFit, type Input, type Frame } from "tsubu-js";
 import TsubuExport, { toSRT } from "tsubu-js/export";
+import TsubuImport, { fromKuroshiro, fromSRT, type Caption } from "tsubu-js/import";
 
 const input: Input = {
   segments: [
@@ -27,11 +28,19 @@ const kinds: string[] = fit.issues.map((issue) => issue.kind);
 const applied = s.apply(root, 0.3);
 const page: number | null = applied.page;
 
+const parts = fromKuroshiro("<ruby>雨<rp>(</rp><rt>あめ</rt><rp>)</rp></ruby>");
+const captions: Caption[] = [{ text: " 雨", startMs: 0, endMs: 400, timestampMs: null, confidence: 0.9 }];
+const fromRemotion: Input = TsubuImport.fromCaptions(captions);
+const oneSentence: Input = fromSRT(srt, { mode: "segments" });
+const perCue: Input[] = fromSRT(srt);
+
 // @ts-expect-error writing is horizontal or vertical
 sentence(input, { writing: "diagonal" });
 // @ts-expect-error a segment needs its parts
 sentence({ segments: [{ start: 0, end: 1 }] });
 // @ts-expect-error SRT readings are omitted or inline, not a boolean
 toSRT(input, { ruby: true });
+// @ts-expect-error mode "segments" reads the file as one sentence, not an array
+const notAnArray: Input[] = fromSRT(srt, { mode: "segments" });
 
-export { current, html, sameObject, v, first, needs, srt, vtt, kinds, page };
+export { current, html, sameObject, v, first, needs, srt, vtt, kinds, page, parts, fromRemotion, oneSentence, perCue, notAnArray };

@@ -29,21 +29,23 @@ def node(script, *args):
 
 @pytest.fixture(scope="module")
 def loaded():
-    """What Node sees through require() and through import, for both scripts."""
+    """What Node sees through require() and through import, for each script."""
     return node("""
         import { createRequire } from "node:module";
         import { pathToFileURL } from "node:url";
         const base = pathToFileURL(process.cwd() + "/"), require = createRequire(base);
-        const script = require("./tsubu.js"), exporter = require("./tsubu-export.js");
+        const script = require("./tsubu.js"), exporter = require("./tsubu-export.js"), importer = require("./tsubu-import.js");
         const module = await import(new URL("tsubu.mjs", base)), exporterModule = await import(new URL("tsubu-export.mjs", base));
+        const importerModule = await import(new URL("tsubu-import.mjs", base));
         const named = (m) => Object.keys(m).filter((k) => k !== "default");
         console.log(JSON.stringify({
           version: script.version,
-          keys: Object.keys(script), exporterKeys: Object.keys(exporter),
-          named: named(module), exporterNamed: named(exporterModule),
-          sameObject: module.default === script && exporterModule.default === exporter,
+          keys: Object.keys(script), exporterKeys: Object.keys(exporter), importerKeys: Object.keys(importer),
+          named: named(module), exporterNamed: named(exporterModule), importerNamed: named(importerModule),
+          sameObject: module.default === script && exporterModule.default === exporter && importerModule.default === importer,
           sameValues: named(module).every((k) => module[k] === script[k])
-            && named(exporterModule).every((k) => exporterModule[k] === exporter[k]),
+            && named(exporterModule).every((k) => exporterModule[k] === exporter[k])
+            && named(importerModule).every((k) => importerModule[k] === importer[k]),
         }));
     """)
 
@@ -84,6 +86,7 @@ def test_the_es_modules_are_the_scripts_objects(loaded):
     assert loaded["sameObject"] and loaded["sameValues"]
     assert sorted(loaded["named"]) == sorted(loaded["keys"])
     assert sorted(loaded["exporterNamed"]) == sorted(loaded["exporterKeys"])
+    assert sorted(loaded["importerNamed"]) == sorted(loaded["importerKeys"])
 
 
 def test_every_exported_name_is_declared(loaded):
@@ -91,6 +94,9 @@ def test_every_exported_name_is_declared(loaded):
     assert sorted(declared_constants(read("tsubu.d.mts"))) == sorted(loaded["keys"])
     assert sorted(members(read("tsubu-export.d.ts"), "API")) == sorted(loaded["exporterKeys"])
     assert sorted(declared_constants(read("tsubu-export.d.mts"))) == sorted(loaded["exporterKeys"])
+    # fromSRT is declared once per mode, as an overload
+    assert sorted(set(members(read("tsubu-import.d.ts"), "API"))) == sorted(loaded["importerKeys"])
+    assert sorted(declared_constants(read("tsubu-import.d.mts"))) == sorted(loaded["importerKeys"])
 
 
 def test_every_option_is_declared():
@@ -114,6 +120,10 @@ def test_every_option_is_declared():
     assert set(lists["WEBVTT_OPTIONS"]) == set(members(export_declarations, "WebVTTOptions"))
     assert set(lists["ASS_OPTIONS"]) == set(members(export_declarations, "ASSOptions"))
     assert set(lists["SRT_OPTIONS"]) == set(members(export_declarations, "SRTOptions"))
+
+    importer = read("tsubu-import.js")
+    lists = {name: re.findall(r'"(\w+)"', body) for name, body in re.findall(r"const (\w+_OPTIONS) = Object\.freeze\(\[([^\]]*)\]", importer)}
+    assert set(lists["SRT_OPTIONS"]) == set(members(read("tsubu-import.d.ts"), "SRTOptions"))
 
 
 def test_the_declarations_compile():
@@ -158,9 +168,11 @@ def test_the_es_module_loads_in_the_browser(browser):
             route.fulfill(content_type="text/html", body="""<!doctype html><meta charset="utf-8"><script type="module">
                 import Tsubu, { sentence } from "./tsubu.mjs";
                 import TsubuExport, { toSRT } from "./tsubu-export.mjs";
+                import TsubuImport, { fromSRT } from "./tsubu-import.mjs";
                 const input = { segments: [{ parts: [{ text: "雨" }], start: 0, end: 1 }] };
                 window.result = { keys: Object.keys(Tsubu), same: Tsubu === window.Tsubu && sentence === Tsubu.sentence,
-                  exporter: TsubuExport === window.TsubuExport && toSRT(input).includes("雨") };
+                  exporter: TsubuExport === window.TsubuExport && toSRT(input).includes("雨"),
+                  importer: TsubuImport === window.TsubuImport && fromSRT(toSRT(input))[0].segments[0].parts[0].text === "雨" };
             </script>""")
         else:
             route.fulfill(path=str(ROOT / name), content_type=types[os.path.splitext(name)[1]])
@@ -171,7 +183,7 @@ def test_the_es_module_loads_in_the_browser(browser):
         result = page.evaluate("window.result")
     finally:
         page.close()
-    assert result["same"] and result["exporter"]
+    assert result["same"] and result["exporter"] and result["importer"]
     assert sorted(result["keys"]) == sorted(members(read("tsubu.d.ts"), "API"))
 
 

@@ -26,9 +26,14 @@
       "import": { "types": "./tsubu-export.d.mts", "default": "./tsubu-export.mjs" },
       "require": { "types": "./tsubu-export.d.ts", "default": "./tsubu-export.js" }
     },
+    "./import": {
+      "import": { "types": "./tsubu-import.d.mts", "default": "./tsubu-import.mjs" },
+      "require": { "types": "./tsubu-import.d.ts", "default": "./tsubu-import.js" }
+    },
     "./tsubu.css": "./tsubu.css",
     "./tsubu.js": "./tsubu.js",
     "./tsubu-export.js": "./tsubu-export.js",
+    "./tsubu-import.js": "./tsubu-import.js",
     "./validate": "./docs/agents/validate.mjs",
     "./package.json": "./package.json"
   },
@@ -42,12 +47,16 @@
     "tsubu-export.mjs",
     "tsubu-export.d.ts",
     "tsubu-export.d.mts",
+    "tsubu-import.js",
+    "tsubu-import.mjs",
+    "tsubu-import.d.ts",
+    "tsubu-import.d.mts",
     "docs/agents/segmenting.md",
     "docs/agents/validate.mjs",
     "CHANGELOG.md",
     "README.zh-CN.md"
   ],
-  "sideEffects": ["*.css", "./tsubu.js", "./tsubu-export.js"],
+  "sideEffects": ["*.css", "./tsubu.js", "./tsubu-export.js", "./tsubu-import.js"],
   "scripts": {
     "test": "python3 -m pytest -q",
     "typecheck": "tsc -p tests/types"

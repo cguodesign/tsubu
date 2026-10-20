@@ -13,6 +13,12 @@ All notable changes to tsubu are recorded here. The format follows
   Browsers that draw ruby hide them, and `tsubu.css` keeps them hidden where a page's own styles
   would show them, so nothing moves; with `announceRuby: false` they are `aria-hidden` with the
   reading.
+- `tsubu-import.js` (`TsubuImport`, `tsubu-js/import`) turns other formats into tsubu's input:
+  `fromKuroshiro` (kuroshiro's furigana HTML, as the parts of one segment), `fromCaptions`
+  (Remotion captions, a segment each), `fromWebVTT` (a sentence per cue, segments from
+  `<c.tsubu-seg>` spans or cue timestamps) and `fromSRT` (a sentence per cue, or the file as one
+  sentence with a segment per cue). Segments come only from what the format marks and times only
+  from the file; every result is checked with `Tsubu.sentence()`.
 
 ### Changed
 
