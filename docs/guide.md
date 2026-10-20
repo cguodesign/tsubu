@@ -707,3 +707,7 @@ Node against `htmlAt`.
   ruby hide them (`tsubu.css` keeps them hidden even where a page's own styles would show them),
   so they move nothing and are not read; whatever cannot draw ruby shows 雨（あめ）, and romaji
   after their segment, 雨（あめ）が（ame ga）.
+
+`tests/test_a11y.py` checks forced colours and screen readers in a real browser,
+`tests/test_fallback.py` the `<rp>` parentheses, and `tests/test_romaji.py` romaji in both; see
+[docs/testing.md](testing.md).

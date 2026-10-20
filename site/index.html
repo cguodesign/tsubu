@@ -538,8 +538,15 @@ function place(x, y) {
   const near = centres.reduce((a, c) => (Math.hypot(c.x - x, c.y - y) < Math.hypot(a.x - x, a.y - y) ? c : a), centres[0]);
   const seg = LOUPE.segments[near.i], reading = seg.parts.filter((p) => p.ruby).map((p) => p.ruby).join("") || "—", span = L.span(near.i);
   utag.textContent = `${String(near.i).padStart(2, "0")}  ${reading}${span ? `  ${span.start.toFixed(2)}–${span.end.toFixed(2)} s` : ""}`;
-  const right = X + R * 0.72 + 6, fits = right + utag.offsetWidth < lb.width;
-  utag.style.left = `${fits ? right : Math.max(0, X - R * 0.72 - 6 - utag.offsetWidth)}px`; utag.style.top = `${Math.max(0, Y - R * 0.72 - 22)}px`;
+  // Beside the ring, right or left. On a narrow loupe (a phone) the ring spans several lines, so
+  // a label beside it would sit on other lines: there it goes in the margin under the text, as
+  // near the segment as the width allows.
+  const w = utag.offsetWidth, right = X + R * 0.72 + 6, left = X - R * 0.72 - 6 - w;
+  if (lb.width >= 600 && (right + w < lb.width || left >= 0)) {
+    utag.style.left = `${right + w < lb.width ? right : left}px`; utag.style.top = `${Math.max(0, Y - R * 0.72 - 22)}px`;
+  } else {
+    utag.style.left = `${Math.min(Math.max(0, X - w / 2), lb.width - w)}px`; utag.style.top = `${lb.height - utag.offsetHeight - 8}px`;
+  }
   return near.i;
 }
 function parkOn(i) { parked = (i + centres.length) % centres.length; place(centres[parked].x, centres[parked].y); }

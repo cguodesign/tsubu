@@ -323,6 +323,15 @@ def test_the_start_page_redraws_the_edited_sentence_and_shows_errors(site):
     assert page.errors == []
 
 
+def test_the_getting_started_example_is_the_readme_s():
+    # The page shows the README's 30-second example as its own copy; this keeps the two alike.
+    import html
+    example = re.search(r"## 30-second example\n\n```html\n(.*?)\n```", (ROOT / "README.md").read_text(encoding="utf-8"), re.S).group(1)
+    page = (SITE / "start.html").read_text(encoding="utf-8")
+    blocks = [html.unescape(re.sub(r"<[^>]+>", "", block)) for block in re.findall(r"<pre><code>(.*?)</code></pre>", page, re.S)]
+    assert example in blocks
+
+
 def test_the_playground_switches_everything_and_checks_the_contrast(site):
     page = site("playground.html")
     assert page.locator("#verdict").text_content().startswith("ok")

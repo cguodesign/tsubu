@@ -47,8 +47,10 @@ All notable changes to tsubu are recorded here. The format follows
   250 ms, so the highlight no longer steps behind the voice.
 - The package also ships `docs/guide.md` and `docs/testing.md`, which the README links to.
 - The website: getting started installs from npm and names the importer; the guide has live
-  sections on romaji and on importing, and the home page a card for each; the API tables stack on
-  a phone; the not-found page's home link stays on the site.
+  sections on romaji and on importing, and the home page a card for each; the playground reads
+  JSON, WebVTT or SRT and has the over and under options; the API tables stack on a phone, and on
+  a phone the loupe's label sits under the text instead of on other lines; the not-found page's
+  home link stays on the site. A test keeps getting started's example the README's.
 - Documentation corrected: the size of `tsubu.js` (about 50 KB, 16 KB gzipped), which engines
   balance lines, the underline offset (from the em box), the `<rp>` fallback in the testing
   notes, the HTML attributes and refusals in full, the language versions each script needs, and
@@ -171,12 +173,12 @@ First version.
 - The website in `site/`: a home page with a film drawn frame by frame from `t` and a furigana
   loupe, getting started, a guide with a live example per section, the API reference (checked
   against the README and the library by a test), a playground with `checkContrast` live, and a
-  gallery of every theme, motion preset and writing mode, in English and 简体中文. Every page is
+  gallery of every theme, motion preset and writing mode, in English, 简体中文 and 日本語. Every page is
   tested for errors, horizontal scroll at phone width and colour contrast.
 - The browser tests run in Firefox and WebKit as well as Chromium: `--engine firefox|webkit`
   (default `chromium`) and `--engine-executable` for another build; `capture-frames.py` takes
   `--engine` too. Each limitation of an engine is an expected failure there alone, with its
-  reason; the README's Browser support says what holds where. Measured in Firefox 139 and 153
+  reason; the README's Browser support (now in `docs/testing.md`) says what holds where. Measured in Firefox 139 and 153
   (the `engine_version` fixture gives a test the browser's major version).
 - A versioned guide for agents, `docs/agents/segmenting.md` (guide 1.0.0, verified 2026-10-19):
   bunsetsu from GiNZA or KNP/KWJA (or merged from SudachiPy, MeCab with UniDic, kuromoji.js),

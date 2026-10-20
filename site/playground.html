@@ -32,13 +32,16 @@ details pre { margin-top: 8px; max-height: 300px; overflow: auto; }
 <div class="wrap">
   <header class="mast"></header>
   <h1 class="page-title"><span class="en">Playground</span><span class="zh" lang="zh-CN">试验场</span><span class="ja" lang="ja">プレイグラウンド</span></h1>
-  <p class="page-lede en">Paste a sentence as JSON, scrub the time, and switch everything the library offers. <code>stateAt</code>, <code>checkContrast</code>, <code>htmlAt</code> and the subtitle exporters run on it live. Nothing leaves the page.</p>
-  <p class="page-lede zh" lang="zh-CN">把句子作为 JSON 贴进来，拖动时间，切换这个库提供的所有开关。<code>stateAt</code>、<code>checkContrast</code>、<code>htmlAt</code> 和字幕导出都在这上面实时运行。什么都不会离开这个页面。</p><p class="page-lede ja" lang="ja">文を JSON で貼り付け、時刻を動かし、このライブラリのすべてのスイッチを切り替えます。<code>stateAt</code>、<code>checkContrast</code>、<code>htmlAt</code>、字幕の書き出しがその場で実行されます。データがこのページの外へ出ることはありません。</p>
+  <p class="page-lede en">Paste a sentence as JSON, WebVTT or SRT, scrub the time, and switch everything the library offers. <code>stateAt</code>, <code>checkContrast</code>, <code>htmlAt</code> and the subtitle exporters run on it live. Nothing leaves the page.</p>
+  <p class="page-lede zh" lang="zh-CN">把句子作为 JSON、WebVTT 或 SRT 贴进来，拖动时间，切换这个库提供的所有开关。<code>stateAt</code>、<code>checkContrast</code>、<code>htmlAt</code> 和字幕导出都在这上面实时运行。什么都不会离开这个页面。</p><p class="page-lede ja" lang="ja">文を JSON、WebVTT、SRT のいずれかで貼り付け、時刻を動かし、このライブラリのすべてのスイッチを切り替えます。<code>stateAt</code>、<code>checkContrast</code>、<code>htmlAt</code>、字幕の書き出しがその場で実行されます。データがこのページの外へ出ることはありません。</p>
 
   <h2 class="label"><span class="kanji" data-ruby="ば">場</span><span class="en">Your sentence</span><span class="zh" lang="zh-CN">你的句子</span><span class="ja" lang="ja">あなたの文</span></h2>
   <div class="pg">
     <div class="panel">
-      <textarea class="json" id="src" spellcheck="false" aria-label="Sentence as JSON" style="min-height: 300px"></textarea>
+      <div class="ctl" style="margin: 0 0 8px"><label><span class="en">format</span><span class="zh" lang="zh-CN">格式</span><span class="ja" lang="ja">形式</span> <select id="format"><option value="json">JSON</option><option value="vtt">WebVTT · TsubuImport.fromWebVTT</option><option value="srt">SRT · TsubuImport.fromSRT (mode: "segments")</option></select></label></div>
+      <p class="small muted en" style="margin: 0 0 8px">WebVTT carries no romaji, ids or tags, and SRT no readings either: switching back to JSON shows what came through.</p>
+      <p class="small muted zh" lang="zh-CN" style="margin: 0 0 8px">WebVTT 不带罗马字、id 和标签，SRT 连读音也不带：切回 JSON 时显示的是转过来之后还剩下的内容。</p><p class="small muted ja" lang="ja" style="margin: 0 0 8px">WebVTT はローマ字、id、タグを運ばず、SRT は読みも運びません。JSON に戻すと、変換を通って残ったものが表示されます。</p>
+      <textarea class="json" id="src" spellcheck="false" aria-label="Sentence" style="min-height: 300px"></textarea>
       <p class="err" id="err" style="margin: 0"></p>
       <fieldset><legend><span class="en">Options</span><span class="zh" lang="zh-CN">选项</span><span class="ja" lang="ja">オプション</span></legend>
         <div class="ctl">
@@ -46,10 +49,13 @@ details pre { margin-top: 8px; max-height: 300px; overflow: auto; }
           <label><span class="en">speaker</span><span class="zh" lang="zh-CN">说话人</span><span class="ja" lang="ja">話者</span> <select id="speaker"><option value="">none</option><option>a</option><option>b</option></select></label>
           <label><span class="en">writing</span><span class="zh" lang="zh-CN">书写</span><span class="ja" lang="ja">書字方向</span> <select id="writing"><option>horizontal</option><option>vertical</option></select></label>
           <label>combineUpright <input type="number" id="combine" min="0" max="4" value="2" style="width: 4em"></label>
+          <label>over <select id="over"><option selected>ruby</option><option>romaji</option><option>none</option></select></label>
+          <label>under <select id="under"><option selected>none</option><option>romaji</option><option>ruby</option></select></label>
         </div>
         <div class="ctl" id="motions"><span class="en">motion</span><span class="zh" lang="zh-CN">动效</span><span class="ja" lang="ja">モーション</span></div>
         <div class="ctl">
-          <label><input type="checkbox" id="ruby" checked> <span class="en">furigana</span><span class="zh" lang="zh-CN">注音</span><span class="ja" lang="ja">ふりがな</span></label>
+          <label><input type="checkbox" id="ruby" checked> <span class="en">over shown</span><span class="zh" lang="zh-CN">显示上方</span><span class="ja" lang="ja">上を表示</span></label>
+          <label><input type="checkbox" id="under-shown" checked> <span class="en">under shown</span><span class="zh" lang="zh-CN">显示下方</span><span class="ja" lang="ja">下を表示</span></label>
           <label><input type="checkbox" id="announce" checked> announceRuby</label>
         </div>
       </fieldset>
@@ -83,6 +89,7 @@ details pre { margin-top: 8px; max-height: 300px; overflow: auto; }
 </div>
 <script src="tsubu.js"></script>
 <script src="tsubu-export.js"></script>
+<script src="tsubu-import.js"></script>
 <script src="site.js"></script>
 <script>
 "use strict";
@@ -91,20 +98,29 @@ const $ = (id) => document.getElementById(id);
 // 夏休みには、海の近くの小さな町で、祖母と一緒に一週間を過ごしました。
 // "In the summer holidays I spent a week with my grandmother in a small town by the sea."
 const START = { segments: [
-  { parts: [{ text: "夏休", ruby: "なつやす" }, { text: "みには" }], start: 0.0, end: 0.6 }, { parts: [{ text: "、" }], kind: "punct" },
-  { parts: [{ text: "海", ruby: "うみ" }, { text: "の" }], start: 0.75, end: 1.05 }, { parts: [{ text: "近", ruby: "ちか" }, { text: "くの" }], start: 1.05, end: 1.4 },
-  { parts: [{ text: "小", ruby: "ちい" }, { text: "さな" }], start: 1.4, end: 1.8 }, { parts: [{ text: "町", ruby: "まち" }, { text: "で" }], start: 1.8, end: 2.15 },
-  { parts: [{ text: "、" }], kind: "punct" }, { parts: [{ text: "祖母", ruby: "そぼ" }, { text: "と" }], start: 2.3, end: 2.7 },
-  { parts: [{ text: "一緒", ruby: "いっしょ" }, { text: "に" }], start: 2.7, end: 3.15 }, { parts: [{ text: "一週間", ruby: "いっしゅうかん" }, { text: "を" }], start: 3.15, end: 3.9, id: "week", tags: ["new-word"] },
-  { parts: [{ text: "過", ruby: "す" }, { text: "ごしました" }], start: 3.9, end: 4.8 }, { parts: [{ text: "。" }], kind: "punct" },
+  { parts: [{ text: "夏休", ruby: "なつやす" }, { text: "みには" }], romaji: "natsuyasumi ni wa", start: 0.0, end: 0.6 }, { parts: [{ text: "、" }], kind: "punct" },
+  { parts: [{ text: "海", ruby: "うみ" }, { text: "の" }], romaji: "umi no", start: 0.75, end: 1.05 }, { parts: [{ text: "近", ruby: "ちか" }, { text: "くの" }], romaji: "chikaku no", start: 1.05, end: 1.4 },
+  { parts: [{ text: "小", ruby: "ちい" }, { text: "さな" }], romaji: "chiisana", start: 1.4, end: 1.8 }, { parts: [{ text: "町", ruby: "まち" }, { text: "で" }], romaji: "machi de", start: 1.8, end: 2.15 },
+  { parts: [{ text: "、" }], kind: "punct" }, { parts: [{ text: "祖母", ruby: "そぼ" }, { text: "と" }], romaji: "sobo to", start: 2.3, end: 2.7 },
+  { parts: [{ text: "一緒", ruby: "いっしょ" }, { text: "に" }], romaji: "issho ni", start: 2.7, end: 3.15 }, { parts: [{ text: "一週間", ruby: "いっしゅうかん" }, { text: "を" }], romaji: "isshūkan o", start: 3.15, end: 3.9, id: "week", tags: ["new-word"] },
+  { parts: [{ text: "過", ruby: "す" }, { text: "ごしました" }], romaji: "sugoshimashita", start: 3.9, end: 4.8 }, { parts: [{ text: "。" }], kind: "punct" },
 ] };
-$("src").value = JSON.stringify(START, null, 2).replace(/\{\n\s+"text"/g, '{ "text"').replace(/"text": "([^"]*)",\n\s+"ruby": "([^"]*)"\n\s+\}/g, '"text": "$1", "ruby": "$2" }').replace(/"text": "([^"]*)"\n\s+\}/g, '"text": "$1" }');
+// The input as text in each format: JSON as written here, WebVTT and SRT as the exporters write
+// them (which carry no romaji, ids or tags), read back through the importers.
+const asText = {
+  json: (v) => JSON.stringify(v, null, 2).replace(/\{\n\s+"text"/g, '{ "text"').replace(/"text": "([^"]*)",\n\s+"ruby": "([^"]*)"\n\s+\}/g, '"text": "$1", "ruby": "$2" }').replace(/"text": "([^"]*)"\n\s+\}/g, '"text": "$1" }'),
+  vtt: (v) => TsubuExport.toWebVTT(v),
+  srt: (v) => TsubuExport.toSRT(v, { mode: "segments" }),
+};
+const parse = { json: (text) => JSON.parse(text), vtt: (text) => TsubuImport.fromWebVTT(text)[0], srt: (text) => TsubuImport.fromSRT(text, { mode: "segments" }) };
+let format = "json";
+$("src").value = asText.json(START);
 for (const m of Tsubu.MOTIONS) $("motions").insertAdjacentHTML("beforeend", `<label><input type="checkbox" name="motion" value="${m.name}"> ${m.name}</label>`);
 
 let input = null, drawn = null, t = 1.0;
 const motion = () => [...document.querySelectorAll('input[name="motion"]:checked')].map((c) => c.value);
 function options() {
-  const o = { ruby: $("ruby").checked, announceRuby: $("announce").checked, writing: $("writing").value, combineUpright: Number($("combine").value) };
+  const o = { ruby: $("ruby").checked, announceRuby: $("announce").checked, writing: $("writing").value, combineUpright: Number($("combine").value), over: $("over").value, under: $("under").value };
   if ($("theme").value) o.theme = $("theme").value;
   if ($("speaker").value) o.speaker = $("speaker").value;
   if (motion().length) o.motion = motion();
@@ -138,9 +154,10 @@ function exports() {
 }
 function redraw() {
   try {
-    input = JSON.parse($("src").value);
+    input = parse[format]($("src").value);
     const stage = $("stage"), o = options();
     drawn = Site.draw(stage, input, o);
+    Tsubu.setAnnotation(drawn.root, "under", $("under-shown").checked);
     stage.className = "stage " + (o.theme || "none") + (o.writing === "vertical" ? " vertical" : "");
     if (o.theme) stage.setAttribute("data-tsubu-theme", o.theme); else stage.removeAttribute("data-tsubu-theme");
     const times = input.segments.flatMap((s) => [s.start, s.end]).concat([input.start, input.end]).filter((v) => typeof v === "number");
@@ -161,7 +178,15 @@ function container() {
 }
 const clock = Site.clock({ duration: 5.3, render: (v) => { t = v; render(); }, play: $("play"), scrub: $("t"), out: $("out"), start: 1.0, autoplay: false });
 $("src").addEventListener("input", redraw);
-for (const id of ["theme", "speaker", "writing", "combine", "ruby", "announce"]) $(id).addEventListener("change", redraw);
+for (const id of ["theme", "speaker", "writing", "combine", "ruby", "announce", "over", "under"]) $(id).addEventListener("change", redraw);
+// switching a side changes an attribute only, so nothing is redrawn and nothing moves
+$("under-shown").addEventListener("change", () => { if (drawn) Tsubu.setAnnotation(drawn.root, "under", $("under-shown").checked); });
+// a new format shows the last sentence that was read, written in that format
+$("format").addEventListener("change", () => {
+  const next = $("format").value;
+  try { $("src").value = asText[next](input || START); format = next; redraw(); }
+  catch (e) { $("format").value = format; $("err").textContent = e.message; }
+});
 document.querySelectorAll('input[name="motion"]').forEach((c) => c.addEventListener("change", redraw));
 for (const id of ["fluid", "width", "lines"]) $(id).addEventListener("input", () => { container(); render(); });
 document.fonts.ready.then(() => { redraw(); window.__ready = true; });
